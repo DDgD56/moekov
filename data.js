@@ -625,6 +625,14 @@ const REGIONS = {
     pool:[['zduck',6],['spitter',1],['gunner',0.5],['bigduck',0.5]],
     nightPool:[['zduck',6],['fastduck',2],['spitter',1.2],['gunner',0.8],['bomber',0.5],['bigduck',0.5]],
     unlock:null,
+    // ── 스폰 밀도 프로필 (buildRaid/tick이 참조) ──
+    spawn:{
+      roam:40,                    // 초기 낮 배회 미니 수
+      dayCap:20, dayEvery:13,     // 낮 트리클: 상한 / 간격(초)
+      duskCap:70, duskBurst:3,    // 황혼 웨이브: 상한 / 1회 스폰 수
+      nightCap:140, nightBase:5, nightMax:16, nightGrow:15, // 밤 웨이브: 상한/기본수/최대수/증가속도
+      indoorMul:1, // 실내 상주 미니 배수
+    },
     // ── 지형 프로필 (buildRaid/렌더가 참조) ──
     biome:'meadow',        // 지형 테마 키
     factoryCount:2,        // 대형 공장 건물 수
@@ -643,12 +651,20 @@ const REGIONS = {
   factory: {
     id:'factory', name:'폐공장 지구', emoji:'🏭', stars:2, color:'#8a7a5a',
     desc:'버려진 공장 단지. 총기 부품이 넘치지만 미니도 사납고 밤이 빠르다.',
-    hpMul:1.15, dmgMul:1.2, spdMul:1.05, dayLen:150, coinMul:1.6,
+    hpMul:1.5, dmgMul:1.55, spdMul:1.18, dayLen:150, coinMul:1.6,
     rareBonus:0.03, boss:true,
-    pool:[['zduck',5],['gunner',1.6],['sniper',1],['spitter',1.2],['bigduck',1],['bomber',0.6],['golden',0.15]],
-    nightPool:[['zduck',5],['fastduck',2.5],['gunner',1.8],['sniper',1.2],['spitter',1.4],['bomber',1.2],['bigduck',1.1],['golden',0.2]],
+    pool:[['zduck',4],['gunner',2],['sniper',1.3],['spitter',1.4],['fastduck',1.2],['bigduck',1.2],['bomber',0.9],['golden',0.2]],
+    nightPool:[['zduck',4],['fastduck',3],['gunner',2.2],['sniper',1.5],['spitter',1.6],['bomber',1.6],['bigduck',1.3],['golden',0.28]],
     unlock:{extracts:{hill:3}}, // 뒷동산 3회 탈출하면 해금
     unlockDesc:'뒷동산에서 3회 탈출',
+    // ── 스폰 밀도 프로필: 뒷동산보다 훨씬 빽빽하고 빠르게 몰려온다 ──
+    spawn:{
+      roam:62,                    // 초기 배회 대폭 증가
+      dayCap:34, dayEvery:7,      // 낮에도 끊임없이 유입
+      duskCap:100, duskBurst:5,
+      nightCap:200, nightBase:8, nightMax:22, nightGrow:11,
+      indoorMul:1.5, // 공장 실내 상주 미니 1.5배
+    },
     // ── 산업 지형: 콘크리트 단지, 공장 다수, 컨테이너 야적장, 나무 거의 없음 ──
     biome:'industrial',
     factoryCount:5,        // 공장 건물 대폭 증가

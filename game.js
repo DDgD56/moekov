@@ -847,15 +847,34 @@ function buildRaid(){
     dayLen: RG.dayLen, coinMul: RG.coinMul, rareBonus: RG.rareBonus,
   };
 
-  // 낮 배회 미니들 (지역 풀)
-  for(let n=0;n<40;n++){
-    const x=rnd(3,w-3)*TILE, y=rnd(3,h-3)*TILE;
-    if(dist(x,y,spawn.x,spawn.y)<420) continue;
-    if(solidPx(x,y) || houseAtPx(x,y)) continue;
-    spawnEnemy(pickWeighted(RG.pool), x, y);
+  // 낮 배회 미니들 (지역 풀) — 목표 수를 채울 때까지 재시도 (좁은 산업맵도 밀도 확보)
+  const SP = RG.spawn || {};
+  {
+    const target = SP.roam??40;
+    let placed=0;
+    for(let tries=0; tries<target*8 && placed<target; tries++){
+      const x=rnd(3,w-3)*TILE, y=rnd(3,h-3)*TILE;
+      if(dist(x,y,spawn.x,spawn.y)<420) continue;
+      if(solidPx(x,y) || houseAtPx(x,y)) continue;
+      spawnEnemy(pickWeighted(RG.pool), x, y);
+      placed++;
+    }
   }
-  // 집 안 상주 적 (지붕에 가려져 있다가 들어가면 조우)
-  for(const s of indoorSpawns) spawnEnemy(s.id, s.x, s.y);
+  // 집 안 상주 적 (지붕에 가려져 있다가 들어가면 조우) — 지역 배수만큼 추가 소환
+  const iMul = SP.indoorMul || 1;
+  for(const s of indoorSpawns){
+    spawnEnemy(s.id, s.x, s.y);
+    // 배수의 소수부는 확률로 처리 (예: 1.5 → 항상 1 + 50% 확률로 1 더)
+    let extra = iMul - 1;
+    while(extra > 0){
+      if(extra >= 1 || Math.random() < extra){
+        // 원래 지점 근처 바닥에 추가 (약간 흩뿌림)
+        const ex = s.x + rnd(-TILE, TILE), ey = s.y + rnd(-TILE, TILE);
+        if(!solidPx(ex,ey)) spawnEnemy(s.id, ex, ey); else spawnEnemy(s.id, s.x, s.y);
+      }
+      extra -= 1;
+    }
+  }
 
   player.x = spawn.x; player.y = spawn.y;
   player.hp = maxHp();
@@ -1220,12 +1239,13 @@ function updateEnemies(dt){
       // 알림 없음 — 돌아다니다가 우연히 마주쳐야 한다
     }
   }
-  if(ph==='night' && raid.enemies.length < 140){
+  const SPW = curRegion.spawn || {};
+  if(ph==='night' && raid.enemies.length < (SPW.nightCap??140)){
     raid.waveT -= dt;
     if(raid.waveT<=0){
       const ns = nightSec();
       raid.waveT = Math.max(1.8, 4.5 - ns/40);
-      const n = Math.min(16, 5 + Math.floor(ns/15));
+      const n = Math.min(SPW.nightMax??16, (SPW.nightBase??5) + Math.floor(ns/(SPW.nightGrow??15)));
       // 시야 밖에서 걸을 수 있는 땅을 찾을 때까지 무리 지점 재시도
       let px0 = 0, py0 = 0, found = false;
       for(let tries=0; tries<24 && !found; tries++){
@@ -1247,11 +1267,11 @@ function updateEnemies(dt){
         raid.enemies[raid.enemies.length-1].state = 'chase'; // 스폰 즉시 추격
       }
     }
-  } else if(ph==='dusk' && raid.enemies.length < 70){
+  } else if(ph==='dusk' && raid.enemies.length < (SPW.duskCap??70)){
     raid.waveT -= dt;
     if(raid.waveT<=0){
       raid.waveT = 5;
-      for(let i=0;i<3;i++){
+      for(let i=0;i<(SPW.duskBurst??3);i++){
         const a = rnd(0,Math.PI*2), d = rnd(600,800);
         const x = clamp(player.x+Math.cos(a)*d, 2*TILE, (raid.w-2)*TILE);
         const y = clamp(player.y+Math.sin(a)*d, 2*TILE, (raid.h-2)*TILE);
@@ -1259,14 +1279,18 @@ function updateEnemies(dt){
         spawnEnemy(pickWeighted(curRegion.pool), x, y);
       }
     }
-  } else if(ph==='day' && raid.enemies.length<20){
+  } else if(ph==='day' && raid.enemies.length < (SPW.dayCap??20)){
     raid.trickleT -= dt;
     if(raid.trickleT<=0){
-      raid.trickleT = 13;
-      const a=rnd(0,Math.PI*2), d=rnd(500,800);
-      const x=clamp(player.x+Math.cos(a)*d,2*TILE,(raid.w-2)*TILE);
-      const y=clamp(player.y+Math.sin(a)*d,2*TILE,(raid.h-2)*TILE);
-      if(!solidPx(x,y) && !houseAtPx(x,y)) spawnEnemy(pickWeighted(curRegion.pool),x,y);
+      raid.trickleT = SPW.dayEvery??13;
+      // 폐공장처럼 유입이 잦은 지역은 한 번에 여러 마리
+      const burst = (SPW.dayEvery && SPW.dayEvery<=8) ? 2 : 1;
+      for(let i=0;i<burst;i++){
+        const a=rnd(0,Math.PI*2), d=rnd(500,800);
+        const x=clamp(player.x+Math.cos(a)*d,2*TILE,(raid.w-2)*TILE);
+        const y=clamp(player.y+Math.sin(a)*d,2*TILE,(raid.h-2)*TILE);
+        if(!solidPx(x,y) && !houseAtPx(x,y)) spawnEnemy(pickWeighted(curRegion.pool),x,y);
+      }
     }
   }
 }
