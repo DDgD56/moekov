@@ -143,6 +143,9 @@ const State = {
   quest: null, questOffers: null, questsDone: 0,
   qslots: [null, null, null], // 음식 퀵슬롯 (3·4·5키)
   deathCache: null, // 사망 시 떨어뜨린 장비 {items:[{d,r}], x, y} — 다음 출격 1회 한정 회수
+  region: 'hill',            // 마지막 선택 지역
+  regionExtracts: {},        // 지역별 탈출 횟수 {hill:3, ...}
+  regionBoss: {},            // 지역별 보스 처치 여부 {factory:true}
 };
 
 function curGun(){ return State.guns[State.activeGun]; }
@@ -175,6 +178,7 @@ function saveGame(){
       quest: State.quest, questOffers: State.questOffers, questsDone: State.questsDone||0,
       qslots: State.qslots.map(i=>i?{d:i.def.id}:null),
       deathCache: State.deathCache,
+      region: State.region, regionExtracts: State.regionExtracts, regionBoss: State.regionBoss,
     }));
   }catch(e){}
 }
@@ -198,6 +202,9 @@ function loadGame(){
     State.qslots = (d.qslots||[null,null,null]).map(s=> s && ITEMS[s.d] ? mkInst(s.d) : null);
     while(State.qslots.length<3) State.qslots.push(null);
     State.deathCache = d.deathCache||null;
+    State.region = d.region || 'hill';
+    State.regionExtracts = d.regionExtracts || {};
+    State.regionBoss = d.regionBoss || {};
     return true;
   }
   return false;
@@ -252,7 +259,10 @@ function buildCave(){
 }
 
 // ---------------- 레이드 맵 생성 ----------------
+let curRegion = REGIONS.hill; // 현재 레이드의 지역 (배율·풀 참조용)
 function buildRaid(){
+  curRegion = REGIONS[State.region] || REGIONS.hill;
+  const RG = curRegion;
   const w=200, h=200;
   const t = new Uint8Array(w*h).fill(8); // 8=맵 밖 숲 · 0풀 1벽 2바닥 4바위 5물 6차량 7다리
   // 유기적 지형: 중앙 + 사방으로 길게 뻗어나가는 블롭들 (비정형 대형 맵)
@@ -409,12 +419,13 @@ function buildRaid(){
         const type = Math.random()<0.12?'safe':pick(['locker','pallet','pallet','toolbox','locker']);
         containers.push(mkContainer(type, cx, cy));
       }
-      // 적 다수 (공장은 위험지대)
+      // 적 다수 (공장은 위험지대) — 좁은 실내라 큰 몹(bigduck) 제외
       const en=rndi(5,8);
       for(let e2=0;e2<en;e2++){
         const ex=rndi(rx+1,rx+rw-2), ey=rndi(ry+1,ry+rh-2);
-        if(t[ey*w+ex]===2)
-          indoorSpawns.push({id:pick(['zduck','gunner','spitter','bigduck','sniper']),x:(ex+.5)*TILE,y:(ey+.5)*TILE});
+        // 스폰 칸 + 상하좌우가 모두 바닥이어야 (끼임 방지)
+        if(t[ey*w+ex]===2 && t[ey*w+ex-1]===2 && t[ey*w+ex+1]===2 && t[(ey-1)*w+ex]===2 && t[(ey+1)*w+ex]===2)
+          indoorSpawns.push({id:pick(['zduck','gunner','spitter','sniper','fastduck']),x:(ex+.5)*TILE,y:(ey+.5)*TILE});
       }
       break;
     }
@@ -489,11 +500,11 @@ function buildRaid(){
         const type = Math.random()<(big?0.22:0.15) ? 'safe' : pick(['cupboard','fridge','cupboard','toolbox']);
         containers.push(mkContainer(type, cx, cy));
       }
-      // 집 안 상주 적
+      // 집 안 상주 적 (스폰 칸 + 상하좌우 바닥 확인 → 끼임 방지)
       const en = big? rndi(3,5) : (Math.random()<0.55 ? 1 : 0);
       for(let e2=0;e2<en;e2++){
         const ex=rndi(rx+1,rx+rw-2), ey=rndi(ry+1,ry+rh-2);
-        if(t[ey*w+ex]===2)
+        if(t[ey*w+ex]===2 && t[ey*w+ex-1]===2 && t[ey*w+ex+1]===2 && t[(ey-1)*w+ex]===2 && t[(ey+1)*w+ex]===2)
           indoorSpawns.push({id: pick(['zduck','zduck','spitter','gunner']), x:(ex+.5)*TILE, y:(ey+.5)*TILE});
       }
       break;
@@ -706,14 +717,15 @@ function buildRaid(){
     time:0, waveT:6, trickleT:10, extractT:0, over:false, nightToast:false, duskToast:false,
     inside:null, underTree:false, treeToastDone:false,
     bossSpawned:false, boss:null,
+    region: RG.id, dayLen: RG.dayLen, coinMul: RG.coinMul, rareBonus: RG.rareBonus,
   };
 
-  // 낮 배회 미니들
+  // 낮 배회 미니들 (지역 풀)
   for(let n=0;n<40;n++){
     const x=rnd(3,w-3)*TILE, y=rnd(3,h-3)*TILE;
     if(dist(x,y,spawn.x,spawn.y)<420) continue;
     if(solidPx(x,y) || houseAtPx(x,y)) continue;
-    spawnEnemy(pickWeighted([['zduck',5],['spitter',1.4],['sniper',.8],['gunner',.7],['bigduck',.9],['golden',.12]]), x, y);
+    spawnEnemy(pickWeighted(RG.pool), x, y);
   }
   // 집 안 상주 적 (지붕에 가려져 있다가 들어가면 조우)
   for(const s of indoorSpawns) spawnEnemy(s.id, s.x, s.y);
@@ -737,8 +749,9 @@ function fillContainer(c){
   const n = rndi(c.ct.count[0], c.ct.count[1]);
   for(let i=0;i<n;i++){
     const pool = pickWeighted(c.ct.roll);
-    // 부착물 슬롯은 8% 확률로 ★ 희귀
-    const id = (pool==='att' && Math.random()<0.08)
+    // 부착물 슬롯은 3% 확률로 ★ 희귀 (지역 보너스 가산)
+    const rareCh = 0.03 + ((raid && raid.rareBonus)||0);
+    const id = (pool==='att' && Math.random()<rareCh)
       ? pick(LOOT_POOLS.rareAtt)
       : pick(LOOT_POOLS[pool]);
     const inst = mkInst(id);
@@ -794,33 +807,41 @@ function houseAtPx(px,py){
 }
 
 function moveCircle(ent, dx, dy, solidFn){
-  // 축 분리 충돌
-  const r = ent.r;
+  // 축 분리 충돌 — 검사 반경을 살짝 줄여(0.82) 좁은 통로 통과를 관대하게 (끼임 완화)
+  const r = ent.r * 0.82, rr = r*0.6;
   let nx = ent.x + dx;
-  if(!solidFn(nx-r,ent.y-r*0.6) && !solidFn(nx+r,ent.y-r*0.6) && !solidFn(nx-r,ent.y+r*0.6) && !solidFn(nx+r,ent.y+r*0.6)) ent.x = nx;
+  if(!solidFn(nx-r,ent.y-rr) && !solidFn(nx+r,ent.y-rr) && !solidFn(nx-r,ent.y+rr) && !solidFn(nx+r,ent.y+rr)) ent.x = nx;
   let ny = ent.y + dy;
-  if(!solidFn(ent.x-r*0.6,ny-r) && !solidFn(ent.x+r*0.6,ny-r) && !solidFn(ent.x-r*0.6,ny+r) && !solidFn(ent.x+r*0.6,ny+r)) ent.y = ny;
+  if(!solidFn(ent.x-rr,ny-r) && !solidFn(ent.x+rr,ny-r) && !solidFn(ent.x-rr,ny+r) && !solidFn(ent.x+rr,ny+r)) ent.y = ny;
 }
 
 // ---------------- 적 ----------------
 function spawnEnemy(typeId, x, y){
   const T = ENEMY_TYPES[typeId];
-  const hp = Math.round(T.hp * (phase()==='night' ? 1.6 : 1)); // 밤 스폰은 강화
+  const rg = curRegion;
+  const bossType = !!T.boss;
+  // 보스는 지역 배율 미적용(자체 밸런스), 일반 적만 지역 배율
+  const hpMul = bossType ? 1 : rg.hpMul;
+  const hp = Math.round(T.hp * hpMul * (phase()==='night' ? 1.6 : 1)); // 밤 스폰은 강화
   raid.enemies.push({
     id:typeId, t:T, x, y, hp, hpMax:hp, r:T.r,
+    spdMul: bossType ? 1 : rg.spdMul,   // 이동속도 지역 배율
+    dmgMul: bossType ? 1 : rg.dmgMul,   // 공격력 지역 배율
     state:'wander', wt:rnd(0,2), wdir:rnd(0,Math.PI*2), moveT:0,
     atkCd:0, shootCd:rnd(0.5,1.5), hitT:0, target:null,
     seed:rnd(0,10), backT:0, lungeT:0,
   });
 }
 
+function dayLen(){ return (raid && raid.dayLen) || DAY_LEN; }
 function phase(){
   if(!raid) return 'day';
-  if(raid.time < DAY_LEN) return 'day';
-  if(raid.time < DAY_LEN+DUSK_LEN) return 'dusk';
+  const dl = dayLen();
+  if(raid.time < dl) return 'day';
+  if(raid.time < dl+DUSK_LEN) return 'dusk';
   return 'night';
 }
-function nightSec(){ return Math.max(0, raid.time - DAY_LEN - DUSK_LEN); }
+function nightSec(){ return Math.max(0, raid.time - dayLen() - DUSK_LEN); }
 
 function updateEnemies(dt){
   const night = phase()==='night';
@@ -829,9 +850,21 @@ function updateEnemies(dt){
 
   for(const e of raid.enemies){
     e.hitT -= dt; e.atkCd -= dt;
+    // 끼임 탈출: 몸이 벽/장애물에 박혔으면 열린 방향으로 밀어냄
+    if(solidPx(e.x, e.y)){
+      let best=null, bd=1e9;
+      for(let a=0;a<8;a++){
+        const ang=a/8*Math.PI*2;
+        for(let d=TILE*0.6; d<=TILE*3; d+=TILE*0.5){
+          const tx=e.x+Math.cos(ang)*d, ty=e.y+Math.sin(ang)*d;
+          if(!solidPx(tx,ty)){ if(d<bd){ bd=d; best=[tx,ty]; } break; }
+        }
+      }
+      if(best){ e.x=best[0]; e.y=best[1]; }
+    }
     const dp = Math.max(0.001, dist(e.x,e.y,player.x,player.y)); // 0나눗셈(NaN) 방지
-    const spd = e.t.spd * (night ? 1.10 : 1);   // 밤엔 모두 조금 빨라짐
-    const dmgN = night ? 1.3 : 1;               // 밤엔 모두 아파짐
+    const spd = e.t.spd * (e.spdMul||1) * (night ? 1.10 : 1);   // 지역·밤 배율
+    const dmgN = (e.dmgMul||1) * (night ? 1.3 : 1);             // 지역·밤 배율
 
     // 시야 확보 여부 (벽·차량 너머면 못 봄) — 보스는 항상 봄
     const canSee = e.t.boss || (dp < (night?1500:700) && !sightBlocked(e.x,e.y,player.x,player.y));
@@ -842,14 +875,26 @@ function updateEnemies(dt){
       if(dp > (night?1400:650) && !e.t.boss){ e.state='wander'; e.aimT=0; continue; }
       // 추격 중 시야를 잃으면 마지막 목격 지점으로 이동, 도착하면 포기
       if(!canSee && !e.t.boss){
+        // 시야 상실: 마지막 목격 지점으로 향하되, 벽에 막히면 옆으로 미끄러져 우회
         const ls = e.lastSeen;
         if(!ls){ e.state='wander'; e.aimT=0; continue; }
-        const ld = dist(e.x,e.y,ls.x,ls.y);
-        if(ld < 24){ e.state='wander'; e.lastSeen=null; e.aimT=0; continue; }
-        moveCircle(e, (ls.x-e.x)/ld*spd*dt, (ls.y-e.y)/ld*spd*dt, solidPx);
+        e.lostT = (e.lostT||0) + dt;
+        if(e.lostT > 6){ e.state='wander'; e.lastSeen=null; e.lostT=0; e.aimT=0; continue; } // 6초 못 찾으면 포기
+        const ld = Math.max(1, dist(e.x,e.y,ls.x,ls.y));
+        if(ld < 30){ e.state='wander'; e.lastSeen=null; e.lostT=0; e.aimT=0; continue; }
+        const dxg=(ls.x-e.x)/ld, dyg=(ls.y-e.y)/ld;
+        const ox=e.x, oy=e.y;
+        moveCircle(e, dxg*spd*dt, dyg*spd*dt, solidPx);
+        // 거의 안 움직였으면(벽에 막힘) 좌/우 수직 방향으로 우회 시도
+        if(Math.hypot(e.x-ox, e.y-oy) < spd*dt*0.3){
+          const side = ((e.seed*7|0)%2)?1:-1;
+          moveCircle(e, -dyg*side*spd*dt, dxg*side*spd*dt, solidPx);
+        }
         continue;
       }
-      if(canSee) e.lastSeen = {x:player.x, y:player.y};
+      e.lostT = 0;
+      // 시야 확보 시, 또는 가까이(같은 방 안) 있으면 마지막 목격 지점 갱신 → 실내에서 잘 쫓아옴
+      if(canSee || dp < 220) e.lastSeen = {x:player.x, y:player.y};
       const dirx = (player.x-e.x)/dp, diry = (player.y-e.y)/dp;
       if(e.t.boss){
         // 👑 보스: 추격 + 4.2초 사이클로 돌진/꽥노바/부하소환
@@ -1032,8 +1077,8 @@ function updateEnemies(dt){
 
   // 밤 웨이브: 시야 밖에서 무리로 스폰 → 즉시 떼로 몰려옴
   const ph = phase();
-  // 👑 밤 45초 후 황금미니 킹 등장 (레이드당 1회)
-  if(ph==='night' && !raid.bossSpawned && nightSec()>45){
+  // 👑 밤 45초 후 황금미니 킹 등장 (보스 지역 한정, 레이드당 1회)
+  if(ph==='night' && !raid.bossSpawned && nightSec()>45 && curRegion.boss){
     let bx=0, by=0, ok=false;
     for(let tries=0; tries<30 && !ok; tries++){
       const a=rnd(0,Math.PI*2), d0=rnd(600,850);
@@ -1070,8 +1115,7 @@ function updateEnemies(dt){
           if(!solidPx(nx2,ny2) && !houseAtPx(nx2,ny2)){ x=nx2; y=ny2; break; }
         }
         if(solidPx(x,y) || houseAtPx(x,y)) continue;
-        const id = pickWeighted([['zduck',5],['fastduck',2+ns/40],['spitter',1.5],
-          ['gunner',1+ns/60],['sniper',.7],['bomber',.8+ns/45],['bigduck',.6+ns/90],['golden',.05]]);
+        const id = pickWeighted(curRegion.nightPool);
         spawnEnemy(id, x, y);
         raid.enemies[raid.enemies.length-1].state = 'chase'; // 스폰 즉시 추격
       }
@@ -1085,7 +1129,7 @@ function updateEnemies(dt){
         const x = clamp(player.x+Math.cos(a)*d, 2*TILE, (raid.w-2)*TILE);
         const y = clamp(player.y+Math.sin(a)*d, 2*TILE, (raid.h-2)*TILE);
         if(solidPx(x,y) || houseAtPx(x,y)) continue;
-        spawnEnemy(pickWeighted([['zduck',5],['spitter',1.5],['gunner',1]]), x, y);
+        spawnEnemy(pickWeighted(curRegion.pool), x, y);
       }
     }
   } else if(ph==='day' && raid.enemies.length<20){
@@ -1095,7 +1139,7 @@ function updateEnemies(dt){
       const a=rnd(0,Math.PI*2), d=rnd(500,800);
       const x=clamp(player.x+Math.cos(a)*d,2*TILE,(raid.w-2)*TILE);
       const y=clamp(player.y+Math.sin(a)*d,2*TILE,(raid.h-2)*TILE);
-      if(!solidPx(x,y) && !houseAtPx(x,y)) spawnEnemy(pickWeighted([['zduck',4],['spitter',1],['gunner',.6]]),x,y);
+      if(!solidPx(x,y) && !houseAtPx(x,y)) spawnEnemy(pickWeighted(curRegion.pool),x,y);
     }
   }
 }
@@ -1276,6 +1320,7 @@ function killEnemy(e){
   if(e.t.bomber){ explode(e.x, e.y); return; } // 폭탄미니는 죽어도 터짐 (드롭 없음)
   if(e.t.boss){
     raid.boss = null;
+    if(raid.region) State.regionBoss[raid.region] = true; // 지역 보스 클리어 기록
     raid.drops.push({kind:'item', x:e.x, y:e.y, inst:mkInst('crown'), bob:rnd(0,6)});
     raid.drops.push({kind:'item', x:e.x-20, y:e.y+10, inst:mkInst(pick(LOOT_POOLS.rareAtt)), bob:rnd(0,6)});
     raid.drops.push({kind:'item', x:e.x+20, y:e.y+10, inst:mkInst(pick(LOOT_POOLS.rareAtt)), bob:rnd(0,6)});
@@ -1308,7 +1353,7 @@ function updateDrops(dt){
     const dp = dist(d.x,d.y,player.x,player.y);
     if(d.kind==='coin'){
       if(dp<80){ d.x = lerp(d.x,player.x,dt*8); d.y = lerp(d.y,player.y,dt*8); }
-      if(dp<18){ player.coinsGained += d.v; sfx('coin'); raid.drops.splice(i,1); }
+      if(dp<18){ player.coinsGained += Math.round(d.v * (raid.coinMul||1)); sfx('coin'); raid.drops.splice(i,1); }
     } else {
       if(dp<24){
         if(State.backpack.autoPlace(d.inst)){
@@ -1439,6 +1484,11 @@ function setupQslots(){
 function onExtract(){
   raid.over = true;
   State.coins += player.coinsGained;
+  // 탈출 전 잠긴 지역 → 탈출 기록 후 새로 열린 지역 감지
+  const wasLocked = REGION_ORDER.filter(id=>!regionUnlocked(id));
+  const rid = raid.region;
+  State.regionExtracts[rid] = (State.regionExtracts[rid]||0) + 1;
+  const newly = wasLocked.filter(id=>regionUnlocked(id));
   const q = State.quest;
   if(q && q.def.type==='extract' && q.prog<q.def.n){
     q.prog++;
@@ -1446,8 +1496,21 @@ function onExtract(){
   }
   sfx('extract');
   mouse.down = false;
-  openPanel('extract');
+  openPanel('extract', {newly});
   saveGame();
+}
+// 지역이 열렸는지 (조건 실시간 판정)
+function regionUnlocked(id){
+  const rg = REGIONS[id];
+  if(!rg || !rg.unlock) return true; // 조건 없으면 항상 열림
+  const u = rg.unlock;
+  if(u.extracts){
+    for(const [reg, cnt] of Object.entries(u.extracts))
+      if((State.regionExtracts[reg]||0) < cnt) return false;
+    return true;
+  }
+  if(u.boss) return !!State.regionBoss[u.boss];
+  return true;
 }
 function onDeath(){
   raid.over = true;
@@ -1544,8 +1607,8 @@ function renderPanel(){
       </div>
       <div class="panel-hint">드래그 이동 · <b>R</b> 회전 · <b>더블클릭</b> 빠른 이동 · <b>WASD/ESC</b> 닫기<br>
       <span class="warn">🔍 창을 열어둔 동안 2초마다 하나씩 식별 · ⚠️ 그동안에도 적은 다가온다!</span></div>`;
-    renderGrid(p.querySelector('#ga'), c.inv, { rerender:refreshPanel, onDbl:inst=>{ quickTransfer(inst,c.inv,State.backpack); refreshPanel(); } });
-    renderGrid(p.querySelector('#gb'), State.backpack, { rerender:refreshPanel, onDbl:inst=>{
+    renderGrid(p.querySelector('#ga'), c.inv, { rerender:refreshPanel, quickTarget:State.backpack, onDbl:inst=>{ quickTransfer(inst,c.inv,State.backpack); refreshPanel(); } });
+    renderGrid(p.querySelector('#gb'), State.backpack, { rerender:refreshPanel, quickTarget:c.inv, onDbl:inst=>{
       if(inst.def.kind==='food') eatItem(inst);
       else { quickTransfer(inst,State.backpack,c.inv); refreshPanel(); }
     }});
@@ -1586,8 +1649,8 @@ function renderPanel(){
         </div>
       </div>
       <div class="panel-hint">드래그 이동 · <b>R</b> 회전 · <b>더블클릭</b> 빠른 이동 · <b>ESC</b> 닫기</div>`;
-    renderGrid(p.querySelector('#ga'), State.storage, { rerender:refreshPanel, onDbl:inst=>{ quickTransfer(inst,State.storage,State.backpack); refreshPanel(); } });
-    renderGrid(p.querySelector('#gb'), State.backpack, { rerender:refreshPanel, onDbl:inst=>{ quickTransfer(inst,State.backpack,State.storage); refreshPanel(); } });
+    renderGrid(p.querySelector('#ga'), State.storage, { rerender:refreshPanel, quickTarget:State.backpack, onDbl:inst=>{ quickTransfer(inst,State.storage,State.backpack); refreshPanel(); } });
+    renderGrid(p.querySelector('#gb'), State.backpack, { rerender:refreshPanel, quickTarget:State.storage, onDbl:inst=>{ quickTransfer(inst,State.backpack,State.storage); refreshPanel(); } });
     dropZones.push({el: p.querySelector('#sell'), kind:'sell'});
     p.querySelector('#sortA').addEventListener('click', ()=>{ repackInv(State.storage); sfx('drop'); refreshPanel(); });
     p.querySelector('#sortB').addEventListener('click', ()=>{ repackInv(State.backpack); sfx('drop'); refreshPanel(); });
@@ -1616,10 +1679,10 @@ function renderPanel(){
         <div class="col bench-col"><div id="bench"></div><div class="col stats-col" id="gs"></div></div>
         <div class="col"><div class="col-label">🎒 내 가방 <button class="btn mini" id="tostore">📦 전부 창고로</button></div><div id="gb"></div></div>
       </div>
-      <div class="panel-hint">몸통/부착물을 <b>드래그</b>해서 조립 · 드래그 중 <b>R</b> 회전(가로/세로 장착) ·
-      맞는 소켓에 <b>1칸만 걸쳐도</b> 장착 가능 · 전투 중 <b>1·2</b>키로 총기 교체 · <b>ESC</b> 닫기</div>`;
-    renderGrid(p.querySelector('#ga'), State.storage, { cs:36, rerender:refreshPanel, onDbl:inst=>{ quickTransfer(inst,State.storage,State.backpack); refreshPanel(); } });
-    renderGrid(p.querySelector('#gb'), State.backpack, { cs:36, rerender:refreshPanel, onDbl:inst=>{ quickTransfer(inst,State.backpack,State.storage); refreshPanel(); } });
+      <div class="panel-hint">몸통/부착물을 <b>드래그</b>해서 조립 · 드래그 중 <b>R</b> 회전 ·
+      맞는 소켓에 <b>1칸만 걸쳐도</b> 장착 · <b>더블클릭/Ctrl(⌘)+클릭</b>으로 창고↔가방 즉시 이동 · <b>ESC</b> 닫기</div>`;
+    renderGrid(p.querySelector('#ga'), State.storage, { cs:36, rerender:refreshPanel, quickTarget:State.backpack, onDbl:inst=>{ quickTransfer(inst,State.storage,State.backpack); refreshPanel(); } });
+    renderGrid(p.querySelector('#gb'), State.backpack, { cs:36, rerender:refreshPanel, quickTarget:State.storage, onDbl:inst=>{ quickTransfer(inst,State.backpack,State.storage); refreshPanel(); } });
     renderBench(p.querySelector('#bench'));
     p.querySelector('#gs').innerHTML = statsHTML(editGun());
     p.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click', ()=>{
@@ -1730,23 +1793,50 @@ function renderPanel(){
     });
   }
   else if(t==='deploy'){
+    p.classList.add('wide');
+    const cards = REGION_ORDER.map(id=>{
+      const rg = REGIONS[id];
+      const unlocked = regionUnlocked(id);
+      const stars = '★'.repeat(rg.stars) + '☆'.repeat(4-rg.stars);
+      const ext = State.regionExtracts[id]||0;
+      const bossClear = State.regionBoss[id];
+      const sel = State.region===id ? ' sel' : '';
+      return `<div class="region-card${unlocked?'':' locked'}${sel}" data-region="${id}">
+        <div class="rg-emoji">${rg.emoji}</div>
+        <div class="rg-info">
+          <div class="rg-name">${rg.name} <span class="rg-stars">${stars}</span></div>
+          <div class="rg-desc">${rg.desc}</div>
+          <div class="rg-stat">🪙 보상 ×${rg.coinMul} · ☀️ 낮 ${rg.dayLen}초${rg.boss?' · 👑 보스':''} · 탈출 ${ext}회${bossClear?' · 👑✔':''}</div>
+          ${unlocked ? '' : `<div class="rg-lock">🔒 ${rg.unlockDesc||'잠김'}</div>`}
+        </div>
+      </div>`;
+    }).join('');
     p.innerHTML = `
-      <div class="panel-title">🚪 출격 준비</div>
-      <div class="deploy-body">
-        <p>🎒 가방과 총을 확인했나요?</p>
-        <p class="deploy-tips">☀️ 낮 3분 → 🌆 황혼 → 🌙 밤 (강해진 미니 떼가 무리로 몰려옴)<br>
-        🚩 탈출구는 호수 한가운데 섬(다리 2개)과 지형 끝자락 — 직접 찾아 3초 대기!<br>
-        📦 상자는 총에 맞으면 부서지고 내용물도 증발한다. 엄폐물로 쓸지 열어볼지 선택할 것<br>
-        💀 죽으면 <b>가방 아이템과 주운 코인</b>을 모두 잃습니다 (총과 창고는 안전)</p>
-        <button class="btn big" id="go">출격! 🚀</button>
-      </div>
-      <div class="panel-hint"><b>ESC</b> 닫기</div>`;
-    p.querySelector('#go').addEventListener('click', startRaid);
+      <div class="panel-title">🚪 출격 — 지역 선택</div>
+      <div class="region-list">${cards}</div>
+      <p class="deploy-tips">🚩 탈출구를 직접 찾아 3초 대기 · 💀 죽으면 가방·장착 총·주운 코인 상실(창고는 안전)</p>
+      <button class="btn big" id="go" ${regionUnlocked(State.region)?'':'disabled'}>${REGIONS[State.region].emoji} ${REGIONS[State.region].name} 출격! 🚀</button>
+      <div class="panel-hint">지역을 클릭해 선택 · <b>ESC</b> 닫기</div>`;
+    p.querySelectorAll('.region-card').forEach(c=>{
+      c.addEventListener('click', ()=>{
+        const id = c.dataset.region;
+        if(!regionUnlocked(id)){ toast('🔒 '+(REGIONS[id].unlockDesc||'아직 잠긴 지역')); return; }
+        State.region = id; sfx('click'); saveGame(); refreshPanel();
+      });
+    });
+    p.querySelector('#go').addEventListener('click', ()=>{
+      if(!regionUnlocked(State.region)) return;
+      startRaid();
+    });
   }
   else if(t==='extract'){
+    const newly = (panel.data && panel.data.newly) || [];
+    const unlockHtml = newly.length ? newly.map(id=>
+      `<p class="rg-unlocked">🎉 새 지역 해금: <b>${REGIONS[id].emoji} ${REGIONS[id].name}</b>!</p>`).join('') : '';
     p.innerHTML = `
       <div class="panel-title">✅ 탈출 성공!</div>
       <div class="deploy-body">
+        ${unlockHtml}
         <p>🪙 주운 코인: <b>${player.coinsGained}</b></p>
         <p>🎒 가져온 물건 가치: <b>${State.backpack.totalValue()}</b> (창고에서 판매 가능)</p>
         <p>💀 처치: <b>${player.kills}</b></p>
@@ -2555,7 +2645,7 @@ function renderDarkness(){
   const st = gunStats(curGun());
   const ph = phase();
   let dark = 0.12; // 낮은 확실히 밝게
-  if(ph==='dusk') dark = lerp(0.12, 0.9, (raid.time-DAY_LEN)/DUSK_LEN);
+  if(ph==='dusk') dark = lerp(0.12, 0.9, (raid.time-dayLen())/DUSK_LEN);
   if(ph==='night') dark = 0.9;
   if(raid.inside) dark = Math.max(dark, 0.86); // 실내에선 바깥이 안 보임
 

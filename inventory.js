@@ -140,7 +140,10 @@ function innerGridD(cells, cs){
 // 이모지 표시 위치 (도넛류는 구멍 중앙에)
 function emojiAnchor(cells){
   const [sw,sh] = shapeSize(cells);
-  if(cells.length>=7) return [sw/2, sh/2];
+  // 정중앙이 실제 채워진 칸이면 거기, 아니면(도넛 구멍 등) 채워진 칸 중 중앙에 가장 가까운 곳
+  const filled = new Set(cells.map(c=>c[0]+','+c[1]));
+  const cx = Math.floor(sw/2), cy = Math.floor(sh/2);
+  if(filled.has(cx+','+cy)) return [cx+0.5, cy+0.5];
   let best = cells[0], bd = 1e9;
   for(const [x,y] of cells){
     const d = (x+0.5-sw/2)**2 + (y+0.5-sh/2)**2;
@@ -215,11 +218,25 @@ function renderGrid(rootEl, inv, opts={}){
   for(const it of inv.items){
     const el = buildItemEl(it.inst, cs);
     el.style.left = it.x*cs+'px'; el.style.top = it.y*cs+'px';
+    // Ctrl/Cmd + 클릭 → 지정 인벤토리로 즉시 이동 (공통 처리)
+    const quickMove = ()=>{
+      if(it.inst.hidden){ toast('🔍 아직 조사 중...'); return true; }
+      if(opts.quickTarget){
+        if(quickTransfer(it.inst, inv, opts.quickTarget)) refreshPanel();
+        return true;
+      }
+      return false;
+    };
     el.addEventListener('mousedown', e=>{
       if(e.button!==0) return;
       e.preventDefault(); e.stopPropagation();
       if(it.inst.hidden){ toast('🔍 아직 조사 중...'); return; }
+      if(e.ctrlKey || e.metaKey){ quickMove(); return; }
       armDrag(it.inst, {kind:'inv', inv, rerender: opts.rerender}, e, cs);
+    });
+    // macOS에서 Ctrl+클릭이 우클릭(contextmenu)으로 오는 경우도 커버
+    el.addEventListener('contextmenu', e=>{
+      if(e.ctrlKey || e.metaKey){ e.preventDefault(); e.stopPropagation(); quickMove(); }
     });
     el.addEventListener('dblclick', e=>{
       e.preventDefault(); e.stopPropagation();

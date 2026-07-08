@@ -236,3 +236,20 @@ canvas#cv { image-rendering:pixelated; image-rendering:crisp-edges; }
   font-smooth:never;
   letter-spacing:0.5px;
 }
+
+/* ---------- 지역 선택 (출격) ---------- */
+.region-list { display:flex; flex-direction:column; gap:10px; min-width:420px; margin-bottom:12px; }
+.region-card { display:flex; gap:14px; align-items:center; background:rgba(0,0,0,.28);
+  border:2px solid #4a3f30; border-radius:12px; padding:12px 16px; cursor:pointer;
+  transition:border-color .12s, background .12s; }
+.region-card:hover:not(.locked) { border-color:#8a7a52; background:rgba(40,32,18,.4); }
+.region-card.sel { border-color:#e8c84a; background:rgba(60,48,20,.45); }
+.region-card.locked { opacity:.55; cursor:not-allowed; }
+.rg-emoji { font-size:38px; flex:none; }
+.rg-info { flex:1; }
+.rg-name { font-size:17px; font-weight:bold; color:#f0d9a8; }
+.rg-stars { color:#e8c84a; font-size:14px; margin-left:6px; }
+.rg-desc { font-size:13px; color:#c9b8a0; margin:3px 0; }
+.rg-stat { font-size:12px; color:#98a888; }
+.rg-lock { font-size:13px; color:#e0a05a; font-weight:bold; margin-top:4px; }
+.rg-unlocked { color:#8ae09a; font-size:16px; }

@@ -612,6 +612,33 @@ const UPGRADES = {
   },
 };
 
+// ---- 지역 (출격 시 선택 · 해금형 진행) ----
+// hpMul/dmgMul/spdMul: 적 배율 · dayLen: 낮 길이(초) · coinMul: 코인 배율
+// loot: 상자 등급 보정(rare 확률 가산) · boss: 밤 보스 등장 · pool: 낮 배회 적 가중치
+// unlock: {extracts:지역별 탈출횟수} 또는 {boss:'지역id'} — null이면 처음부터 열림
+const REGIONS = {
+  hill: {
+    id:'hill', name:'뒷동산', emoji:'⛰️', stars:1, color:'#6a8a4a',
+    desc:'평화로운 초원. 미니가 약하고 낮이 길다. 입문자용.',
+    hpMul:0.8, dmgMul:0.85, spdMul:0.92, dayLen:200, coinMul:1,
+    rareBonus:0, boss:false,
+    pool:[['zduck',6],['spitter',1],['gunner',0.5],['bigduck',0.5]],
+    nightPool:[['zduck',6],['fastduck',2],['spitter',1.2],['gunner',0.8],['bomber',0.5],['bigduck',0.5]],
+    unlock:null,
+  },
+  factory: {
+    id:'factory', name:'폐공장 지구', emoji:'🏭', stars:2, color:'#8a7a5a',
+    desc:'버려진 공장 단지. 총기 부품이 넘치지만 미니도 사납고 밤이 빠르다.',
+    hpMul:1.15, dmgMul:1.2, spdMul:1.05, dayLen:150, coinMul:1.6,
+    rareBonus:0.03, boss:true,
+    pool:[['zduck',5],['gunner',1.6],['sniper',1],['spitter',1.2],['bigduck',1],['bomber',0.6],['golden',0.15]],
+    nightPool:[['zduck',5],['fastduck',2.5],['gunner',1.8],['sniper',1.2],['spitter',1.4],['bomber',1.2],['bigduck',1.1],['golden',0.2]],
+    unlock:{extracts:{hill:3}}, // 뒷동산 3회 탈출하면 해금
+    unlockDesc:'뒷동산에서 3회 탈출',
+  },
+};
+const REGION_ORDER = ['hill','factory'];
+
 // ---- 퀘스트 ----
 const QUESTS = [
   {type:'kill', enemy:'any', n:15, reward:150, title:'미니 대청소'},
