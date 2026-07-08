@@ -711,6 +711,58 @@ function buildRaid(){
   }
   State.deathCache = null; // 이번 판에 안 찾으면 소멸
 
+  // ── 연결성 검사: 스폰에서 도달 못 하는 격리 공간 제거 ──
+  // 걸을 수 있는 타일: 풀0·바닥2·다리7 (벽1·바위4·물5·차량6·맵밖8 은 못 지나감)
+  {
+    const walkable = v => v===0 || v===2 || v===7;
+    const reach = new Uint8Array(w*h);
+    const stx = clamp(Math.floor(spawn.x/TILE),0,w-1), sty = clamp(Math.floor(spawn.y/TILE),0,h-1);
+    // BFS flood fill
+    const q = [sty*w+stx]; reach[sty*w+stx]=1;
+    let qi=0;
+    while(qi<q.length){
+      const idx=q[qi++]; const cx=idx%w, cy=(idx-cx)/w;
+      const nb=[[cx-1,cy],[cx+1,cy],[cx,cy-1],[cx,cy+1]];
+      for(const [nx,ny] of nb){
+        if(nx<0||ny<0||nx>=w||ny>=h) continue;
+        const ni=ny*w+nx;
+        if(reach[ni]) continue;
+        if(!walkable(t[ni])) continue;
+        reach[ni]=1; q.push(ni);
+      }
+    }
+    // 도달 못 하는 걸을 수 있는 타일 → 벽밖(8)으로 메워 격리 공간 제거
+    for(let i=0;i<w*h;i++){
+      if(!reach[i] && walkable(t[i])) t[i]=8;
+    }
+    // 탈출구가 격리됐으면 도달 가능한 가장 먼 지점으로 재배치
+    for(const z of extracts){
+      const zx=clamp(Math.floor(z.x/TILE),0,w-1), zy=clamp(Math.floor(z.y/TILE),0,h-1);
+      if(reach[zy*w+zx]) continue;
+      // 도달 가능한 지점 중 스폰에서 가장 먼 곳
+      let best=null, bd=-1;
+      for(const s of grassSpots){
+        const gx=Math.floor(s.x/TILE), gy=Math.floor(s.y/TILE);
+        if(!reach[gy*w+gx]) continue;
+        const d0=dist(s.x,s.y,spawn.x,spawn.y);
+        if(d0>bd){ bd=d0; best=s; }
+      }
+      if(best){ z.x=best.x; z.y=best.y; }
+    }
+    // 격리된 상자 제거 (접근 불가라 무의미) — 단 내 시체(corpse)는 유지 시도
+    for(let ci=containers.length-1; ci>=0; ci--){
+      const c=containers[ci];
+      const cx=clamp(Math.floor(c.x/TILE),0,w-1), cy=clamp(Math.floor(c.y/TILE),0,h-1);
+      // 상자 자신 칸 또는 인접 칸이 도달 가능하면 OK
+      let ok=false;
+      for(const [ox,oy] of [[0,0],[-1,0],[1,0],[0,-1],[0,1]]){
+        const nx=cx+ox, ny=cy+oy;
+        if(nx>=0&&ny>=0&&nx<w&&ny<h && reach[ny*w+nx]){ ok=true; break; }
+      }
+      if(!ok) containers.splice(ci,1);
+    }
+  }
+
   // 스폰/탈출 지점 주변 나무 제거
   const farFrom = (tr)=> dist(tr.x,tr.y,spawn.x,spawn.y)>130 && extracts.every(z=>dist(tr.x,tr.y,z.x,z.y)>130);
 
