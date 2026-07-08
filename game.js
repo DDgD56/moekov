@@ -1569,7 +1569,7 @@ function explode(x, y){
     raid.parts.push({x, y, vx:rnd(-190,190), vy:rnd(-190,190), t:rnd(.3,.7),
       c:pick(['#ffb84a','#ff7a3a','#5a5a5a']), r:rnd(3,6)});
   const dp = dist(x,y,player.x,player.y);
-  if(dp<85) hurtPlayer(Math.max(6, Math.round(22*(1-dp/110))));
+  if(dp<85) hurtPlayer(Math.max(8, Math.round(34*(1-dp/110))));
   for(const o of raid.enemies.slice()){
     const d2 = dist(x,y,o.x,o.y);
     if(d2<85){ o.hp -= 40*(1-d2/110); if(o.hp<=0) killEnemy(o); }
