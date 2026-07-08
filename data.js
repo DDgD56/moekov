@@ -510,14 +510,14 @@ const ITEMS = {
   music_box:    { id:'music_box', kind:'loot', name:'오르골', emoji:'🎵', shape:'corner', value:170, desc:'태엽을 감으면 맑은 소리가 난다.' },
 
   // ===== 음식 (더블클릭으로 사용) =====
-  bandage:  { id:'bandage', kind:'food', name:'반창고', emoji:'🩹', shape:'sq1', value:15, heal:30, desc:'더블클릭으로 사용. 체력 +30' },
-  lunchbox: { id:'lunchbox', kind:'food', name:'도시락', emoji:'🍱', shape:'h2', value:35, heal:60, desc:'더블클릭으로 사용. 체력 +60' },
-  donut_food:{ id:'donut_food', kind:'food', name:'도넛', emoji:'🍩', shape:'donut', value:55, heal:90, desc:'진짜 도넛 모양이라 가방에서 자리를 많이 먹는다. 체력 +90' },
-  soda:     { id:'soda', kind:'food', name:'탄산수', emoji:'🥤', shape:'v2', value:20, heal:20, desc:'더블클릭으로 사용. 체력 +20' },
-  pretzel:  { id:'pretzel', kind:'food', name:'프레첼', emoji:'🥨', shape:'plus', value:45, heal:55, desc:'십자 모양이라 가방 구석에 안 들어간다. 체력 +55' },
-  croissant:{ id:'croissant', kind:'food', name:'크루아상', emoji:'🥐', shape:'corner', value:25, heal:30, desc:'꺾인 모양. 버터 풍미. 체력 +30' },
-  jelly_worm:{ id:'jelly_worm', kind:'food', name:'젤리 지렁이', emoji:'🪱', shape:'zig', value:30, heal:35, desc:'꿈틀꿈틀 지그재그. 체력 +35' },
-  pancake_tower:{ id:'pancake_tower', kind:'food', name:'팬케이크 탑', emoji:'🥞', shape:'v3', value:60, heal:75, desc:'3단 팬케이크. 세로로 길다. 체력 +75' },
+  bandage:  { id:'bandage', kind:'food', name:'반창고', emoji:'🩹', shape:'sq1', value:15, heal:18, desc:'더블클릭으로 사용. 체력 +18' },
+  lunchbox: { id:'lunchbox', kind:'food', name:'도시락', emoji:'🍱', shape:'h2', value:35, heal:35, desc:'더블클릭으로 사용. 체력 +35' },
+  donut_food:{ id:'donut_food', kind:'food', name:'도넛', emoji:'🍩', shape:'donut', value:55, heal:55, desc:'진짜 도넛 모양이라 가방에서 자리를 많이 먹는다. 체력 +55' },
+  soda:     { id:'soda', kind:'food', name:'탄산수', emoji:'🥤', shape:'v2', value:20, heal:12, desc:'더블클릭으로 사용. 체력 +12' },
+  pretzel:  { id:'pretzel', kind:'food', name:'프레첼', emoji:'🥨', shape:'plus', value:45, heal:32, desc:'십자 모양이라 가방 구석에 안 들어간다. 체력 +32' },
+  croissant:{ id:'croissant', kind:'food', name:'크루아상', emoji:'🥐', shape:'corner', value:25, heal:18, desc:'꺾인 모양. 버터 풍미. 체력 +18' },
+  jelly_worm:{ id:'jelly_worm', kind:'food', name:'젤리 지렁이', emoji:'🪱', shape:'zig', value:30, heal:20, desc:'꿈틀꿈틀 지그재그. 체력 +20' },
+  pancake_tower:{ id:'pancake_tower', kind:'food', name:'팬케이크 탑', emoji:'🥞', shape:'v3', value:60, heal:45, desc:'3단 팬케이크. 세로로 길다. 체력 +45' },
 };
 
 // ---- 루트 테이블 (컨테이너 종류별) ----
@@ -585,10 +585,10 @@ const UPGRADES = {
   hp: {
     name:'미니 체력', emoji:'❤️',
     tiers:[
-      {v:100,cost:0},
-      {v:135,cost:200, mats:[['toad_oil',1]]},
-      {v:175,cost:550, mats:[['toad_oil',2],['lunchbox',1]]},
-      {v:225,cost:1100, mats:[['toad_oil',3],['duck_ring',1]]},
+      {v:50,cost:0},
+      {v:70,cost:200, mats:[['toad_oil',1]]},
+      {v:95,cost:550, mats:[['toad_oil',2],['lunchbox',1]]},
+      {v:125,cost:1100, mats:[['toad_oil',3],['duck_ring',1]]},
     ],
     desc:t=>`최대 체력 ${t.v}`,
   },
@@ -670,15 +670,15 @@ const NPC_LINES = {
 // ---- 적 정의 ----
 const ENEMY_TYPES = {
   // 근접은 플레이어 도보(175)보다 빠름 — 질주/사격으로 대응해야 함
-  zduck:   { name:'좀비 미니', emoji:'🧟', hp:40, spd:185, dmg:9,  r:14, color:'#6a8a5a', xp:1, ranged:false },
-  fastduck:{ name:'광란 미니', emoji:'😡', hp:24, spd:230, dmg:7, r:11, color:'#b05a5a', xp:1, ranged:false },
-  bigduck: { name:'거구 미니', emoji:'🗿', hp:160, spd:150, dmg:22, r:22, color:'#5a6a8a', xp:3, ranged:false },
-  spitter: { name:'독침 미니', emoji:'🤢', hp:26, spd:55, dmg:8,  r:13, color:'#8a5aa0', xp:2, ranged:'spit' },
-  sniper:  { name:'저격 미니', emoji:'🎯', hp:20, spd:48, dmg:26, r:12, color:'#3a7a8a', xp:2, ranged:'sniper' },
-  gunner:  { name:'난사 미니', emoji:'🔫', hp:35, spd:58, dmg:6,  r:14, color:'#7a6a3a', xp:2, ranged:'burst' },
-  bomber:  { name:'폭탄 미니', emoji:'💣', hp:30, spd:215, dmg:30, r:12, color:'#b03a3a', xp:2, ranged:false, bomber:true },
-  golden:  { name:'황금 미니', emoji:'✨', hp:260, spd:200, dmg:14, r:17, color:'#d4a832', xp:10, ranged:false, elite:true },
-  kingduck:{ name:'황금 미니 킹', emoji:'👑', hp:750, spd:118, dmg:30, r:32, color:'#e0b83a', xp:100, ranged:false, boss:true },
+  zduck:   { name:'좀비 미니', emoji:'🧟', hp:40, spd:185, dmg:6,  r:14, color:'#6a8a5a', xp:1, ranged:false },
+  fastduck:{ name:'광란 미니', emoji:'😡', hp:24, spd:230, dmg:5, r:11, color:'#b05a5a', xp:1, ranged:false },
+  bigduck: { name:'거구 미니', emoji:'🗿', hp:160, spd:150, dmg:14, r:22, color:'#5a6a8a', xp:3, ranged:false },
+  spitter: { name:'독침 미니', emoji:'🤢', hp:26, spd:55, dmg:6,  r:13, color:'#8a5aa0', xp:2, ranged:'spit' },
+  sniper:  { name:'저격 미니', emoji:'🎯', hp:20, spd:48, dmg:16, r:12, color:'#3a7a8a', xp:2, ranged:'sniper' },
+  gunner:  { name:'난사 미니', emoji:'🔫', hp:35, spd:58, dmg:4,  r:14, color:'#7a6a3a', xp:2, ranged:'burst' },
+  bomber:  { name:'폭탄 미니', emoji:'💣', hp:30, spd:215, dmg:20, r:12, color:'#b03a3a', xp:2, ranged:false, bomber:true },
+  golden:  { name:'황금 미니', emoji:'✨', hp:260, spd:200, dmg:10, r:17, color:'#d4a832', xp:10, ranged:false, elite:true },
+  kingduck:{ name:'황금 미니 킹', emoji:'👑', hp:750, spd:118, dmg:22, r:32, color:'#e0b83a', xp:100, ranged:false, boss:true },
 };
 
 // 유틸
