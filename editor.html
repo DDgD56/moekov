@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>🎨 캐릭터 도트 에디터</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; background:#1a1712; color:#e8dcc8; font-family:sans-serif;
+    display:flex; gap:24px; padding:20px; user-select:none; }
+  h1 { font-size:18px; margin:0 0 12px; }
+  .col { display:flex; flex-direction:column; gap:12px; }
+  /* 팔레트 */
+  #palette { display:grid; grid-template-columns:repeat(2,1fr); gap:6px; width:220px; }
+  .swatch { display:flex; align-items:center; gap:8px; padding:6px 8px; border-radius:8px;
+    border:2px solid transparent; cursor:pointer; background:rgba(0,0,0,.3); font-size:13px; }
+  .swatch.sel { border-color:#fff; }
+  .swatch .box { width:20px; height:20px; border-radius:4px; border:1px solid #000; flex:none; }
+  /* 캔버스 */
+  #grid { image-rendering:pixelated; cursor:crosshair; border:2px solid #444;
+    background:
+      repeating-conic-gradient(#2a2620 0% 25%, #201d18 0% 50%) 50%/24px 24px; }
+  .tools { display:flex; gap:8px; flex-wrap:wrap; }
+  button { background:#5a7a42; color:#fff; border:none; border-radius:8px; padding:8px 14px;
+    font-size:14px; font-weight:bold; cursor:pointer; }
+  button.sec { background:#4a4438; }
+  button:hover { filter:brightness(1.15); }
+  .row { display:flex; gap:8px; align-items:center; }
+  input[type=number] { width:56px; padding:4px; border-radius:6px; border:1px solid #555;
+    background:#2a2620; color:#fff; }
+  #preview { image-rendering:pixelated; border:2px solid #444; background:#2a3324; }
+  textarea { width:100%; height:180px; background:#12100c; color:#8ae09a; border:1px solid #444;
+    border-radius:8px; padding:10px; font-family:monospace; font-size:12px; }
+  .hint { font-size:12px; color:#98866a; line-height:1.6; }
+  .mini { font-size:11px; color:#98866a; }
+</style>
+</head>
+<body>
+
+<div class="col">
+  <h1>🎨 도트 에디터</h1>
+  <div class="mini">색 클릭 → 칸 클릭/드래그해서 칠하기</div>
+  <div id="palette"></div>
+  <div class="hint">우클릭 = 지우개(투명)<br>머리·피부·옷·눈 색은 게임에서 캐릭터별로 자동 적용됩니다</div>
+</div>
+
+<div class="col">
+  <div class="row">
+    <label class="mini">가로</label><input type="number" id="w" value="16" min="4" max="32">
+    <label class="mini">세로</label><input type="number" id="h" value="24" min="4" max="40">
+    <button class="sec" onclick="resizeGrid()">크기변경</button>
+  </div>
+  <canvas id="grid"></canvas>
+  <div class="tools">
+    <button class="sec" onclick="flipH()">↔ 좌우반전</button>
+    <button class="sec" onclick="clearAll()">🗑 전체지우기</button>
+    <button class="sec" onclick="undo()">↩ 되돌리기</button>
+  </div>
+</div>
+
+<div class="col" style="width:340px;">
+  <h1>미리보기</h1>
+  <div class="row">
+    <canvas id="preview" width="128" height="192"></canvas>
+    <div class="hint">플레이어 색으로<br>실시간 미리보기</div>
+  </div>
+  <h1 style="margin-top:8px;">📋 코드</h1>
+  <div class="tools">
+    <button onclick="copyCode()">📋 복사(내보내기)</button>
+    <button class="sec" onclick="loadCode()">📥 붙여넣어 불러오기</button>
+  </div>
+  <textarea id="out"></textarea>
+  <div class="hint">
+    <b>내보내기:</b> 복사 → sprite.js 의 <code>GIRL_SPRITE=[...]</code> 교체 → F5<br>
+    <b>불러오기:</b> sprite.js 코드를 여기 붙여넣고 <b>📥 불러오기</b> → 이어서 편집
+  </div>
+</div>
+
+<script>
+// ── 팔레트 (문자 → 미리보기색·이름) ──
+const PAL = [
+  ['.', null,      '투명(지우개)'],
+  ['O', '#20161a', '외곽선'],
+  ['K', '#e0a850', '머리'],
+  ['k', '#a87a34', '머리그림자'],
+  ['w', '#f4d090', '머리광택'],
+  ['S', '#f6dcbe', '피부'],
+  ['s', '#d8bc9a', '피부그림자'],
+  ['H', '#f6dcbe', '손'],
+  ['L', '#3a2632', '속눈썹'],
+  ['E', '#5a7a4a', '눈동자'],
+  ['W', '#ffffff', '눈 하이라이트'],
+  ['P', '#f0a0aa', '볼터치'],
+  ['M', '#d05a6a', '입'],
+  ['C', '#5a86b0', '옷'],
+  ['c', '#3f6078', '옷그림자'],
+  ['A', '#2d4358', '팔'],
+];
+const COLOR = {}; PAL.forEach(p=>COLOR[p[0]]=p[1]);
+
+// ── 초기 스프라이트 (현재 게임 것) ──
+let SPR = [
+  "...OOOOOOOOOO...",
+  "..OKKKKKKKKKKO..",
+  ".OKKKKKKKKKKKKO.",
+  ".OKwwKKKKKKwwKO.",
+  ".OKKKKKKKKKKKKO.",
+  ".OKKKKKKKKKKKKO.",
+  ".OKKSSSSSSSSKKO.",
+  ".OKSSSSSSSSSSKO.",
+  ".OKSSSSSSSSSSKO.",
+  ".OKLLLSSSSLLLKO.",
+  ".OKSWESSSSEWSKO.",
+  ".OKSEESSSSEESKO.",
+  ".OKSSSSSSSSSSKO.",
+  ".OKPSSSMMSSSPKO.",
+  ".OKkSSSSSSSSkKO.",
+  ".OKKOssssssOKKO.",
+  "OAKKCCCCCCCCKKAO",
+  "OAKKCCCccCCCKKAO",
+  "OAKKCCCCCCCCKKAO",
+  "OAKkCCCCCCCCkKAO",
+  "OAAKCCCCCCCCKAAO",
+  ".OOKCCCCCCCCKOO.",
+  "..OCCCCCCCCCCO..",
+  "..OOOOOOOOOOOO..",
+].map(r=>r.split(''));
+
+let W = SPR[0].length, H = SPR.length;
+let cur = 'K';
+const CELL = 22;
+const grid = document.getElementById('grid');
+const gx = grid.getContext('2d');
+let history = [];
+
+function buildPalette(){
+  const el = document.getElementById('palette');
+  el.innerHTML = '';
+  PAL.forEach(([ch,col,name])=>{
+    const d = document.createElement('div');
+    d.className = 'swatch' + (ch===cur?' sel':'');
+    d.innerHTML = `<span class="box" style="background:${col||'#0000'};${col?'':'background-image:linear-gradient(45deg,#555 25%,transparent 25%,transparent 75%,#555 75%),linear-gradient(45deg,#555 25%,#333 25%,#333 75%,#555 75%);background-size:8px 8px;background-position:0 0,4px 4px;'}"></span>
+      <span>${ch}&nbsp;<span class="mini">${name}</span></span>`;
+    d.onclick = ()=>{ cur=ch; buildPalette(); };
+    el.appendChild(d);
+  });
+}
+
+function drawGrid(){
+  grid.width = W*CELL; grid.height = H*CELL;
+  gx.clearRect(0,0,grid.width,grid.height);
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+    const ch = SPR[y][x], col = COLOR[ch];
+    if(col){ gx.fillStyle=col; gx.fillRect(x*CELL,y*CELL,CELL,CELL); }
+    // 격자선
+    gx.strokeStyle='rgba(255,255,255,.08)'; gx.strokeRect(x*CELL,y*CELL,CELL,CELL);
+  }
+  renderPreview();
+  updateOut();
+}
+
+// ── 그리기 ──
+let painting=false, eraseMode=false, strokeSaved=false;
+function pushHistory(){ history.push(SPR.map(r=>r.slice())); if(history.length>80)history.shift(); }
+function paintAt(e){
+  const r=grid.getBoundingClientRect();
+  const x=Math.floor((e.clientX-r.left)/CELL), y=Math.floor((e.clientY-r.top)/CELL);
+  if(x<0||y<0||x>=W||y>=H) return;
+  const ch = eraseMode ? '.' : cur;
+  if(SPR[y][x]===ch) return;
+  if(!strokeSaved){ pushHistory(); strokeSaved=true; } // 한 번의 스트로크당 1번만 저장
+  SPR[y][x]=ch;
+  drawGrid();
+}
+grid.addEventListener('mousedown',e=>{
+  if(e.button===2) eraseMode=true; else eraseMode=false;
+  painting=true; strokeSaved=false; paintAt(e); e.preventDefault();
+});
+window.addEventListener('mousemove',e=>{ if(painting) paintAt(e); });
+window.addEventListener('mouseup',()=>{ painting=false; eraseMode=false; });
+grid.addEventListener('contextmenu',e=>e.preventDefault());
+
+function undo(){ if(history.length){ SPR=history.pop(); W=SPR[0].length; H=SPR.length;
+  document.getElementById('w').value=W; document.getElementById('h').value=H; drawGrid(); } }
+function clearAll(){ pushHistory(); SPR=SPR.map(r=>r.map(()=>'.')); drawGrid(); }
+function flipH(){ // 좌우 통째로 반전
+  pushHistory();
+  for(let y=0;y<H;y++) SPR[y].reverse();
+  drawGrid();
+}
+function resizeGrid(){
+  pushHistory();
+  const nw=+document.getElementById('w').value, nh=+document.getElementById('h').value;
+  const old=SPR;
+  SPR=[];
+  for(let y=0;y<nh;y++){ const row=[]; for(let x=0;x<nw;x++){
+    row.push((old[y]&&old[y][x])||'.'); } SPR.push(row); }
+  W=nw; H=nh; drawGrid();
+}
+
+// ── 미리보기 (플레이어 색) ──
+const PLAYER = { hair:'#e0a850', skin:'#f6dcbe', outfit:'#5a86b0', eye:'#5a7a4a' };
+function shade(hex,f){const n=parseInt(hex.slice(1),16);return '#'+((1<<24)|(Math.round(((n>>16)&255)*f)<<16)|(Math.round(((n>>8)&255)*f)<<8)|Math.round((n&255)*f)).toString(16).slice(1);}
+function tint(hex,f){const n=parseInt(hex.slice(1),16);let r=(n>>16)&255,g=(n>>8)&255,b=n&255;return '#'+((1<<24)|(Math.min(255,Math.round(r+(255-r)*f))<<16)|(Math.min(255,Math.round(g+(255-g)*f))<<8)|Math.min(255,Math.round(b+(255-b)*f))).toString(16).slice(1);}
+function gameColors(){
+  const p=PLAYER;
+  return { O:'#20161a',K:p.hair,k:shade(p.hair,0.72),w:tint(p.hair,0.4),S:p.skin,s:shade(p.skin,0.82),
+    H:p.skin,L:'#3a2632',E:p.eye,W:'#ffffff',P:'#f0a0aa',M:'#d05a6a',C:p.outfit,c:shade(p.outfit,0.72),A:shade(p.outfit,0.5),'.':null };
+}
+function renderPreview(){
+  const pv=document.getElementById('preview'), c=pv.getContext('2d');
+  const S=Math.floor(Math.min(pv.width/W, pv.height/H));
+  c.imageSmoothingEnabled=false;
+  c.clearRect(0,0,pv.width,pv.height);
+  const cm=gameColors();
+  const ox=(pv.width-W*S)/2, oy=(pv.height-H*S)/2;
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){ const col=cm[SPR[y][x]];
+    if(col){ c.fillStyle=col; c.fillRect(ox+x*S,oy+y*S,S,S); } }
+}
+
+// ── 코드 출력 ──
+function updateOut(){
+  const lines = SPR.map(r=>'  "'+r.join('')+'",').join('\n');
+  document.getElementById('out').value =
+    'const GIRL_W = '+W+';\n\nconst GIRL_SPRITE = [\n'+lines+'\n];';
+}
+function copyCode(){
+  const t=document.getElementById('out'); t.select();
+  navigator.clipboard.writeText(t.value).then(()=>{
+    alert('복사됐어요!\n\nsprite.js 파일을 열어서\nGIRL_W 줄과 GIRL_SPRITE=[...] 부분을\n붙여넣은 걸로 교체하세요.\n\n그다음 게임 새로고침(F5)!');
+  });
+}
+
+// ── 코드 붙여넣어 불러오기 ──
+function loadCode(){
+  const txt = document.getElementById('out').value;
+  // "....OKKK...." 형태의 따옴표 줄만 모두 추출
+  const rows = (txt.match(/"[^"]*"/g)||[]).map(s=>s.slice(1,-1)).filter(s=>s.length>0);
+  if(rows.length<2){ alert('코드를 찾을 수 없어요.\nsprite.js 의 GIRL_SPRITE = [ ... ] 부분을 통째로 붙여넣어 주세요.'); return; }
+  // 폭 = 가장 긴 줄 기준으로 통일 (짧은 줄은 . 로 채움)
+  const maxW = Math.max(...rows.map(r=>r.length));
+  const norm = rows.map(r=>{ const a=r.split(''); while(a.length<maxW) a.push('.'); return a.slice(0,maxW); });
+  pushHistory();
+  SPR = norm; W = maxW; H = norm.length;
+  document.getElementById('w').value=W; document.getElementById('h').value=H;
+  drawGrid();
+  alert('불러왔어요! 이어서 편집하세요.');
+}
+
+buildPalette(); drawGrid();
+</script>
+</body>
+</html>

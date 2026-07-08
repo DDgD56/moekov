@@ -1,0 +1,238 @@
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { width:100%; height:100%; overflow:hidden; background:#15120e;
+  font-family:"Apple SD Gothic Neo","Malgun Gothic",sans-serif; color:#e8dcc8;
+  user-select:none; -webkit-user-select:none; }
+canvas#cv { display:block; position:fixed; inset:0; cursor:crosshair; }
+
+/* ---------- HUD ---------- */
+#hud { position:fixed; inset:0; pointer-events:none; z-index:5; }
+#hud-tl { position:absolute; top:14px; left:16px; }
+#hpbar { width:220px; height:22px; background:rgba(0,0,0,.55); border:2px solid #5a4a38;
+  border-radius:6px; position:relative; overflow:hidden; }
+#hpfill { height:100%; background:linear-gradient(#e05a5a,#b03a3a); transition:width .15s; }
+#hptext { position:absolute; inset:0; text-align:center; line-height:19px;
+  font-size:12px; font-weight:bold; text-shadow:0 1px 2px #000; }
+#stambar { width:220px; height:8px; background:rgba(0,0,0,.55); border:2px solid #5a4a38;
+  border-top:none; border-radius:0 0 6px 6px; overflow:hidden; }
+#stamfill { height:100%; background:linear-gradient(#b8d05a,#8aa83a); transition:width .1s; }
+#stambar.exhausted #stamfill { background:#7a6a4a; }
+#coins { margin-top:6px; font-size:15px; font-weight:bold; text-shadow:0 1px 3px #000; }
+#quest { margin-top:5px; font-size:13px; font-weight:bold; color:#d8c090;
+  text-shadow:0 1px 3px #000; max-width:280px; }
+#quest.done { color:#8ae09a; }
+#hud-tc { position:absolute; top:14px; left:50%; transform:translateX(-50%); text-align:center; }
+#clock { font-size:19px; font-weight:bold; background:rgba(0,0,0,.5); padding:4px 14px;
+  border-radius:16px; text-shadow:0 1px 2px #000; }
+#clock.night { color:#a8b8ff; }
+#clock.dusk { color:#ffb86a; }
+#kills { position:absolute; top:54px; left:50%; transform:translateX(-50%);
+  font-size:13px; font-weight:bold; color:#e0a0a0; text-shadow:0 1px 2px #000; }
+#bossbar { position:absolute; top:78px; left:50%; transform:translateX(-50%);
+  width:360px; height:20px; background:rgba(0,0,0,.6); border:2px solid #a8842a;
+  border-radius:10px; overflow:hidden; display:none; }
+#bossbar.on { display:block; }
+#bossfill { height:100%; background:linear-gradient(#ffd24a,#c9992a); transition:width .12s; }
+#bossname { position:absolute; inset:0; text-align:center; font-size:12px; font-weight:bold;
+  line-height:17px; text-shadow:0 1px 2px #000; }
+#hud-br { position:absolute; right:18px; bottom:16px; text-align:right; }
+#gunname { font-size:14px; color:#c9b8a0; text-shadow:0 1px 2px #000; }
+#ammo { font-size:26px; font-weight:bold; text-shadow:0 2px 3px #000; }
+#ammo.low { color:#e87a5a; }
+#hud-bl { position:absolute; left:18px; bottom:16px; font-size:14px; font-weight:bold;
+  color:#ffd76a; text-shadow:0 1px 3px #000; }
+
+/* ---------- 퀵슬롯 ---------- */
+#qslots { position:fixed; left:50%; bottom:14px; transform:translateX(-50%);
+  display:flex; gap:8px; z-index:30; }
+.qslot { position:relative; width:54px; height:54px; background:rgba(15,12,8,.8);
+  border:2px solid #5a4a38; border-radius:10px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; }
+.qslot .qs-key { position:absolute; top:2px; left:5px; font-size:10px; font-weight:bold;
+  color:#98866a; }
+.qslot .qs-emoji { font-size:26px; text-shadow:0 2px 3px rgba(0,0,0,.5); }
+.qslot .qs-heal { position:absolute; bottom:2px; right:5px; font-size:10px; font-weight:bold;
+  color:#8ae09a; }
+.qslot.filled { border-color:#8a7a52; }
+.qslot.filled:hover { border-color:#e8c84a; background:rgba(40,32,18,.9); }
+.qslot.hot { border-color:#5adc78; background:rgba(40,70,40,.85); }
+
+#toast { position:fixed; left:50%; bottom:84px; transform:translateX(-50%) translateY(10px);
+  background:rgba(20,16,10,.92); border:1px solid #6a5a42; padding:9px 18px; border-radius:10px;
+  font-size:14px; font-weight:bold; opacity:0; transition:all .2s; z-index:40; pointer-events:none;
+  max-width:80vw; text-align:center; }
+#toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+#redflash { position:fixed; inset:0; pointer-events:none; z-index:8; opacity:0;
+  background:radial-gradient(ellipse at center, transparent 40%, rgba(200,30,30,.5) 100%); }
+#redflash.on { animation:redflash .45s ease-out; }
+@keyframes redflash { 0%{opacity:1;} 100%{opacity:0;} }
+
+/* ---------- 패널 ---------- */
+#panel-root { position:fixed; inset:0; z-index:20; display:flex; align-items:center;
+  justify-content:center; background:rgba(12,10,7,.96); }
+#panel-root.hidden { display:none; }
+
+.panel { position:relative; background:#241e15; border:2px solid #6a5a42; border-radius:14px;
+  padding:22px 28px; max-width:94vw; max-height:92vh; overflow:auto;
+  box-shadow:0 10px 50px rgba(0,0,0,.7); }
+.panel-title { font-size:21px; font-weight:bold; margin-bottom:14px; color:#f0d9a8; }
+.panel-title.dead { color:#e05a5a; }
+.panel-title .sub { font-size:14px; color:#b8a888; margin-left:10px; }
+.panel-close { position:absolute; top:12px; right:14px; background:none; border:none;
+  color:#a89878; font-size:19px; cursor:pointer; }
+.panel-close:hover { color:#fff; }
+.panel-cols { display:flex; gap:26px; align-items:flex-start; }
+.col-label { font-size:13px; font-weight:bold; color:#b8a888; margin-bottom:6px; }
+.panel-hint { margin-top:14px; font-size:12px; color:#98866a; line-height:1.7; }
+.panel-hint .warn { color:#e8a05a; }
+
+/* ---------- 인벤토리 그리드 ---------- */
+.inv-grid { position:relative; background-color:rgba(0,0,0,.35);
+  background-image:linear-gradient(rgba(255,255,255,.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.06) 1px, transparent 1px);
+  border:2px solid #4a3f30; border-radius:4px; }
+.item { position:absolute; pointer-events:none; }
+.item svg { position:absolute; left:0; top:0; overflow:visible; display:block; }
+.shape-path { pointer-events:fill; cursor:grab; }
+.item:active .shape-path { cursor:grabbing; }
+.item-emoji { position:absolute; transform:translate(-50%,-50%); pointer-events:none;
+  text-shadow:0 2px 3px rgba(0,0,0,.5); }
+.item.rare svg { filter:drop-shadow(0 0 5px rgba(230,190,80,.55)); }
+.item.unknown { animation:searchPulse 1.6s ease-in-out infinite; }
+.item.unknown .item-emoji { opacity:.65; }
+@keyframes searchPulse { 50% { opacity:.5; } }
+.item.epic svg { filter:drop-shadow(0 0 7px rgba(255,200,60,.85));
+  animation:epicPulse 1.8s ease-in-out infinite; }
+.item.epic .item-emoji { text-shadow:0 0 8px rgba(255,210,80,.9), 0 2px 3px rgba(0,0,0,.5); }
+@keyframes epicPulse { 50% { filter:drop-shadow(0 0 3px rgba(255,200,60,.45)); } }
+.tip-rare { color:#ffcf4a; font-size:11px; background:rgba(120,90,20,.4);
+  border:1px solid #a8842a; border-radius:8px; padding:1px 7px; margin-left:4px;
+  vertical-align:2px; }
+.item:hover svg { filter:brightness(1.35); }
+.item.rare:hover svg { filter:brightness(1.35) drop-shadow(0 0 5px rgba(230,190,80,.55)); }
+
+.drag-ghost { position:fixed; z-index:100; pointer-events:none; opacity:.9; }
+.drag-ghost .shape-path { pointer-events:none; }
+.drag-ghost.ok .shape-path { fill:rgba(90,220,120,.4); stroke:#5adc78; }
+.drag-ghost.bad .shape-path { fill:rgba(220,80,80,.4); stroke:#dc5a5a; }
+#drag-layer { position:fixed; inset:0; pointer-events:none; z-index:99; }
+
+/* ---------- 아이템 툴팁 ---------- */
+#tooltip { position:fixed; z-index:120; background:rgba(18,14,9,.97); border:1px solid #6a5a42;
+  border-radius:10px; padding:10px 14px; max-width:280px; font-size:12px; line-height:1.55;
+  pointer-events:none; opacity:0; transition:opacity .08s; box-shadow:0 6px 24px rgba(0,0,0,.6); }
+#tooltip.show { opacity:1; }
+.tip-name { font-size:14px; font-weight:bold; color:#f0d9a8; margin-bottom:2px; }
+.tip-kind { color:#b8a888; margin-bottom:4px; }
+.tip-mods { color:#8ad0a0; margin-bottom:2px; }
+.tip-desc { color:#c9b8a0; font-style:italic; margin:4px 0; }
+.tip-val { color:#e8c84a; font-weight:bold; }
+
+/* ---------- 판매함 ---------- */
+.sell-bin { margin-top:14px; border:2px dashed #8a7a52; border-radius:10px; padding:14px;
+  text-align:center; font-weight:bold; color:#d0b878; font-size:15px; }
+.sell-bin span { font-size:11px; color:#98866a; font-weight:normal; }
+.sell-bin.hot { background:rgba(230,190,80,.15); border-color:#e8c84a; }
+
+/* ---------- 작업대 ---------- */
+.bench-cols .bench-col { display:flex; flex-direction:column; align-items:center; gap:10px; }
+.bench { position:relative; min-width:420px; min-height:340px; display:flex;
+  align-items:center; justify-content:center;
+  background:rgba(0,0,0,.3); border:2px solid #4a3f30; border-radius:8px; }
+.bench-empty { color:#98866a; font-size:15px; padding:60px 30px; text-align:center; }
+.bench-wrap { position:relative; }
+.bench-body { position:absolute; border:3px solid; border-radius:8px; display:flex;
+  align-items:center; justify-content:center; cursor:grab; }
+.bench-body-emoji { font-size:40px; text-shadow:0 3px 5px rgba(0,0,0,.5); }
+.bench-body-name { position:absolute; bottom:0; left:0; right:0; text-align:center;
+  font-size:11px; font-weight:bold; color:#fff; text-shadow:0 1px 2px #000;
+  background:rgba(0,0,0,.4); padding:1px 0; }
+.rail { position:absolute; border-radius:2px; transition:box-shadow .15s; }
+.rail.hl { box-shadow:0 0 8px 2px rgba(255,255,180,.75); }
+.bench-legend { position:absolute; bottom:6px; left:0; right:0; display:flex;
+  gap:14px; justify-content:center; font-size:11px; font-weight:bold; pointer-events:none; }
+.bench-legend span { display:inline-flex; align-items:center; gap:4px; }
+.bench-legend i { width:10px; height:10px; border-radius:2px; display:inline-block; }
+.bench-att { position:absolute; border:2px solid; border-radius:7px; cursor:grab;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; }
+.bench-att-emoji { font-size:21px; text-shadow:0 2px 3px rgba(0,0,0,.5); }
+.bench-att-name { font-size:9px; font-weight:bold; text-align:center; color:#e8dcc8;
+  text-shadow:0 1px 1px #000; padding:0 2px; }
+
+/* ---------- 스탯 ---------- */
+.stats-col { background:rgba(0,0,0,.3); border:2px solid #4a3f30; border-radius:8px;
+  padding:12px 16px; min-width:190px; font-size:13px; }
+.stats-title { font-weight:bold; font-size:15px; color:#f0d9a8; margin-bottom:8px; }
+.stats-cls { font-size:11px; color:#98866a; background:rgba(0,0,0,.3); padding:2px 7px;
+  border-radius:8px; margin-left:5px; vertical-align:1px; }
+.stat-row { display:flex; justify-content:space-between; padding:2.5px 0;
+  border-bottom:1px solid rgba(255,255,255,.05); }
+.stat-row span { color:#a89878; }
+
+/* ---------- 업그레이드 ---------- */
+.up-list { display:flex; flex-direction:column; gap:10px; min-width:400px; }
+.up-row { display:flex; align-items:center; gap:14px; background:rgba(0,0,0,.25);
+  border:1px solid #4a3f30; border-radius:10px; padding:10px 16px; }
+.up-emoji { font-size:26px; }
+.up-name { flex:1; font-weight:bold; font-size:15px; }
+.up-name small { color:#98866a; font-weight:normal; }
+.up-max { color:#8ae09a; font-weight:bold; }
+.up-mats { display:inline-flex; gap:6px; margin-top:4px; }
+.up-mats span { font-size:12px; background:rgba(0,0,0,.3); border:1px solid #4a3f30;
+  border-radius:8px; padding:1px 7px; font-weight:bold; }
+.up-mats span.ok { color:#8ae09a; border-color:#4a6a42; }
+.up-mats span.lack { color:#e08a7a; border-color:#6a4238; }
+.up-mats span[data-item] { cursor:help; }
+.up-mats span[data-item]:hover { filter:brightness(1.4); }
+.q-item { cursor:help; border-bottom:1px dotted rgba(230,200,140,.55); }
+.q-item:hover { color:#f0d9a8; border-bottom-color:#f0d9a8; }
+
+/* ---------- 버튼 ---------- */
+.btn { background:#5a7a42; color:#fff; border:none; border-radius:8px; padding:8px 18px;
+  font-size:14px; font-weight:bold; cursor:pointer; font-family:inherit;
+  box-shadow:0 3px 0 #3a5228; }
+.btn:hover:not(:disabled) { filter:brightness(1.15); }
+.btn:active:not(:disabled) { transform:translateY(2px); box-shadow:0 1px 0 #3a5228; }
+.btn:disabled { background:#4a4438; box-shadow:0 3px 0 #322c22; color:#88806e; cursor:default; }
+.btn.big { font-size:18px; padding:13px 34px; margin-top:12px; }
+.btn.mini { font-size:11px; padding:2px 8px; box-shadow:0 2px 0 #3a5228; margin-left:8px; }
+.bench-tabs { margin-left:14px; }
+.btn.mini.tab { background:#4a4438; box-shadow:0 2px 0 #322c22; }
+.btn.mini.tab.on { background:#5a7a42; box-shadow:0 2px 0 #3a5228; }
+.btn.mini.tab.locked { color:#88806e; }
+.btn.danger { background:#a04a3a; box-shadow:0 3px 0 #6a2f24; }
+.help-btns { display:flex; gap:12px; justify-content:center; align-items:center; margin-top:6px; }
+
+/* ---------- 퀘스트 ---------- */
+.quest-body { display:flex; flex-direction:column; gap:12px; min-width:420px; }
+.npc-line { font-style:italic; color:#c9b8a0; font-size:14px; text-align:center;
+  padding:4px 0 2px; }
+.quest-card { background:rgba(0,0,0,.25); border:1px solid #6a5a42; border-radius:10px;
+  padding:14px 18px; }
+.quest-card.relief { border-color:#c98a3a; background:rgba(80,50,20,.3); }
+.q-title { font-size:16px; font-weight:bold; color:#f0d9a8; margin-bottom:4px; }
+.q-desc { font-size:14px; margin-bottom:4px; }
+.q-reward { font-size:13px; color:#e8c84a; margin-bottom:8px; }
+.q-btns { display:flex; gap:10px; }
+
+/* ---------- 배치/도움말 ---------- */
+.deploy-body { text-align:center; font-size:15px; line-height:2; min-width:360px; }
+.deploy-tips { font-size:13px; color:#b8a888; line-height:1.9; margin:8px 0; }
+.lost-list { color:#e08a8a; font-size:13px; max-width:400px; line-height:1.8; }
+.help-body { font-size:14px; line-height:2.1; max-width:520px; text-align:center; }
+.help-body hr { border:none; border-top:1px solid #4a3f30; margin:10px 0; }
+
+/* ---------- 도트 게임 톤: HUD 각지게 + 픽셀 렌더링 ---------- */
+canvas#cv { image-rendering:pixelated; image-rendering:crisp-edges; }
+#hpbar, #stambar, #clock, #bossbar, .qslot {
+  border-radius:0 !important;
+  image-rendering:pixelated;
+}
+#hpfill, #stamfill, #bossfill { image-rendering:pixelated; }
+/* HUD 텍스트: 픽셀 느낌 나게 앤티앨리어싱 최소화 */
+#hptext, #coins, #quest, #clock, #kills, #bossname, #gunname, #ammo, #hud-bl,
+.qslot .qs-key, .qslot .qs-heal {
+  -webkit-font-smoothing:none;
+  font-smooth:never;
+  letter-spacing:0.5px;
+}

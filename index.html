@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- 개발 중: 브라우저 캐시 끄기 (파일 저장 후 새로고침하면 바로 반영) -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>EZKov</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="cv"></canvas>
+
+<div id="hud">
+  <div id="hud-tl">
+    <div id="hpbar"><div id="hpfill"></div><span id="hptext"></span></div>
+    <div id="stambar"><div id="stamfill"></div></div>
+    <div id="coins">🪙 0</div>
+    <div id="quest"></div>
+  </div>
+  <div id="hud-tc"><span id="clock"></span></div>
+  <div id="kills"></div>
+  <div id="bossbar"><div id="bossfill"></div><span id="bossname">👑 황금 미니 킹</span></div>
+  <div id="hud-br">
+    <div id="gunname"></div>
+    <div id="ammo"></div>
+  </div>
+  <div id="hud-bl"></div>
+</div>
+
+<div id="qslots">
+  <div class="qslot" data-i="0"><span class="qs-key">3</span><span class="qs-emoji"></span><span class="qs-heal"></span></div>
+  <div class="qslot" data-i="1"><span class="qs-key">4</span><span class="qs-emoji"></span><span class="qs-heal"></span></div>
+  <div class="qslot" data-i="2"><span class="qs-key">5</span><span class="qs-emoji"></span><span class="qs-heal"></span></div>
+</div>
+
+<div id="toast"></div>
+<div id="redflash"></div>
+<div id="panel-root" class="hidden"></div>
+<div id="drag-layer"></div>
+
+<!-- 개발용: 매 로드마다 타임스탬프를 붙여 캐시를 항상 무효화 (저장→F5 하면 바로 반영) -->
+<script>
+  var _t = Date.now();
+  ['sprite.js','data.js','inventory.js','gun.js','game.js'].forEach(function(f){
+    document.write('<scr'+'ipt src="'+f+'?t='+_t+'"></scr'+'ipt>');
+  });
+</script>
+</body>
+</html>
