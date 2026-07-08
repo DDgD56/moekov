@@ -123,9 +123,16 @@ function loadGun(data){
 }
 
 // ---- 총 보관대 (조립된 총을 통째로 넣었다 뺐다) ----
-const MAX_STASH = 6; // 보관대 최대 칸 수 (물리 배열 크기)
-// 현재 해금된 보관 칸 수 = 완료한 퀘스트 수 (퀘스트 1건당 1칸, 최대 MAX_STASH)
-function stashSlots(){ return Math.min(MAX_STASH, State.questsDone||0); }
+const MAX_STASH = 6;      // 보관대 최대 칸 수 (물리 배열 크기)
+const STASH_START = 2;    // 보관대 해금 퀘스트를 깨면 한 번에 열리는 칸 수
+// 현재 해금된 보관 칸 수:
+//  · 보관대 미해금 → 0칸 (아예 닫힘)
+//  · 해금 시 START(2)칸, 이후 완료하는 퀘스트마다 1칸씩 추가 (최대 MAX_STASH)
+function stashSlots(){
+  if(!State.stashUnlocked) return 0;
+  const extra = Math.max(0, (State.questsDone||0) - (State.stashBaseDone||0));
+  return Math.min(MAX_STASH, STASH_START + extra);
+}
 // 현재 편집 총을 보관 슬롯에 넣기 (슬롯이 비어있어야 함)
 function stashGun(slot){
   if(slot >= stashSlots()){ toast('🔒 아직 잠긴 보관칸입니다 (퀘스트를 더 완료하세요)'); return; }
@@ -163,13 +170,16 @@ function loadStash(data){
 // 보관대 UI 렌더
 function renderStash(rootEl){
   const open = stashSlots();
-  // 해금된 칸 + 다음 잠금 칸 1개 미리보기 (최대치 넘지 않게)
-  let show = Math.min(MAX_STASH, open + (open < MAX_STASH ? 1 : 0));
+  const unlocked = !!State.stashUnlocked;
+  // 해금 후: 열린 칸 + 다음 잠금 칸 1개 미리보기. 미해금: 잠금 칸 2개만 미리 보여줌.
+  let show = unlocked
+    ? Math.min(MAX_STASH, open + (open < MAX_STASH ? 1 : 0))
+    : STASH_START;
   // 방어: 잠긴 칸에 이미 총이 들어있으면(구세이브 등) 그 칸까지 표시해 꺼낼 수 있게
   for(let i=MAX_STASH-1;i>=show;i--){ if(State.stash[i]){ show=i+1; break; } }
-  const lbl = open>0
+  const lbl = unlocked
     ? `🔫 총 보관대 <span class="stash-count">${open}/${MAX_STASH}칸</span>`
-    : `🔫 총 보관대 <span class="stash-count locked">잠김 — 퀘스트 완료 시 개방</span>`;
+    : `🔫 총 보관대 <span class="stash-count locked">잠김 — 「사장님의 금고」 퀘스트로 개방</span>`;
   rootEl.innerHTML = `<div class="stash-label">${lbl}</div>`;
   const wrap = document.createElement('div');
   wrap.className = 'stash-slots';

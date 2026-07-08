@@ -708,6 +708,7 @@ const QUESTS = [
   {type:'fetch', item:'mushroom_mag', n:1, reward:120, title:'버섯 애호가'},
   {type:'extract', n:2, reward:180, title:'생존 전문가'},
   {type:'kill', enemy:'any', n:25, reward:250, unlock:'gun2', title:'이도류 면허'},
+  {type:'extract', n:1, fetch:{item:'circuit', n:1}, reward:200, unlock:'stash', title:'사장님의 금고'},
   {type:'kill', enemy:'kingduck', n:1, reward:800, rewardItem:'magic_pouch', title:'왕위 찬탈'},
 ];
 const NPC_LINES = {

@@ -144,6 +144,8 @@ const State = {
   guns: [ {body:null, atts:[], ammo:0}, {body:null, atts:[], ammo:0} ],
   activeGun: 0,
   gun2: false, // 총기 슬롯 2 해금 (퀘스트 「이도류 면허」)
+  stashUnlocked: false,      // 총 보관대 해금 (퀘스트 「사장님의 금고」) — 해금 시 2칸 개방
+  stashBaseDone: 0,          // 보관대 해금 당시의 questsDone (이후 완료마다 1칸 추가)
   seenHelp: false,
   quest: null, questOffers: null, questsDone: 0,
   qslots: [null, null, null], // 음식 퀵슬롯 (3·4·5키)
@@ -180,6 +182,7 @@ function saveGame(){
       v:1, coins: State.coins, up: State.up,
       storage: State.storage.serialize(), backpack: State.backpack.serialize(),
       guns: State.guns.map(serializeGun), activeGun: State.activeGun, gun2: State.gun2,
+      stashUnlocked: State.stashUnlocked, stashBaseDone: State.stashBaseDone||0,
       seenHelp: State.seenHelp,
       quest: State.quest, questOffers: State.questOffers, questsDone: State.questsDone||0,
       qslots: State.qslots.map(i=>i?{d:i.def.id}:null),
@@ -206,6 +209,12 @@ function loadGame(){
     State.quest = d.quest||null;
     State.questOffers = d.questOffers||null;
     State.questsDone = d.questsDone||0;
+    // 총 보관대 해금 상태 (구세이브 마이그레이션: 이미 보관대에 총이 있거나
+    // 필드가 있으면 해금으로 간주, 기준값은 안전하게 0)
+    State.stashBaseDone = d.stashBaseDone||0;
+    State.stashUnlocked = d.stashUnlocked!==undefined
+      ? !!d.stashUnlocked
+      : (Array.isArray(d.stash) && d.stash.some(Boolean)); // 구세이브에 보관 총 있으면 해금 처리
     State.qslots = (d.qslots||[null,null,null]).map(s=> s && ITEMS[s.d] ? mkInst(s.d) : null);
     while(State.qslots.length<3) State.qslots.push(null);
     State.deathCache = d.deathCache||null;
@@ -230,6 +239,7 @@ function newGame(){
   State.storage.autoPlace(mkInst('glasses_scope'));
   State.storage.autoPlace(mkInst('soda'));
   State.quest = null; State.questOffers = null; State.questsDone = 0;
+  State.stashUnlocked = false; State.stashBaseDone = 0;
   State.deathCache = null;
   saveGame();
 }
@@ -2256,9 +2266,12 @@ function ensureOffers(){
   if(State.questOffers && State.questOffers.length) return;
   const pool = QUESTS.filter(q=>!q.unlock); // 해금 퀘스트는 아래에서 별도 처리
   const offers = [];
-  // 총기 슬롯 2 해금 퀘스트: 의뢰 2건 완료 후 미해금 상태면 반드시 제안
+  // 총 보관대 해금 퀘스트: 의뢰 2건 완료 후 미해금이면 우선 제안
+  const stashQ = QUESTS.find(q=>q.unlock==='stash');
+  if(stashQ && !State.stashUnlocked && (State.questsDone||0)>=2) offers.push({...stashQ});
+  // 총기 슬롯 2 해금 퀘스트: 의뢰 3건 완료 후 미해금 상태면 반드시 제안
   const lic = QUESTS.find(q=>q.unlock==='gun2');
-  if(lic && !State.gun2 && (State.questsDone||0)>=2) offers.push({...lic});
+  if(lic && !State.gun2 && (State.questsDone||0)>=3) offers.push({...lic});
   while(offers.length<2 && pool.length){
     const q = {...pool.splice(Math.floor(Math.random()*pool.length),1)[0]};
     q.reward = Math.round(q.reward*(1+(State.questsDone||0)*0.15));
@@ -2295,16 +2308,24 @@ function completeQuest(){
     State.gun2 = true;
     toast('🔫 총기 슬롯 2 해금! 작업대에서 조립하고 1·2키로 교체하세요');
   }
+  // 보관대 해금 여부(칸 계산은 questsDone 증가 후에)
+  const stashJustUnlocked = (d.unlock==='stash' && !State.stashUnlocked);
   const beforeSlots = stashSlots();
   State.questsDone = (State.questsDone||0)+1;
+  if(stashJustUnlocked){
+    State.stashUnlocked = true;
+    // 기준을 증가 후 questsDone으로 → 해금 퀘스트 자신은 추가칸으로 안 세고 START(2)칸부터
+    State.stashBaseDone = State.questsDone;
+  }
   State.quest = null;
   State.questOffers = null;
   sfx('extract');
   toast('📜 퀘스트 완료! +'+d.reward+'🪙');
-  // 총 보관대 칸이 새로 열렸으면 안내
-  const afterSlots = stashSlots();
-  if(afterSlots > beforeSlots){
-    toast('🔓 총 보관대 '+afterSlots+'번 칸 개방! (작업대에서 총 보관)');
+  // 총 보관대 안내
+  if(stashJustUnlocked){
+    toast('🔓 총 보관대 개방! '+stashSlots()+'칸이 열렸습니다 (작업대에서 총 보관)');
+  } else if(stashSlots() > beforeSlots){
+    toast('🔓 총 보관대 확장! 이제 '+stashSlots()+'칸 (작업대)');
   }
   saveGame(); refreshPanel();
 }
