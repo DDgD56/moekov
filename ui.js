@@ -118,9 +118,12 @@ function renderPanel(){
         <div class="col">
           <div class="col-label">창고</div>
           <div class="sock-filter" id="sockFilter">
-            <button class="sf-btn ${benchFilter===null?'on':''}" data-sock="">전체</button>
+            <button class="sf-btn ${benchFilter===null?'on':''}" data-f="">전체</button>
+            <button class="sf-btn ${benchFilter==='body'?'on':''}" data-f="body" style="--sc:#c96a5a">총기</button>
             ${Object.entries(SOCK_INFO).map(([k,v])=>
-              `<button class="sf-btn ${benchFilter===k?'on':''}" data-sock="${k}" style="--sc:${v.color}">${v.name}</button>`).join('')}
+              `<button class="sf-btn ${benchFilter===k?'on':''}" data-f="${k}" style="--sc:${v.color}">${v.name}</button>`).join('')}
+            <button class="sf-btn ${benchFilter==='loot'?'on':''}" data-f="loot" style="--sc:#d4a832">귀중품</button>
+            <button class="sf-btn ${benchFilter==='food'?'on':''}" data-f="food" style="--sc:#d488a8">음식</button>
           </div>
           <div id="ga"></div>
         </div>
@@ -137,7 +140,7 @@ function renderPanel(){
     renderGrid(p.querySelector('#gb'), State.backpack, { cs:36, rerender:refreshPanel, quickTarget:State.storage, highlightSock:benchFilter, onDbl:inst=>{ quickTransfer(inst,State.backpack,State.storage); refreshPanel(); } });
     renderBench(p.querySelector('#bench'));
     p.querySelectorAll('#sockFilter .sf-btn').forEach(b=>b.addEventListener('click', ()=>{
-      const s = b.dataset.sock || null;
+      const s = b.dataset.f || null;
       benchFilter = (benchFilter===s) ? null : s; // 같은 버튼 다시 누르면 전체로
       refreshPanel();
     }));
@@ -181,12 +184,12 @@ function renderPanel(){
     });
   }
   else if(t==='quest'){
+    // 일반 퀘스트 창구 — 엑조틱은 State.exoQuest / 부품 수집가 전용 (동시 진행)
     const q = State.quest;
     let body = '';
-    const noEquipped = State.guns.every(g=>!g.body);   // 장착된 총이 없음
-    const noBody = !hasAnyBody();                        // 어디에도 몸통이 없음
+    const noEquipped = State.guns.every(g=>!g.body);
+    const noBody = !hasAnyBody();
     if(noBody){
-      // 정말 총이 하나도 없음 → 감자 권총 무료 지급
       body += `<div class="quest-card relief">
         <div class="npc-line">"또 빈손으로 왔군... 이거라도 받아가라. 다음엔 조심해."</div>
         <div class="q-title">🥔 감자 권총 지급</div>
@@ -194,7 +197,6 @@ function renderPanel(){
         <div class="q-btns"><button class="btn" id="relief">받기</button></div>
       </div>`;
     } else if(noEquipped){
-      // 슬롯은 비었지만 창고/가방에 몸통 있음 → 작업대 안내
       body += `<div class="quest-card relief">
         <div class="npc-line">"총은 있는데 안 들고 왔구먼. 작업대에서 챙겨 가."</div>
         <div class="q-title">🔧 장착 안내</div>
@@ -208,7 +210,7 @@ function renderPanel(){
           <div class="q-title">📜 ${d.title}</div>
           <div class="q-desc">${questDesc(d)} — <b>${pr}/${d.n}</b>${pr>=d.n?' ✔':''}</div>
           ${questFetchLine(d)}
-          <div class="q-reward">보상: ${d.reward}🪙${d.rewardItem?` + <span class="q-item" data-item="${d.rewardItem}">${ITEMS[d.rewardItem].emoji} ${ITEMS[d.rewardItem].name}</span>`:''}</div>
+          <div class="q-reward">${questRewardHTML(d)}</div>
           <div class="q-btns">
             ${can?'<button class="btn" id="qdone">완료 보고</button>':''}
             <button class="btn danger" id="qdrop">포기</button>
@@ -217,22 +219,34 @@ function renderPanel(){
     } else {
       ensureOffers();
       body += `<div class="npc-line">"${pick(NPC_LINES.greet)}"</div>` +
-        State.questOffers.map((d,i)=>`
+        (State.questOffers||[]).map((d,i)=>`
         <div class="quest-card">
           <div class="q-title">📜 ${d.title}</div>
           <div class="q-desc">${questDesc(d)}</div>
+          ${d.blurb?`<div class="q-desc">${d.blurb}</div>`:''}
           ${d.fetch?`<div class="q-desc">+ 납품: <span class="q-item" data-item="${d.fetch.item}">${ITEMS[d.fetch.item].emoji} ${ITEMS[d.fetch.item].name}</span> ${d.fetch.n}개</div>`:''}
-          <div class="q-reward">보상: ${d.reward}🪙${d.rewardItem?` + <span class="q-item" data-item="${d.rewardItem}">${ITEMS[d.rewardItem].emoji} ${ITEMS[d.rewardItem].name}</span>`:''}</div>
+          <div class="q-reward">${questRewardHTML(d)}</div>
           <div class="q-btns"><button class="btn" data-q="${i}">수락</button></div>
         </div>`).join('');
+    }
+    if(State.exoQuest){
+      body += `<div class="quest-card" style="opacity:.9">
+        <div class="q-title">🔧 엑조틱 진행 중</div>
+        <div class="q-desc">${State.exoQuest.def.title} — 보고는 <b>부품 수집가</b>에서</div>
+      </div>`;
+    } else if(!State.exoticIntroDone){
+      body += `<div class="quest-card" style="opacity:.85">
+        <div class="q-title">🔧 부품 수집가</div>
+        <div class="q-desc">작업대 옆 NPC. ★★ 엑조틱 입문은 그쪽에서 — <b>일반 의뢰와 동시</b> 가능${regionUnlocked('factory')?'':'. (폐공장 해금 후)'}</div>
+      </div>`;
     }
     p.innerHTML = `
       <div class="panel-title">📜 퀘스트 창구 <span class="sub">완료 ${State.questsDone||0}건</span></div>
       <div class="quest-body">${body}</div>
-      <div class="panel-hint">한 번에 하나의 의뢰만 수행 가능 · 납품은 창고/가방에서 자동 차감 · <b>ESC</b> 닫기</div>`;
+      <div class="panel-hint">일반 1 + 엑조틱 1 동시 진행 · <b>ESC</b> 닫기</div>`;
     if(q){
       const qd = p.querySelector('#qdone');
-      if(qd) qd.addEventListener('click', completeQuest);
+      if(qd) qd.addEventListener('click', ()=>completeQuest('main'));
       p.querySelector('#qdrop').addEventListener('click', ()=>{
         State.quest = null; toast('의뢰를 포기했습니다'); saveGame(); refreshPanel();
       });
@@ -250,6 +264,10 @@ function renderPanel(){
       refreshPanel();
     });
   }
+  else if(t==='exotic'){
+    // 🔧 부품 수집가 — 엑조틱 입문 의뢰 전용
+    renderExoticPanel(p);
+  }
   else if(t==='deploy'){
     p.classList.add('wide');
     const cards = REGION_ORDER.map(id=>{
@@ -264,7 +282,7 @@ function renderPanel(){
         <div class="rg-info">
           <div class="rg-name">${rg.name} <span class="rg-stars">${stars}</span></div>
           <div class="rg-desc">${rg.desc}</div>
-          <div class="rg-stat">🪙 보상 ×${rg.coinMul} · ☀️ 낮 ${rg.dayLen}초${rg.boss?' · 👑 보스':''} · 탈출 ${ext}회${bossClear?' · 👑✔':''}</div>
+          <div class="rg-stat">🪙 보상 ×${rg.coinMul} · ☀️ 낮 ${rg.dayLen}초${rg.boss?` · 👑 ${(ENEMY_TYPES[rg.bossId]||{}).name||'보스'}`:''} · 탈출 ${ext}회${bossClear?' · 👑✔':''}</div>
           ${unlocked ? '' : `<div class="rg-lock">🔒 ${rg.unlockDesc||'잠김'}</div>`}
         </div>
       </div>`;
@@ -291,10 +309,13 @@ function renderPanel(){
     const newly = (panel.data && panel.data.newly) || [];
     const unlockHtml = newly.length ? newly.map(id=>
       `<p class="rg-unlocked">🎉 새 지역 해금: <b>${REGIONS[id].emoji} ${REGIONS[id].name}</b>!</p>`).join('') : '';
+    const exoHint = newly.includes('factory') && !State.exoticIntroDone
+      ? `<p class="rg-unlocked">🔧 <b>부품 수집가</b> 해금 (작업대 옆) — 공장 탈출 시 ★★ 레이저</p>` : '';
     p.innerHTML = `
       <div class="panel-title">✅ 탈출 성공!</div>
       <div class="deploy-body">
         ${unlockHtml}
+        ${exoHint}
         <p>🪙 주운 코인: <b>${player.coinsGained}</b></p>
         <p>🎒 가져온 물건 가치: <b>${State.backpack.totalValue()}</b> (창고에서 판매 가능)</p>
         <p>💀 처치: <b>${player.kills}</b></p>
@@ -415,6 +436,8 @@ function matsHTML(mats){
 function questDesc(d){
   if(d.type==='kill') return (d.enemy==='any' ? '아무 미니나' : ENEMY_TYPES[d.enemy].name)+' '+d.n+'마리 처치';
   if(d.type==='fetch') return `<span class="q-item" data-item="${d.item}">${ITEMS[d.item].emoji} ${ITEMS[d.item].name}</span> ${d.n}개 납품`;
+  if(d.region && REGIONS[d.region])
+    return REGIONS[d.region].emoji+' '+REGIONS[d.region].name+'에서 '+d.n+'회 생존 탈출';
   return d.n+'회 생존 탈출';
 }
 function questProg(q){
@@ -437,14 +460,32 @@ function questFetchLine(d){
   const ok = have>=d.fetch.n;
   return `<div class="q-desc">+ 납품: <span class="q-item" data-item="${d.fetch.item}">${ITEMS[d.fetch.item].emoji} ${ITEMS[d.fetch.item].name}</span> — <b>${have}/${d.fetch.n}</b>${ok?' ✔':''}</div>`;
 }
+// 퀘스트 카드 보상 줄 (코인·아이템·해금·보관대)
+function questRewardHTML(d){
+  let s = `보상: ${d.reward}🪙`;
+  if(d.rewardItem && ITEMS[d.rewardItem])
+    s += ` + <span class="q-item" data-item="${d.rewardItem}">${ITEMS[d.rewardItem].emoji} ${ITEMS[d.rewardItem].name}</span>`;
+  if(d.unlock==='gun2') s += ' + <b>🔫 총기 슬롯 2 해금</b>';
+  if(d.unlock==='stash' || (d.rewardStash|0)>0){
+    const n = (d.rewardStash|0) || STASH_START;
+    if(d.unlock==='stash') s += ` + <b>🔫 총 보관대 ${n}칸 개방</b>`;
+    else s += ` + <b>🔫 총 보관대 +${n}칸</b>`;
+  }
+  return s;
+}
 function ensureOffers(){
   if(State.questOffers && State.questOffers.length) return;
-  const pool = QUESTS.filter(q=>!q.unlock); // 해금 퀘스트는 아래에서 별도 처리
+  // 엑조틱 입문(unlock:exoticIntro)은 부품 수집가 NPC 전용 — 여기선 제외
+  // 보관대 확장(rewardStash)은 별도 제안 — 랜덤 풀에서 빼 중복 난사 방지
+  const pool = QUESTS.filter(q=>!q.unlock && !(q.rewardStash>0));
   const offers = [];
-  // 총 보관대 해금 퀘스트: 의뢰 2건 완료 후 미해금이면 우선 제안
   const stashQ = QUESTS.find(q=>q.unlock==='stash');
   if(stashQ && !State.stashUnlocked && (State.questsDone||0)>=2) offers.push({...stashQ});
-  // 총기 슬롯 2 해금 퀘스트: 의뢰 3건 완료 후 미해금 상태면 반드시 제안
+  // 이미 해금된 뒤: 칸이 MAX 미만이면 확장 퀘스트 1개 우선 제안
+  if(State.stashUnlocked && stashSlots() < MAX_STASH){
+    const expand = QUESTS.filter(q=>q.rewardStash>0 && q.unlock!=='stash');
+    if(expand.length) offers.push({...expand[Math.floor(Math.random()*expand.length)]});
+  }
   const lic = QUESTS.find(q=>q.unlock==='gun2');
   if(lic && !State.gun2 && (State.questsDone||0)>=3) offers.push({...lic});
   while(offers.length<2 && pool.length){
@@ -455,16 +496,89 @@ function ensureOffers(){
   State.questOffers = offers;
   saveGame();
 }
+
+// 부품 수집가 패널 (엑조틱 슬롯 전용 — 일반 의뢰와 동시 진행)
+function renderExoticPanel(p){
+  const exoQ = QUESTS.find(q=>q.unlock==='exoticIntro');
+  const q = State.exoQuest;
+  const unlocked = regionUnlocked('factory');
+  let body = '';
+
+  if(State.exoticIntroDone){
+    body = `<div class="npc-line">"${pick(NPC_LINES.exoIdle)}"</div>
+      <div class="quest-card featured">
+        <div class="q-title">★★ 입문 완료</div>
+        <div class="q-desc">폐공장·습지 상자에서 엑조틱 파츠가 뜬다. 작업대에서 해괴한 모양을 맞춰 봐.</div>
+      </div>`;
+  } else if(!unlocked){
+    body = `<div class="npc-line">"${pick(NPC_LINES.exoLocked)}"</div>
+      <div class="quest-card">
+        <div class="q-title">🔒 아직 잠김</div>
+        <div class="q-desc">뒷동산에서 <b>3회 탈출</b>하면 폐공장이 열린다. 그다음 다시 와.</div>
+      </div>`;
+  } else if(q){
+    const d = q.def, pr = questProg(q), can = questCanComplete(q);
+    body = `<div class="npc-line">"${can ? pick(NPC_LINES.exoDone) : pick(NPC_LINES.exoBusy)}"</div>
+      <div class="quest-card featured">
+        <div class="q-title">🔧 ${d.title} <span class="tip-rare">★★ 입문</span></div>
+        <div class="q-desc">${questDesc(d)} — <b>${pr}/${d.n}</b>${pr>=d.n?' ✔':''}</div>
+        ${d.blurb?`<div class="q-desc">${d.blurb}</div>`:''}
+        <div class="q-reward">보상: ${d.reward}🪙 + <span class="q-item" data-item="${d.rewardItem}">${ITEMS[d.rewardItem].emoji} ${ITEMS[d.rewardItem].name}</span> ★★</div>
+        <div class="q-btns">
+          ${can?'<button class="btn" id="qdone">완료 보고</button>':''}
+          <button class="btn danger" id="qdrop">포기</button>
+        </div>
+      </div>`;
+  } else {
+    const d = {...exoQ};
+    body = `<div class="npc-line">"${pick(NPC_LINES.exoGreet)}"</div>
+      <div class="quest-card featured">
+        <div class="q-title">🔧 ${d.title} <span class="tip-rare">★★ 입문</span></div>
+        <div class="q-desc">${questDesc(d)}</div>
+        ${d.blurb?`<div class="q-desc">${d.blurb}</div>`:''}
+        <div class="q-reward">보상: ${d.reward}🪙 + <span class="q-item" data-item="${d.rewardItem}">${ITEMS[d.rewardItem].emoji} ${ITEMS[d.rewardItem].name}</span> ★★</div>
+        <div class="q-btns"><button class="btn" id="exo-accept">수락</button></div>
+      </div>`;
+  }
+  if(State.quest){
+    body += `<div class="quest-card" style="opacity:.85">
+      <div class="q-title">📜 창구 의뢰도 진행 중</div>
+      <div class="q-desc">${State.quest.def.title} — 일반 보고는 <b>퀘스트 창구</b></div>
+    </div>`;
+  }
+
+  p.innerHTML = `
+    <div class="panel-title">🔧 부품 수집가 <span class="sub">엑조틱</span></div>
+    <div class="quest-body">${body}</div>
+    <div class="panel-hint">일반 의뢰와 동시 진행 가능 · <b>ESC</b> 닫기</div>`;
+
+  const acc = p.querySelector('#exo-accept');
+  if(acc) acc.addEventListener('click', ()=>{
+    if(State.exoQuest){ toast('이미 엑조틱 의뢰를 진행 중입니다'); return; }
+    State.exoQuest = { def: {...exoQ}, prog: 0 };
+    sfx('open');
+    toast('🔧 의뢰 수락: '+exoQ.title+(State.quest?' (일반 의뢰와 동시)':''));
+    saveGame(); refreshPanel();
+  });
+  const qd = p.querySelector('#qdone');
+  if(qd) qd.addEventListener('click', ()=>completeQuest('exo'));
+  const drop = p.querySelector('#qdrop');
+  if(drop) drop.addEventListener('click', ()=>{
+    State.exoQuest = null; toast('엑조틱 의뢰를 포기했습니다'); saveGame(); refreshPanel();
+  });
+}
 function acceptQuest(i){
   if(State.quest || !State.questOffers || !State.questOffers[i]) return;
   State.quest = { def: State.questOffers[i], prog: 0 };
   State.questOffers = null;
   sfx('open');
-  toast('📜 의뢰 수락: '+State.quest.def.title);
+  toast('📜 의뢰 수락: '+State.quest.def.title+(State.exoQuest?' (엑조틱과 동시)':''));
   saveGame(); refreshPanel();
 }
-function completeQuest(){
-  const q = State.quest;
+// slot: 'main' | 'exo'
+function completeQuest(slot){
+  const key = slot==='exo' ? 'exoQuest' : 'quest';
+  const q = State[key];
   if(!q || !questCanComplete(q)) return;
   const d = q.def;
   if(d.type==='fetch'){
@@ -483,24 +597,33 @@ function completeQuest(){
     State.gun2 = true;
     toast('🔫 총기 슬롯 2 해금! 작업대에서 조립하고 1·2키로 교체하세요');
   }
-  // 보관대 해금 여부(칸 계산은 questsDone 증가 후에)
-  const stashJustUnlocked = (d.unlock==='stash' && !State.stashUnlocked);
+  // 보관대: rewardStash 칸만 증가 (unlock:stash 는 첫 개방, 아무 퀘스트로는 안 늘어남)
+  const stashGrant = (d.rewardStash|0) || (d.unlock==='stash' ? STASH_START : 0);
   const beforeSlots = stashSlots();
+  const wasStashLocked = !State.stashUnlocked;
+  let gainedSlots = 0;
+  if(stashGrant > 0) gainedSlots = grantStashSlots(stashGrant);
+
+  const exoticJustDone = (d.unlock==='exoticIntro' && !State.exoticIntroDone);
   State.questsDone = (State.questsDone||0)+1;
-  if(stashJustUnlocked){
-    State.stashUnlocked = true;
-    // 기준을 증가 후 questsDone으로 → 해금 퀘스트 자신은 추가칸으로 안 세고 START(2)칸부터
-    State.stashBaseDone = State.questsDone;
+  if(exoticJustDone){
+    State.exoticIntroDone = true;
   }
-  State.quest = null;
-  State.questOffers = null;
+  State[key] = null;
+  if(slot!=='exo') State.questOffers = null;
   sfx('extract');
-  toast('📜 퀘스트 완료! +'+d.reward+'🪙');
-  // 총 보관대 안내
-  if(stashJustUnlocked){
-    toast('🔓 총 보관대 개방! '+stashSlots()+'칸이 열렸습니다 (작업대에서 총 보관)');
-  } else if(stashSlots() > beforeSlots){
-    toast('🔓 총 보관대 확장! 이제 '+stashSlots()+'칸 (작업대)');
+  toast((slot==='exo'?'🔧':'📜')+' 퀘스트 완료! +'+d.reward+'🪙');
+  if(gainedSlots > 0){
+    if(wasStashLocked)
+      toast('🔓 총 보관대 개방! '+stashSlots()+'칸 (작업대) — 보상으로만 확장됩니다');
+    else
+      toast('🔓 총 보관대 +'+gainedSlots+'칸 → 이제 '+stashSlots()+'/'+MAX_STASH+'칸');
+  } else if(stashGrant > 0 && beforeSlots >= MAX_STASH){
+    toast('총 보관대는 이미 최대('+MAX_STASH+'칸)입니다');
+  }
+  if(exoticJustDone){
+    toast('★★ 엑조틱 입문! 작업대에서 총구에 달고 사격장에서 시험해 봐', 4000);
+    toast('"'+pick(NPC_LINES.exoDone)+'"', 4500);
   }
   saveGame(); refreshPanel();
 }

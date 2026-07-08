@@ -31,7 +31,8 @@ function update(dt){
     const l = Math.hypot(vx,vy);
     // 조준할수록 크게 느려짐 (완전 조준 시 25% 속도) — 뿌리박고 정밀사격, 대신 회피 불가
     const aimSlow = 1 - 0.75*player.aimT;
-    const spd = moveSpd() * aimSlow * (sprinting?1.5:1);
+    const debuffSlow = (player.slowT||0)>0 ? 0.42 : 1;
+    const spd = moveSpd() * aimSlow * (sprinting?1.5:1) * debuffSlow;
     const solidFn = scene==='cave' ? caveSolidPx : solidPx;
     moveCircle(player, vx/l*spd*dt, vy/l*spd*dt, solidFn);
   }
@@ -57,6 +58,21 @@ function update(dt){
   player.iframe -= dt;
   player.bloom = Math.max(0, player.bloom - dt*14);
   player.kick = Math.max(0, player.kick - dt*7);
+  // 휴대용 탐지기 타이머
+  if(player.extractDetectT > 0){
+    const prev = player.extractDetectT;
+    player.extractDetectT = Math.max(0, player.extractDetectT - dt);
+    if(prev>0 && player.extractDetectT<=0) toast('📡 탐지 종료');
+  }
+  // 보스 디버프
+  if(player.slowT > 0) player.slowT = Math.max(0, player.slowT - dt);
+  if(player.poisonT > 0 && scene==='raid' && raid && !raid.over){
+    player.poisonT = Math.max(0, player.poisonT - dt);
+    player.hp -= 7*dt;
+    if(player.hp<=0){ player.hp=0; onDeath(); }
+  } else if(player.poisonT > 0){
+    player.poisonT = Math.max(0, player.poisonT - dt);
+  }
 
   if(scene==='raid' && raid && !raid.over){
     raid.time += dt;
@@ -155,21 +171,30 @@ function updateHud(){
   const boss = (scene==='raid' && raid && raid.boss && raid.enemies.includes(raid.boss)) ? raid.boss : null;
   if(boss && !boss.seen && (dist(boss.x,boss.y,player.x,player.y)<520 || boss.hp<boss.hpMax)){
     boss.seen = true;
-    toast('👑 ...저건 뭐지?!');
+    toast((boss.t.emoji||'👑')+' '+boss.t.name+' 출현!');
     sfx('boss');
   }
   bossEl.classList.toggle('on', !!boss && !!boss.seen);
-  if(boss) document.getElementById('bossfill').style.width = (boss.hp/boss.hpMax*100)+'%';
+  if(boss){
+    document.getElementById('bossfill').style.width = (boss.hp/boss.hpMax*100)+'%';
+    const bn = document.getElementById('bossname');
+    if(bn) bn.textContent = (boss.t.emoji||'👑')+' '+boss.t.name;
+  }
 
   const qEl = document.getElementById('quest');
-  if(State.quest){
-    const q = State.quest, pr = questProg(q);
-    let txt = '📜 '+q.def.title+' '+pr+'/'+q.def.n;
+  const lines = [];
+  let anyDone = false;
+  for(const [q, icon] of [[State.quest,'📜'],[State.exoQuest,'🔧']]){
+    if(!q) continue;
+    const pr = questProg(q);
+    let txt = icon+' '+q.def.title+' '+pr+'/'+q.def.n;
     if(q.def.fetch) txt += ' · 📦'+Math.min(countItem(q.def.fetch.item), q.def.fetch.n)+'/'+q.def.fetch.n;
     const done = questCanComplete(q);
-    qEl.textContent = txt + (done?' ✔':'');
-    qEl.classList.toggle('done', done);
-  } else qEl.textContent = '';
+    if(done){ txt += ' ✔'; anyDone = true; }
+    lines.push(txt);
+  }
+  qEl.textContent = lines.join('\n');
+  qEl.classList.toggle('done', anyDone && lines.length>0);
 
   const clock = document.getElementById('clock');
   const kills = document.getElementById('kills');

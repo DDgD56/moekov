@@ -56,17 +56,39 @@ function clickInteract(sx, sy){
 function quickHeal(){
   const missing = maxHp()-player.hp;
   if(missing<=0){ toast('체력이 가득 찼습니다'); return; }
-  const foods = State.backpack.items.filter(it=>it.inst.def.kind==='food')
+  const foods = State.backpack.items
+    .filter(it=>it.inst.def.kind==='food' && (it.inst.def.heal||0)>0)
     .sort((a,b)=>a.inst.def.heal-b.inst.def.heal);
   if(!foods.length){ toast('먹을 것이 없다!'); return; }
   let chosen = foods.find(f=>f.inst.def.heal>=missing) || foods[foods.length-1];
   eatItem(chosen.inst);
 }
-function eatItem(inst){
-  State.backpack.remove(inst);
-  player.hp = Math.min(maxHp(), player.hp + inst.def.heal);
+// 소모품 사용 (음식 회복 / 휴대용 탐지기 등). from: 'bag'|'qslot'
+// 성공 시 true (아이템 소모 완료)
+function applyConsumable(inst){
+  const d = inst.def;
+  if(d.effect==='extractDetect'){
+    if(scene!=='raid' || !raid || raid.over){
+      toast('레이드 중에만 쓸 수 있다');
+      return false;
+    }
+    const dur = d.effectDur||10;
+    player.extractDetectT = Math.max(player.extractDetectT||0, dur);
+    sfx('open');
+    toast(d.emoji+' '+d.name+' 가동! '+dur+'초간 탈출구 방향 표시');
+    return true;
+  }
+  // 기본: 체력 회복
+  if(!(d.heal>0)){ toast('사용할 수 없다'); return false; }
+  if(player.hp >= maxHp()){ toast('체력이 가득 찼습니다'); return false; }
+  player.hp = Math.min(maxHp(), player.hp + d.heal);
   sfx('eat');
-  toast(inst.def.emoji+' '+inst.def.name+' 사용! 체력 +'+inst.def.heal);
+  toast(d.emoji+' '+d.name+' 사용! 체력 +'+d.heal);
+  return true;
+}
+function eatItem(inst){
+  if(!applyConsumable(inst)) return;
+  State.backpack.remove(inst);
   refreshPanel();
 }
 
@@ -74,19 +96,27 @@ function eatItem(inst){
 function eatSlot(i){
   const it = State.qslots[i];
   if(!it) return;
-  if(player.hp >= maxHp()){ toast('체력이 가득 찼습니다'); return; }
-  player.hp = Math.min(maxHp(), player.hp + it.def.heal);
+  if(!applyConsumable(it)) return;
   State.qslots[i] = null;
-  sfx('eat');
-  toast(it.def.emoji+' '+it.def.name+' 사용! 체력 +'+it.def.heal);
   renderQslots();
 }
 function renderQslots(){
   document.querySelectorAll('#qslots .qslot').forEach((el,i)=>{
     const it = State.qslots[i];
     el.classList.toggle('filled', !!it);
-    el.querySelector('.qs-emoji').textContent = it ? it.def.emoji : '';
-    el.querySelector('.qs-heal').textContent = it ? '+'+it.def.heal : '';
+    const slot = el.querySelector('.qs-emoji');
+    slot.innerHTML = '';
+    if(it && typeof itemIconEl==='function'){
+      const ic = itemIconEl(it.def, 28, false);
+      ic.style.margin = '0 auto';
+      slot.appendChild(ic);
+    } else {
+      slot.textContent = it ? it.def.emoji : '';
+    }
+    const label = !it ? ''
+      : it.def.effect==='extractDetect' ? (it.def.effectDur||10)+'s'
+      : '+'+it.def.heal;
+    el.querySelector('.qs-heal').textContent = label;
   });
 }
 function refreshQslotZones(){
@@ -122,10 +152,20 @@ function onExtract(){
   const rid = raid.region;
   State.regionExtracts[rid] = (State.regionExtracts[rid]||0) + 1;
   const newly = wasLocked.filter(id=>regionUnlocked(id));
-  const q = State.quest;
-  if(q && q.def.type==='extract' && q.prog<q.def.n){
-    q.prog++;
-    if(q.prog>=q.def.n) toast('📜 퀘스트 목표 달성! 창구에서 보고하세요');
+  // 일반·엑조틱 슬롯 모두 탈출 진행 (동시 진행)
+  for(const q of [State.quest, State.exoQuest]){
+    if(!q || q.def.type!=='extract' || q.prog>=q.def.n) continue;
+    if(!q.def.region || q.def.region===rid){
+      q.prog++;
+      const tag = (q.def.unlock==='exoticIntro') ? '🔧 부품 수집가' : '📜 창구';
+      if(q.prog>=q.def.n) toast(tag+' 퀘스트 목표 달성! 보고하세요');
+    } else if(q===State.quest){
+      toast('📜 이 탈출은 「'+(REGIONS[q.def.region]?.name||q.def.region)+'」 전용 의뢰에는 안 셈');
+    }
+  }
+  // 폐공장 첫 해금 시 부품 수집가 NPC 안내
+  if(newly.includes('factory') && !State.exoticIntroDone){
+    toast('🔧 케이브 「부품 수집가」가 이상한 일을 맡긴다 (작업대 옆)', 4000);
   }
   sfx('extract');
   mouse.down = false;
@@ -186,6 +226,7 @@ function returnToCave(){
   raid = null;
   player.x = 11*TILE; player.y = 13.5*TILE;
   player.hp = maxHp();
+  player.extractDetectT = 0;
   closePanel();
   playMusic('cave');
   saveGame();

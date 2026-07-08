@@ -13,6 +13,7 @@ const SHAPES = {
   h5: [[0,0],[1,0],[2,0],[3,0],[4,0]],
   v4: [[0,0],[0,1],[0,2],[0,3]],
   sq2: [[0,0],[1,0],[0,1],[1,1]],
+  sq3: [[0,0],[1,0],[2,0],[0,1],[1,1],[2,1],[0,2],[1,2],[2,2]], // 3×3 정사각
   L:  [[0,0],[0,1],[0,2],[1,2]],                       // ㄱ(긴) 모양
   J:  [[1,0],[1,1],[1,2],[0,2]],                       // ㄱ 반전
   zig:[[1,0],[1,1],[0,1],[0,2]],                       // 번개 모양
@@ -26,6 +27,20 @@ const SHAPES = {
   bigL: [[0,0],[0,1],[0,2],[0,3],[1,3],[2,3]],         // 왕 ㄴ자
   H:  [[0,0],[0,1],[0,2],[1,1],[2,0],[2,1],[2,2]],     // H자
   donut: [[0,0],[1,0],[2,0],[0,1],[2,1],[0,2],[1,2],[2,2]], // 도넛 (가운데 구멍)
+  // ── 고티어·엑조틱용 해괴 셰이프 (장착 퍼즐 난이도↑) ──
+  Z:     [[0,0],[1,0],[1,1],[2,1],[2,2]],                 // Z자
+  arch:  [[0,1],[0,2],[1,0],[2,0],[3,0],[4,1],[4,2]],     // 아치(7칸)
+  snake: [[0,0],[1,0],[1,1],[1,2],[2,2],[3,2],[3,1],[3,0],[4,0]], // 긴 뱀(9칸)
+  claw:  [[0,0],[0,1],[1,1],[2,0],[2,1],[2,2]],           // 갈퀴
+  branch:[[0,0],[1,0],[2,0],[2,1],[2,2],[1,1],[3,2]],     // 나뭇가지
+  boot:  [[0,0],[0,1],[0,2],[1,2],[2,2],[2,1]],           // 장화
+  bolt:  [[1,0],[0,1],[1,1],[2,1],[1,2],[1,3]],           // 번개못
+  wing:  [[0,1],[1,0],[1,1],[2,1],[3,0],[3,1],[4,1]],     // 날개
+  cage:  [[0,0],[1,0],[2,0],[0,1],[2,1],[0,2],[1,2],[2,2],[1,1]], // 우리(가운데 채움 9칸)
+  hook:  [[0,0],[0,1],[0,2],[1,2],[2,2],[2,1]],           // 갈고리
+  blob:  [[1,0],[0,1],[1,1],[2,1],[1,2],[0,2],[2,2]],     // 끈적 얼룩(7칸)
+  fork3: [[0,0],[2,0],[4,0],[0,1],[1,1],[2,1],[3,1],[4,1]], // 삼지창 넓은 포크
+  spiral:[[1,0],[2,0],[0,1],[2,1],[0,2],[1,2],[2,2],[0,3]], // 소용돌이
 };
 
 // 소켓 타입별 색/이름
@@ -52,8 +67,9 @@ const ITEMS = {
       {side:'top', type:'scope', from:0, len:1},
     ],
     cls:'권총',
-    base:{ dmg:5, rpm:250, spread:7, ammo:6, reload:1.2, noise:230, pellets:1, recoil:3 },
-    desc:'수제 감자 권총. 소박하지만 정직하다.',
+    // 시작 총: 약하지만 탄창·재장전으로 버틸 여유 (구 5/250/6 → 버퍼)
+    base:{ dmg:6, rpm:270, spread:6.5, ammo:8, reload:1.05, noise:220, pellets:1, recoil:2.8 },
+    desc:'수제 감자 권총. 소박하지만 정직하다. 탄창이 생각보다 든든하다.',
   },
   bamboo_rifle: {
     id:'bamboo_rifle', kind:'body', name:'대나무 소총', emoji:'🎋', shape:'h4', value:160,
@@ -66,8 +82,9 @@ const ITEMS = {
       {side:'back', type:'stock', from:0, len:1},
     ],
     cls:'소총',
-    base:{ dmg:9, rpm:430, spread:9, ammo:5, reload:1.6, noise:280, pellets:1, recoil:8 },
-    desc:'속이 빈 대나무 소총. 확장성이 뛰어난 명품 몸통.',
+    // 확장성 만능 메타 완화: 맨몸 화력↓, 부착으로 키우는 맛 (구 9/430)
+    base:{ dmg:8, rpm:400, spread:7.5, ammo:6, reload:1.65, noise:280, pellets:1, recoil:8.5 },
+    desc:'속이 빈 대나무 소총. 확장성이 뛰어난 명품 몸통. 맨몸은 의외로 얌전하다.',
   },
   water_pipe: {
     id:'water_pipe', kind:'body', name:'워터 파이프', emoji:'🚿', shape:'h3', value:120,
@@ -80,8 +97,9 @@ const ITEMS = {
       {side:'back', type:'stock', from:0, len:1},
     ],
     cls:'기관단총',
-    base:{ dmg:4, rpm:750, spread:12, ammo:9, reload:1.4, noise:200, pellets:1, recoil:1.5 },
-    desc:'물이 새는 기관단총. 연사가 시원하다.',
+    // 중거리 SMG: 소화기보다 정확·한 발 셈, 장탄·연사는 밀림
+    base:{ dmg:5, rpm:680, spread:9, ammo:10, reload:1.35, noise:200, pellets:1, recoil:2.2 },
+    desc:'물이 새는 기관단총. 연사가 시원하고 의외로 곧게 나간다.',
   },
   ukulele: {
     id:'ukulele', kind:'body', name:'우쿨렐레', emoji:'🎸', shape:'sq2', value:200,
@@ -94,8 +112,9 @@ const ITEMS = {
       {side:'back', type:'stock', from:0, len:2},
     ],
     cls:'산탄총',
-    base:{ dmg:4, rpm:95, spread:15, ammo:3, reload:2.2, noise:340, pellets:5, recoil:14 },
-    desc:'알로하~ 산탄이 나가는 우쿨렐레.',
+    // 나팔과 차별: 더 빠른 후속타·탄창·조밀 산탄 (한 방 폭딜은 나팔)
+    base:{ dmg:4, rpm:115, spread:12, ammo:4, reload:1.8, noise:300, pellets:5, recoil:11 },
+    desc:'알로하~ 산탄이 나가는 우쿨렐레. 나팔보다 가볍고 연사된다.',
   },
   trumpet_shotgun: {
     id:'trumpet_shotgun', kind:'body', name:'나팔 산탄총', emoji:'🎺', shape:'h3', value:240,
@@ -107,8 +126,9 @@ const ITEMS = {
       {side:'bottom', type:'mag', from:1, len:2},
       {side:'back', type:'stock', from:0, len:1},
     ],
-    base:{ dmg:5, rpm:80, spread:17, ammo:2, reload:2.3, noise:380, pellets:7, recoil:17 },
-    desc:'빠밤!! 산탄이 부채꼴로 쏟아진다. 어깨가 얼얼한 반동.',
+    // 근거리 원샷 특화 유지 (우쿨보다 느리고 넓고 아픔)
+    base:{ dmg:6, rpm:72, spread:18, ammo:2, reload:2.4, noise:400, pellets:7, recoil:18 },
+    desc:'빠밤!! 산탄이 부채꼴로 쏟아진다. 어깨가 얼얼한 반동. 한 방이 전부다.',
   },
   stapler_pistol: {
     id:'stapler_pistol', kind:'body', name:'스테이플러 권총', emoji:'🖇️', shape:'h2', value:150,
@@ -118,7 +138,8 @@ const ITEMS = {
       {side:'bottom', type:'mag', from:1, len:1},
       {side:'top', type:'scope', from:0, len:1},
     ],
-    base:{ dmg:7, rpm:330, spread:4.5, ammo:8, reload:0.9, noise:230, pellets:1, recoil:3 },
+    // 정확 권총 유지, 소총급 지속화력은 살짝 하향
+    base:{ dmg:6, rpm:300, spread:4, ammo:8, reload:0.95, noise:210, pellets:1, recoil:2.5 },
     desc:'딱, 딱, 정확하게 박아 넣는다. 반동이 거의 없다.',
   },
   extinguisher_smg: {
@@ -130,7 +151,8 @@ const ITEMS = {
       {side:'top', type:'scope', from:1, len:1},
       {side:'back', type:'stock', from:0, len:1},
     ],
-    base:{ dmg:3, rpm:950, spread:13, ammo:14, reload:1.2, noise:170, pellets:1, recoil:1.2 },
+    // 탄막·장탄 특화 (워터 파이프와 역할 분리)
+    base:{ dmg:3, rpm:980, spread:14, ammo:16, reload:1.25, noise:160, pellets:1, recoil:1.1 },
     desc:'뿌슈슈슉!! 미친 연사력. 한 발 한 발은 간지럽다. 탄창 레일 3칸!',
   },
   fishingrod_sniper: {
@@ -143,7 +165,8 @@ const ITEMS = {
       {side:'bottom', type:'mag', from:3, len:1},
       {side:'back', type:'stock', from:0, len:1},
     ],
-    base:{ dmg:34, rpm:42, spread:1.5, ammo:3, reload:2.1, noise:330, pellets:1, recoil:26 },
+    // 원샷 정체성 강화 (DPS보다 한 발)
+    base:{ dmg:38, rpm:38, spread:1.2, ammo:3, reload:2.2, noise:340, pellets:1, recoil:28 },
     desc:'한 발 한 발이 월척. 쏠 때마다 뒤로 밀려난다. 스코프 레일 4칸.',
   },
 
@@ -341,6 +364,11 @@ const ITEMS = {
     shape:'longT', value:140, mods:{ zoom:1.9, light:0.2 },
     desc:'24시간 녹화 중. 야간 감시에 특화.',
   },
+  detect_module: {
+    id:'detect_module', kind:'att', sock:'scope', name:'탐지모듈', emoji:'🛰️',
+    shape:'sq3', value:240, mods:{ extractDetect:true, zoom:1.15 },
+    desc:'3×3 스코프 모듈. 이 파츠를 단 총을 장비 중이면 탈출구 방향이 항상 표시된다.',
+  },
 
   // ===== 확장 2차: 총구 =====
   trombone_bell: {
@@ -490,6 +518,159 @@ const ITEMS = {
     desc:'★ 행운은 1x1칸밖에 차지하지 않는다.',
   },
 
+  // ============================================================
+  // ★★ 엑조틱 파츠 (폐공장★2+ / 황금습지★3 전용 풀)
+  // fire: 'laser'|'flame'|'dart' — 발사 방식 변경 (총구에 달면 적용)
+  // 강한 만큼 디버프·해괴한 모양으로 장착 퍼즐을 강요한다
+  // ============================================================
+  // ── 레이저 계열 ──
+  pointer_laser: {
+    id:'pointer_laser', kind:'att', rare:true, exotic:true, sock:'muzzle', name:'고양이 레이저 포인터', emoji:'🔴',
+    shape:'bolt', value:520,
+    mods:{ fire:'laser', dmg:10, pierce:1, bulletSpd:2.4, rangeMul:1.3, spread:-4,
+           rpmMul:0.55, ammoCost:2, noiseMul:1.5, recoilMul:0.6 },
+    desc:'★★ 레이저! 관통 1. 2발치 에너지를 먹는다. 연사 반토막. 번개못 모양.',
+  },
+  disco_ball_lens: {
+    id:'disco_ball_lens', kind:'att', rare:true, exotic:true, sock:'muzzle', name:'디스코볼 렌즈', emoji:'🪩',
+    shape:'cage', value:680,
+    mods:{ fire:'laser', dmg:6, pierce:2, pellets:3, bulletSpd:2.0, spread:8,
+           rpmMul:0.4, ammoCost:3, noiseMul:2.2, aim:-0.2 },
+    desc:'★★ 레이저가 세 갈래로 찢어진다. 탄 3·연사 최악·우리 모양 9칸.',
+  },
+  barcode_scanner: {
+    id:'barcode_scanner', kind:'att', rare:true, exotic:true, sock:'scope', name:'바코드 스캐너', emoji:'📠',
+    shape:'boot', value:410,
+    mods:{ zoom:2.4, spread:-2, aim:0.15, light:0.25, rpmMul:0.9, reload:0.4 },
+    desc:'★★ 삐빅. 조준은 정확한데 재장전이 바코드 읽는 만큼 느리다. 장화 모양.',
+  },
+  // ── 화염 계열 ──
+  chili_flamethrower: {
+    id:'chili_flamethrower', kind:'att', rare:true, exotic:true, sock:'muzzle', name:'고춧가루 방사기', emoji:'🌶️',
+    shape:'arch', value:560,
+    mods:{ fire:'flame', dmg:2, pellets:6, burn:2.2, rangeMul:0.28, bulletSpd:0.45, spread:22,
+           rpmMul:1.35, noiseMul:2.5, ammo: -4, recoilMul:1.4 },
+    desc:'★★ 화염방사! 근거리·광역·화상. 멀리 안 감. 아치 7칸·소음 지옥.',
+  },
+  hairdryer_torch: {
+    id:'hairdryer_torch', kind:'att', rare:true, exotic:true, sock:'muzzle', name:'헤어드라이기 토치', emoji:'💨',
+    shape:'claw', value:480,
+    mods:{ fire:'flame', dmg:3, pellets:4, burn:1.6, rangeMul:0.35, bulletSpd:0.55, spread:16,
+           rpmMul:1.15, noiseMul:1.9, reload:0.6 },
+    desc:'★★ 뜨거운 바람. 화상은 짧고 갈퀴 모양이 성가시다.',
+  },
+  oven_mitt_grip: {
+    id:'oven_mitt_grip', kind:'att', rare:true, exotic:true, sock:'grip', name:'오븐장갑 그립', emoji:'🧤',
+    shape:'U', value:360,
+    mods:{ recoilMul:0.55, aim:-0.15, burn:0.4, spread:1 },
+    desc:'★★ 화상 지속 +0.4초. 두꺼워서 조준이 둔하다. U자.',
+  },
+  // ── 다트/독 계열 ──
+  mosquito_dart: {
+    id:'mosquito_dart', kind:'att', rare:true, exotic:true, sock:'muzzle', name:'모기 다트총구', emoji:'🦟',
+    shape:'snake', value:540,
+    mods:{ fire:'dart', dmg:3, poison:3.5, bulletSpd:0.55, rangeMul:0.9, noiseMul:0.2, spread:-2,
+           rpmMul:0.5, ammoCost:1, reload:0.5 },
+    desc:'★★ 독침 다트. 조용하고 지속딜. 직빵 약함·연사 느림. 뱀 9칸 악몽.',
+  },
+  syringe_barrel: {
+    id:'syringe_barrel', kind:'att', rare:true, exotic:true, sock:'muzzle', name:'주사기 총열', emoji:'💉',
+    shape:'hook', value:500,
+    mods:{ fire:'dart', dmg:5, poison:2.5, pierce:1, bulletSpd:0.7, noiseMul:0.35,
+           rpmMul:0.6, ammo: -2, aim:0.1 },
+    desc:'★★ 독 다트+약한 관통. 장탄 -2. 갈고리 모양.',
+  },
+  frog_poison_mag: {
+    id:'frog_poison_mag', kind:'att', rare:true, exotic:true, sock:'mag', name:'독개구리 탄창', emoji:'🐸',
+    shape:'branch', value:450,
+    mods:{ ammo:12, poison:1.2, reload:1.1, dmg:-1 },
+    desc:'★★ 탄에 독이 밴다(+1.2s). 재장전 느리고 데미지 -1. 나뭇가지 모양.',
+  },
+  // ── 기타 해괴 고성능 ──
+  accordion_mag: {
+    id:'accordion_mag', kind:'att', rare:true, exotic:true, sock:'mag', name:'아코디언 탄창', emoji:'🪗',
+    shape:'wing', value:470,
+    mods:{ ammo:24, reload:1.3, rpmMul:0.92, noiseMul:1.25 },
+    desc:'★★ 펼치면 탄이 많다. 접을 때마다 시끄럽다. 날개 7칸.',
+  },
+  cactus_stock: {
+    id:'cactus_stock', kind:'att', rare:true, exotic:true, sock:'stock', name:'선인장 개머리판', emoji:'🌵',
+    shape:'Z', value:390,
+    mods:{ recoilMul:0.4, aim:0.25, dmg:2, spread:2 },
+    desc:'★★ 어깨에 박히면 반동이 사라진다. 대신 탄이 살짝 흔들림. Z자.',
+  },
+  traffic_cone_muzzle: {
+    id:'traffic_cone_muzzle', kind:'att', rare:true, exotic:true, sock:'muzzle', name:'라바콘 확성기', emoji:'🚧',
+    shape:'bigL', value:430,
+    mods:{ dmg:5, pellets:1, noiseMul:2.8, spread:4, recoilMul:1.3, rpmMul:0.85 },
+    desc:'★★ 빵!!! 데미지↑ 소음 최악. 미니가 우르르. 왕 ㄴ자.',
+  },
+  pretzel_scope: {
+    id:'pretzel_scope', kind:'att', rare:true, exotic:true, sock:'scope', name:'프레첼 조준경', emoji:'🥨',
+    shape:'plus', value:400,
+    mods:{ zoom:2.1, spread:-2.5, aim:0.1, reload:0.35 },
+    desc:'★★ 구멍 세 개 중 어디로 볼지 고민된다. 재장전 +0.35.',
+  },
+  anchor_stock: {
+    id:'anchor_stock', kind:'att', rare:true, exotic:true, sock:'stock', name:'닻 개머리판', emoji:'⚓',
+    shape:'T', value:440,
+    mods:{ recoilMul:0.35, aim:0.35, rpmMul:0.8, spread:-1 },
+    desc:'★★ 뿌리내린 듯 안정. 연사가 묵직해진다. T자.',
+  },
+  rubber_chicken_grip: {
+    id:'rubber_chicken_grip', kind:'att', rare:true, exotic:true, sock:'grip', name:'고무 닭 그립', emoji:'🐔',
+    shape:'stairs', value:380,
+    mods:{ aim:0.4, noiseMul:1.6, spread:-1, light:0.1 },
+    desc:'★★ 꽉 쥐으면 삑. 조준은 최고, 소음이 닭 울음.',
+  },
+  // ── 끈끈이(슬로우) 계열 ──
+  gum_blaster: {
+    id:'gum_blaster', kind:'att', rare:true, exotic:true, sock:'muzzle', name:'껌딱지 발사기', emoji:'🫧',
+    shape:'blob', value:510,
+    mods:{ fire:'glue', dmg:4, slow:2.4, bulletSpd:0.5, rangeMul:0.7, spread:10,
+           rpmMul:0.7, noiseMul:0.85, recoilMul:0.8 },
+    desc:'★★ 끈끈이! 맞은 미니가 느려진다. 직빵 약함·얼룩 7칸.',
+  },
+  honey_nozzle: {
+    id:'honey_nozzle', kind:'att', rare:true, exotic:true, sock:'muzzle', name:'꿀단지 노즐', emoji:'🍯',
+    shape:'spiral', value:550,
+    mods:{ fire:'glue', dmg:3, slow:3.2, pellets:3, bulletSpd:0.4, rangeMul:0.55, spread:14,
+           rpmMul:0.55, reload:0.7, noiseMul:1.1 },
+    desc:'★★ 끈적 산탄. 광역 슬로우. 연사·재장전 최악. 소용돌이 8칸.',
+  },
+  flypaper_mag: {
+    id:'flypaper_mag', kind:'att', rare:true, exotic:true, sock:'mag', name:'파리지뢰 탄창', emoji:'📜',
+    shape:'h4', value:420,
+    mods:{ ammo:10, slow:0.8, reload:0.9, dmg:-1, rpmMul:0.95 },
+    desc:'★★ 탄에 끈적임(+0.8s 슬로우). 장탄 적고 재장전 느림.',
+  },
+  // ── 전기(스턴·체인) 계열 ──
+  taser_prong: {
+    id:'taser_prong', kind:'att', rare:true, exotic:true, sock:'muzzle', name:'전기파리채 총구', emoji:'⚡',
+    shape:'fork3', value:580,
+    mods:{ fire:'shock', dmg:7, stun:0.85, chain:1, bulletSpd:1.3, spread:3,
+           rpmMul:0.5, ammoCost:2, noiseMul:1.7, recoilMul:1.2 },
+    desc:'★★ 감전! 짧은 기절+주변 1명 체인. 탄×2·연사 반. 삼지창 포크.',
+  },
+  battery_pack: {
+    id:'battery_pack', kind:'att', rare:true, exotic:true, sock:'mag', name:'자동차 배터리', emoji:'🔋',
+    shape:'sq2', value:460,
+    mods:{ ammo:8, stun:0.35, chain:1, dmg:2, reload:1.2, noiseMul:1.3 },
+    desc:'★★ 전기 탄 강화(스턴·체인). 무겁고 장탄 적음. 2×2.',
+  },
+  copper_coil_stock: {
+    id:'copper_coil_stock', kind:'att', rare:true, exotic:true, sock:'stock', name:'구리 코일 개머리판', emoji:'🔌',
+    shape:'donut', value:490,
+    mods:{ fire:'shock', stun:0.5, aim:0.2, recoilMul:0.65, rpmMul:0.85, noiseMul:1.4 },
+    desc:'★★ 개머리판만으로 감전 모드. 도넛 8칸이 짐.',
+  },
+  static_sock_grip: {
+    id:'static_sock_grip', kind:'att', rare:true, exotic:true, sock:'grip', name:'정전기 양말 그립', emoji:'🧦',
+    shape:'v3', value:370,
+    mods:{ stun:0.25, aim:0.15, spread:-1, noiseMul:1.15 },
+    desc:'★★ 스턴 +0.25s. 문지르면 지지직. 세로 3칸.',
+  },
+
   // ===== 귀중품 (판매용) =====
   gold_tooth:   { id:'gold_tooth', kind:'loot', name:'금니', emoji:'🦷', shape:'sq1', value:120, desc:'누구 건지는 묻지 말자.' },
   circuit:      { id:'circuit', kind:'loot', name:'회로기판', emoji:'💾', shape:'h2', value:80, desc:'아직 따끈따끈하다.' },
@@ -509,7 +690,7 @@ const ITEMS = {
   mahjong_set:  { id:'mahjong_set', kind:'loot', name:'마작패 묶음', emoji:'🀄', shape:'v4', value:140, desc:'한 줄로 길게 묶여 있다.' },
   music_box:    { id:'music_box', kind:'loot', name:'오르골', emoji:'🎵', shape:'corner', value:170, desc:'태엽을 감으면 맑은 소리가 난다.' },
 
-  // ===== 음식 (더블클릭으로 사용) =====
+  // ===== 음식·소모 (더블클릭/퀵슬롯 사용) =====
   bandage:  { id:'bandage', kind:'food', name:'반창고', emoji:'🩹', shape:'sq1', value:15, heal:18, desc:'더블클릭으로 사용. 체력 +18' },
   lunchbox: { id:'lunchbox', kind:'food', name:'도시락', emoji:'🍱', shape:'h2', value:35, heal:35, desc:'더블클릭으로 사용. 체력 +35' },
   donut_food:{ id:'donut_food', kind:'food', name:'도넛', emoji:'🍩', shape:'donut', value:55, heal:55, desc:'진짜 도넛 모양이라 가방에서 자리를 많이 먹는다. 체력 +55' },
@@ -518,6 +699,11 @@ const ITEMS = {
   croissant:{ id:'croissant', kind:'food', name:'크루아상', emoji:'🥐', shape:'corner', value:25, heal:18, desc:'꺾인 모양. 버터 풍미. 체력 +18' },
   jelly_worm:{ id:'jelly_worm', kind:'food', name:'젤리 지렁이', emoji:'🪱', shape:'zig', value:30, heal:20, desc:'꿈틀꿈틀 지그재그. 체력 +20' },
   pancake_tower:{ id:'pancake_tower', kind:'food', name:'팬케이크 탑', emoji:'🥞', shape:'v3', value:60, heal:45, desc:'3단 팬케이크. 세로로 길다. 체력 +45' },
+  portable_detector: {
+    id:'portable_detector', kind:'food', name:'휴대용 탐지기', emoji:'📡', shape:'sq1', value:90,
+    heal:0, effect:'extractDetect', effectDur:10,
+    desc:'1회용. 레이드 중 사용 시 10초간 가장 가까운 탈출구 방향을 표시한다. 퀵슬롯(3·4·5) 가능.',
+  },
 };
 
 // ---- 루트 테이블 (컨테이너 종류별) ----
@@ -528,7 +714,7 @@ const LOOT_POOLS = {
         'leek_silencer','pepper_brake','funnel_choke','whistle_amp',
         'baguette_mag','snail_drum','eggcarton_mag','sausage_mag','dice_mag',
         'driver_grip','umbrella_grip','glove_grip','selfiestick_grip',
-        'microscope_scope','magnifier_scope','crystal_scope','cctv_scope',
+        'microscope_scope','magnifier_scope','crystal_scope','cctv_scope','detect_module',
         'bat_stock','sponge_stock','spring_stock','teddy_stock',
         'trombone_bell','shower_head','straw_silencer','cork_plug',
         'octopus_mag','centipede_belt','takeout_mag','necklace_mag','question_mag',
@@ -536,13 +722,21 @@ const LOOT_POOLS = {
         'keyhole_scope','panorama_scope','dragonfly_scope','frame_scope',
         'crutch_stock','boomerang_stock','eel_stock'],
   rareAtt: ['library_silencer','furnace_muzzle','magic_pouch','honeycomb_mag',
-            'hawk_scope','samurai_grip','rocket_stock','clover_charm'],
+            'hawk_scope','samurai_grip','rocket_stock','clover_charm','detect_module'],
+  // 폐공장★2+ / 황금습지★3 전용 — 발사모드·해괴 셰이프 엑조틱
+  exoticAtt: ['pointer_laser','disco_ball_lens','barcode_scanner',
+              'chili_flamethrower','hairdryer_torch','oven_mitt_grip',
+              'mosquito_dart','syringe_barrel','frog_poison_mag',
+              'accordion_mag','cactus_stock','traffic_cone_muzzle',
+              'pretzel_scope','anchor_stock','rubber_chicken_grip',
+              'gum_blaster','honey_nozzle','flypaper_mag',
+              'taser_prong','battery_pack','copper_coil_stock','static_sock_grip'],
   loot: ['gold_tooth','circuit','toad_oil','radio','bronze_kettle','lightning_relic','duck_ring',
          'cross_trophy','key_bundle','horseshoe_magnet','mahjong_set','music_box'],
   rareLoot: ['golden_duck','duck_ring','lightning_relic','radio',
              'snake_fossil','dragon_bone','frame_art','cross_trophy'],
   food: ['bandage','bandage','lunchbox','soda','donut_food',
-         'pretzel','croissant','jelly_worm','pancake_tower'],
+         'pretzel','croissant','jelly_worm','pancake_tower','portable_detector'],
   body: ['bamboo_rifle','water_pipe','ukulele','potato_pistol',
          'trumpet_shotgun','stapler_pistol','extinguisher_smg','fishingrod_sniper'],
 };
@@ -619,22 +813,22 @@ const UPGRADES = {
 const REGIONS = {
   hill: {
     id:'hill', name:'뒷동산', emoji:'⛰️', stars:1, color:'#6a8a4a',
-    desc:'평화로운 초원. 미니가 약하고 낮이 길다. 입문자용.',
-    hpMul:0.8, dmgMul:0.85, spdMul:0.92, dayLen:200, coinMul:1,
-    rareBonus:0, boss:false,
-    pool:[['zduck',6],['spitter',1],['gunner',0.5],['bigduck',0.5]],
-    nightPool:[['zduck',6],['fastduck',2],['spitter',1.2],['gunner',0.8],['bomber',0.5],['bigduck',0.5]],
+    desc:'평화로운 초원. 미니가 약하고 낮이 길다. 입문자용. 밤엔 덤불 대장이 나타난다.',
+    hpMul:0.9, dmgMul:0.95, spdMul:0.95, dayLen:190, coinMul:1,
+    rareBonus:0, boss:true, bossId:'hillchief',
+    pool:[['zduck',6],['spitter',1.2],['gunner',0.7],['bigduck',0.6],['fastduck',0.4]],
+    nightPool:[['zduck',5],['fastduck',2.4],['spitter',1.4],['gunner',1],['bomber',0.7],['bigduck',0.6]],
     unlock:null,
     // ── 스폰 밀도 프로필 (buildRaid/tick이 참조) ──
     spawn:{
-      roam:40,                    // 초기 낮 배회 미니 수
-      dayCap:20, dayEvery:13,     // 낮 트리클: 상한 / 간격(초)
-      duskCap:70, duskBurst:3,    // 황혼 웨이브: 상한 / 1회 스폰 수
-      nightCap:140, nightBase:5, nightMax:16, nightGrow:15, // 밤 웨이브: 상한/기본수/최대수/증가속도
-      indoorMul:1, // 실내 상주 미니 배수
+      roam:48,                    // 초기 낮 배회 미니 수
+      dayCap:26, dayEvery:11,     // 낮 트리클: 상한 / 간격(초)
+      duskCap:80, duskBurst:4,    // 황혼 웨이브: 상한 / 1회 스폰 수
+      nightCap:160, nightBase:6, nightMax:18, nightGrow:13, // 밤 웨이브
+      indoorMul:1.1, // 실내 상주 미니 배수
     },
     // 원거리 발사 배율: 총알 속도 / 발사 빈도 / 점사 추가 발수 (기본=평범)
-    fire:{ bulletSpd:1, fireRate:1, burstAdd:0 },
+    fire:{ bulletSpd:1, fireRate:1.05, burstAdd:0 },
     // ── 지형 프로필 (buildRaid/렌더가 참조) ──
     biome:'meadow',        // 지형 테마 키
     factoryCount:2,        // 대형 공장 건물 수
@@ -652,23 +846,23 @@ const REGIONS = {
   },
   factory: {
     id:'factory', name:'폐공장 지구', emoji:'🏭', stars:2, color:'#8a7a5a',
-    desc:'버려진 공장 단지. 총기 부품이 넘치지만 미니도 사납고 밤이 빠르다.',
-    hpMul:1.5, dmgMul:1.55, spdMul:1.18, dayLen:150, coinMul:1.6,
-    rareBonus:0.03, boss:true,
-    pool:[['zduck',4],['gunner',2],['sniper',1.3],['spitter',1.4],['fastduck',1.2],['bigduck',1.2],['bomber',0.9],['golden',0.2]],
-    nightPool:[['zduck',4],['fastduck',3],['gunner',2.2],['sniper',1.5],['spitter',1.6],['bomber',1.6],['bigduck',1.3],['golden',0.28]],
+    desc:'버려진 공장 단지. 총기 부품이 넘치지만 미니도 사납고 밤이 빠르다. 밤 보스: 황금 미니 킹.',
+    hpMul:1.6, dmgMul:1.65, spdMul:1.22, dayLen:140, coinMul:1.7,
+    rareBonus:0.035, boss:true, bossId:'kingduck',
+    pool:[['zduck',3.5],['gunner',2.3],['sniper',1.5],['spitter',1.5],['fastduck',1.4],['bigduck',1.3],['bomber',1.1],['golden',0.25]],
+    nightPool:[['zduck',3.5],['fastduck',3.2],['gunner',2.5],['sniper',1.7],['spitter',1.7],['bomber',1.8],['bigduck',1.4],['golden',0.32]],
     unlock:{extracts:{hill:3}}, // 뒷동산 3회 탈출하면 해금
     unlockDesc:'뒷동산에서 3회 탈출',
     // ── 스폰 밀도 프로필: 뒷동산보다 훨씬 빽빽하고 빠르게 몰려온다 ──
     spawn:{
-      roam:80,                    // 초기 배회 대폭 증가
-      dayCap:44, dayEvery:5,      // 낮에도 끊임없이 유입
-      duskCap:120, duskBurst:6,
-      nightCap:240, nightBase:10, nightMax:26, nightGrow:9,
-      indoorMul:1.8, // 공장 실내 상주 미니 1.8배
+      roam:90,                    // 초기 배회 대폭 증가
+      dayCap:50, dayEvery:4.5,    // 낮에도 끊임없이 유입
+      duskCap:135, duskBurst:7,
+      nightCap:260, nightBase:11, nightMax:28, nightGrow:8,
+      indoorMul:1.9, // 공장 실내 상주 미니
     },
     // 총알 더 빠르고 더 자주·더 많이 쏨 (원거리 압박 강화)
-    fire:{ bulletSpd:1.4, fireRate:1.55, burstAdd:3 },
+    fire:{ bulletSpd:1.45, fireRate:1.65, burstAdd:3 },
     // ── 산업 지형: 콘크리트 단지, 공장 다수, 컨테이너 야적장, 나무 거의 없음 ──
     biome:'industrial',
     factoryCount:5,        // 공장 건물 대폭 증가
@@ -685,8 +879,46 @@ const REGIONS = {
       outer:'#151513', forest1:'#22201a', forest2:'#1a1815',
     },
   },
+  // ── ★3 종반: 황금 습지 ──
+  // 해금: 폐공장 보스 처치. 낮이 짧고 원거리·폭탄·엘리트 비중이 높다.
+  marsh: {
+    id:'marsh', name:'황금 습지', emoji:'🪷', stars:3, color:'#c9a84a',
+    desc:'황금빛이 감도는 습지. 낮이 짧고 미니가 흉폭하다. 밤 보스: 황금 늪 여왕.',
+    hpMul:1.95, dmgMul:1.9, spdMul:1.32, dayLen:115, coinMul:2.4,
+    rareBonus:0.07, boss:true, bossId:'mirequeen',
+    pool:[['zduck',2],['gunner',2.6],['sniper',2.2],['spitter',1.8],['fastduck',1.8],
+          ['bigduck',1.6],['bomber',1.5],['golden',0.55]],
+    nightPool:[['zduck',2],['fastduck',3.5],['gunner',2.8],['sniper',2.4],['spitter',2],
+               ['bomber',2.2],['bigduck',1.7],['golden',0.7]],
+    unlock:{boss:'factory'},
+    unlockDesc:'폐공장에서 황금 미니 킹 처치',
+    spawn:{
+      roam:85,
+      dayCap:52, dayEvery:4,
+      duskCap:140, duskBurst:7,
+      nightCap:270, nightBase:12, nightMax:30, nightGrow:7.5,
+      indoorMul:2.0,
+    },
+    fire:{ bulletSpd:1.55, fireRate:1.8, burstAdd:4 },
+    // 습지: 강·호수섬·연못, 나무 울창, 낡은 집·폐사당 느낌
+    // (연못/나무는 통행·상자 배치를 막지 않도록 과하지 않게)
+    biome:'swamp',
+    factoryCount:2,
+    houseCount:16, bigHouses:3,
+    farmCount:2,
+    treeClusters:55, treeSingles:40,
+    rockCount:38,
+    yardCount:0,
+    // 호수섬(큰 물 고리)은 맵 고립을 잘 일으켜 습지에선 끔. 강+연못으로 분위기 유지.
+    river:true, lakeIsland:false, ponds:true,
+    ground:{
+      base:'#3a4a38', patchHi:'rgba(150,150,70,.12)', patchLo:'rgba(10,20,14,.16)',
+      blade:'rgba(140,160,70,.40)', flower:true, reed:true,
+      outer:'#121812', forest1:'#1c2a1c', forest2:'#162016',
+    },
+  },
 };
-const REGION_ORDER = ['hill','factory'];
+const REGION_ORDER = ['hill','factory','marsh'];
 
 // ---- 퀘스트 ----
 const QUESTS = [
@@ -707,28 +939,84 @@ const QUESTS = [
   {type:'fetch', item:'radio', n:1, reward:220, rewardItem:'flashlight', title:'전파 수집가'},
   {type:'fetch', item:'mushroom_mag', n:1, reward:120, title:'버섯 애호가'},
   {type:'extract', n:2, reward:180, title:'생존 전문가'},
-  {type:'kill', enemy:'any', n:25, reward:250, unlock:'gun2', title:'이도류 면허'},
-  {type:'extract', n:1, fetch:{item:'circuit', n:1}, reward:200, unlock:'stash', title:'사장님의 금고'},
+  {type:'kill', enemy:'any', n:25, reward:250, unlock:'gun2', title:'이도류 면허',
+   blurb:'총기 슬롯 2를 해금한다. 작업대에서 두 번째 총을 조립할 수 있다.'},
+  // 총 보관대: 칸 수는 rewardStash로만 증가 (아무 퀘스트 완료로는 안 늘어남)
+  {type:'extract', n:1, fetch:{item:'circuit', n:1}, reward:200, unlock:'stash', rewardStash:2,
+   title:'사장님의 금고',
+   blurb:'작업대 총 보관대 2칸을 개방한다.'},
+  {type:'kill', enemy:'any', n:18, reward:160, rewardStash:1, title:'금고 확장 공사',
+   blurb:'총 보관대 +1칸.'},
+  {type:'extract', n:2, reward:200, rewardStash:1, title:'여분 총 창고',
+   blurb:'총 보관대 +1칸.'},
+  {type:'fetch', item:'gold_tooth', n:3, reward:240, rewardStash:1, title:'금고 자물쇠 교체',
+   blurb:'총 보관대 +1칸.'},
+  {type:'kill', enemy:'golden', n:1, fetch:{item:'circuit', n:1}, reward:300, rewardStash:1, title:'프리미엄 금고',
+   blurb:'총 보관대 +1칸 (최대 6칸).'},
+  // 엑조틱 입문: 폐공장 해금 후 우선 제안 → 공장 1회 탈출 → ★★ 레이저 포인터
+  {type:'extract', n:1, region:'factory', reward:320, rewardItem:'pointer_laser', unlock:'exoticIntro',
+   title:'수상한 총구 주문서',
+   blurb:'폐공장에서 살아 나와라. 이상한 총구를 쥐여 주마.'},
   {type:'kill', enemy:'kingduck', n:1, reward:800, rewardItem:'magic_pouch', title:'왕위 찬탈'},
+  {type:'extract', n:1, fetch:{item:'golden_duck', n:1}, reward:900, rewardItem:'rocket_stock', title:'습지의 황금'},
+  {type:'kill', enemy:'golden', n:2, reward:550, rewardItem:'hawk_scope', title:'황금 습지 사냥'},
+  {type:'kill', enemy:'sniper', n:5, fetch:{item:'circuit', n:1}, reward:420, rewardItem:'panorama_scope', title:'습지 저격수 소탕'},
 ];
 const NPC_LINES = {
   greet: ['일감 좀 받아가라.','어서 와. 위험수당은 두둑하게 쳐준다.','살아 돌아오는 놈한테만 일을 준다.'],
   busy: ['그 일은 어떻게 됐나?','기다리고 있다. 서둘러라.','밖은 험하지. 그래도 일은 일이다.'],
   done: ['오, 해냈군! 약속한 보수다!','제법인데. 또 부탁하지.'],
+  // 부품 수집가 (엑조틱 NPC)
+  exoGreet: [
+    '이상한 부품만 모은다. 공장 쪽 일이 있으면 나한테 와.',
+    '일반 의뢰는 창구로. 여기는 괴상한 총구 전문이야.',
+    '레일 안 맞는 고철이 제일 좋지. 관심 있으면 일거리 줄게.',
+  ],
+  exoBusy: [
+    '폐공장에서 살아서 돌아와. 그다음 얘기하자.',
+    '아직이야? 부품은 도망 안 가. 너는 조심하고.',
+    '공장 탈출이 먼저야. 나는 여기서 납땜이나 하지.',
+  ],
+  exoDone: [
+    '공장에서 주운 고철 같지? 총에 달아 봐. 모양은 괴상해도 불이 나간다.',
+    '레이저다. 탄을 두 발씩 먹으니 조심하고 — 작업대에서 돌려 가며 맞춰 봐.',
+    '자, ★★ 부품이다. 사격장에서 한 발 쏴 보고 와.',
+  ],
+  exoLocked: [
+    '아직 공장 문이 안 열렸군. 뒷동산에서 더 버텨 봐.',
+    '폐공장이 열리면 나한테 와. 이상한 일거리 줄 테니까.',
+  ],
+  exoIdle: [
+    '입문은 끝났지? 이제 공장·습지 상자에서 ★★를 직접 찾아.',
+    '레이저·화염·다트… 레일에 우겨 넣는 맛이 핵심이야.',
+    '해괴한 모양일수록 세다. 가방 정리 연습 많이 해.',
+  ],
 };
 
 // ---- 적 정의 ----
 const ENEMY_TYPES = {
   // 근접은 플레이어 도보(175)보다 빠름 — 질주/사격으로 대응해야 함
-  zduck:   { name:'좀비 미니', emoji:'🧟', hp:40, spd:185, dmg:21, r:14, color:'#6a8a5a', xp:1, ranged:false },
-  fastduck:{ name:'광란 미니', emoji:'😡', hp:24, spd:230, dmg:20, r:11, color:'#b05a5a', xp:1, ranged:false },
-  bigduck: { name:'거구 미니', emoji:'🗿', hp:160, spd:150, dmg:30, r:22, color:'#5a6a8a', xp:3, ranged:false },
-  spitter: { name:'독침 미니', emoji:'🤢', hp:26, spd:55, dmg:12, r:13, color:'#8a5aa0', xp:2, ranged:'spit' },
-  sniper:  { name:'저격 미니', emoji:'🎯', hp:20, spd:48, dmg:26, r:12, color:'#3a7a8a', xp:2, ranged:'sniper' },
-  gunner:  { name:'난사 미니', emoji:'🔫', hp:35, spd:58, dmg:7,  r:14, color:'#7a6a3a', xp:2, ranged:'burst' },
-  bomber:  { name:'폭탄 미니', emoji:'💣', hp:30, spd:215, dmg:20, r:12, color:'#b03a3a', xp:2, ranged:false, bomber:true },
-  golden:  { name:'황금 미니', emoji:'✨', hp:260, spd:200, dmg:24, r:17, color:'#d4a832', xp:10, ranged:false, elite:true },
-  kingduck:{ name:'황금 미니 킹', emoji:'👑', hp:750, spd:118, dmg:22, r:32, color:'#e0b83a', xp:100, ranged:false, boss:true },
+  zduck:   { name:'좀비 미니', emoji:'🧟', hp:42, spd:188, dmg:22, r:14, color:'#6a8a5a', xp:1, ranged:false },
+  fastduck:{ name:'광란 미니', emoji:'😡', hp:26, spd:235, dmg:21, r:11, color:'#b05a5a', xp:1, ranged:false },
+  bigduck: { name:'거구 미니', emoji:'🗿', hp:170, spd:152, dmg:32, r:22, color:'#5a6a8a', xp:3, ranged:false },
+  spitter: { name:'독침 미니', emoji:'🤢', hp:28, spd:55, dmg:13, r:13, color:'#8a5aa0', xp:2, ranged:'spit' },
+  sniper:  { name:'저격 미니', emoji:'🎯', hp:22, spd:48, dmg:28, r:12, color:'#3a7a8a', xp:2, ranged:'sniper' },
+  gunner:  { name:'난사 미니', emoji:'🔫', hp:36, spd:58, dmg:8,  r:14, color:'#7a6a3a', xp:2, ranged:'burst' },
+  bomber:  { name:'폭탄 미니', emoji:'💣', hp:32, spd:218, dmg:22, r:12, color:'#b03a3a', xp:2, ranged:false, bomber:true },
+  golden:  { name:'황금 미니', emoji:'✨', hp:280, spd:205, dmg:26, r:17, color:'#d4a832', xp:10, ranged:false, elite:true },
+  // ── 지역 보스 (밤 중반 1회 · 지역 배율 미적용 · bossStyle로 AI 분기) ──
+  // 뒷동산: 돌진·가시·속박 — 입문용 보스
+  hillchief:{ name:'덤불 대장', emoji:'🌿', hp:520, spd:138, dmg:20, r:26, color:'#4a8a3a',
+    xp:55, ranged:false, boss:true, bossStyle:'thorn',
+    blurb:'가시 연사와 뿌리 속박. 돌진에 주의.' },
+  // 폐공장: 돌진·꽥노바·부하 소환 — 기존 킹
+  kingduck:{ name:'황금 미니 킹', emoji:'👑', hp:820, spd:122, dmg:24, r:32, color:'#e0b83a',
+    xp:100, ranged:false, boss:true, bossStyle:'king',
+    blurb:'돌진·방사탄·부하 소환. 왕관을 떨어뜨린다.' },
+  // 황금 습지: 독·도약·포자 — 최강
+  mirequeen:{ name:'황금 늪 여왕', emoji:'🪷', hp:1180, spd:98, dmg:26, r:34, color:'#c9a030',
+    xp:150, ranged:false, boss:true, bossStyle:'mire',
+    blurb:'독 포자·도약 습격·독침 부하. 체력이 압도적.' },
 };
 
 // 유틸

@@ -91,6 +91,16 @@ function itemColor(def){
   return def.value>=150 ? '#d4a832' : '#9a7fc4'; // loot
 }
 
+// 작업대 창고 필터 매칭 (null=전체, 소켓키 / body / loot / food)
+function itemMatchesBenchFilter(def, filter){
+  if(!filter) return true;
+  if(filter==='body') return def.kind==='body';
+  if(filter==='loot') return def.kind==='loot';
+  if(filter==='food') return def.kind==='food';
+  // 소켓 타입 → 해당 부착물만
+  return def.kind==='att' && def.sock===filter;
+}
+
 // ---- 그리드 DOM 렌더 ----
 const CS = 46; // 인벤토리 셀 픽셀
 
@@ -185,16 +195,26 @@ function buildShapeEl(cells, def, cs, hidden){
   }
   el.appendChild(svg);
   const [ax,ay] = emojiAnchor(cells);
-  const em = document.createElement('div');
-  em.className = 'item-emoji';
-  em.style.left = ax*cs+'px'; em.style.top = ay*cs+'px';
-  em.style.fontSize = Math.floor(cs*0.62)+'px';
-  em.textContent = hidden ? '❓' : def.emoji;
-  el.appendChild(em);
+  // 도트 아이콘 (emoji 대체)
+  const iconSz = Math.max(16, Math.floor(cs*0.58));
+  const ic = (typeof itemIconEl==='function')
+    ? itemIconEl(def, iconSz, !!hidden)
+    : (()=>{ const d=document.createElement('div'); d.className='item-emoji'; d.textContent=hidden?'❓':def.emoji; return d; })();
+  ic.classList.add('item-emoji'); // 위치 스타일 재사용
+  ic.style.left = ax*cs+'px'; ic.style.top = ay*cs+'px';
+  ic.style.position = 'absolute';
+  ic.style.transform = 'translate(-50%,-50%)';
+  ic.style.pointerEvents = 'none';
+  if(ic.tagName==='CANVAS'){
+    ic.style.imageRendering = 'pixelated';
+    ic.style.filter = 'drop-shadow(0 1px 0 #000)';
+  }
+  el.appendChild(ic);
   if(hidden){
     el.classList.add('unknown');
   } else {
-    if(def.rare){ el.classList.add('epic'); }
+    if(def.exotic){ el.classList.add('epic'); }
+    else if(def.rare){ el.classList.add('epic'); }
     else if(def.value>=150){ el.classList.add('rare'); }
     attachTip(el, def);
   }
@@ -218,10 +238,9 @@ function renderGrid(rootEl, inv, opts={}){
   for(const it of inv.items){
     const el = buildItemEl(it.inst, cs);
     el.style.left = it.x*cs+'px'; el.style.top = it.y*cs+'px';
-    // 소켓 필터: 선택된 소켓 타입이 아니면 흐리게 (부착물만 대상, 나머지는 항상 dim)
+    // 작업대 필터: 소켓(부착물) / 총기몸통 / 귀중품 / 음식
     if(opts.highlightSock){
-      const d = it.inst.def;
-      const match = d.kind==='att' && d.sock===opts.highlightSock;
+      const match = itemMatchesBenchFilter(it.inst.def, opts.highlightSock);
       if(!match) el.classList.add('dimmed');
       else el.classList.add('sock-hi');
     }
@@ -526,6 +545,7 @@ function ensureTip(){
   }
   return tipEl;
 }
+const FIRE_TIP = { laser:'🔴 레이저', flame:'🔥 화염', dart:'🦟 독다트', glue:'🫧 끈끈이', shock:'⚡ 감전' };
 const TIP_MODS = {
   dmg: v=>`공격력 ${v>0?'+':''}${v}`,
   ammo: v=>`장탄 ${v>0?'+':''}${v}`,
@@ -538,6 +558,17 @@ const TIP_MODS = {
   rpmMul: v=>`연사 ×${v}`,
   recoilMul: v=>`반동 ×${v}`,
   pellets: v=>`산탄 ${v>0?'+':''}${v}발`,
+  fire: v=>FIRE_TIP[v]||('모드 '+v),
+  pierce: v=>`관통 ${v}`,
+  burn: v=>`화상 ${v}초`,
+  poison: v=>`독 ${v}초`,
+  slow: v=>`둔화 ${v}초`,
+  stun: v=>`기절 ${v}초`,
+  chain: v=>`체인 ${v}명`,
+  rangeMul: v=>`사거리 ×${v}`,
+  bulletSpd: v=>`탄속 ×${v}`,
+  ammoCost: v=>`탄 소모 ${v}/발`,
+  extractDetect: ()=>`📡 탈출구 방향 표시`,
 };
 function tipHTML(def){
   let kind = '', extra = '';
@@ -554,12 +585,19 @@ function tipHTML(def){
     extra = `<div class="tip-mods">공격력 ${b.dmg}${(b.pellets||1)>1?'×'+b.pellets:''} · ${b.rpm}rpm · 장탄 ${b.ammo} · 탄퍼짐 ${b.spread}° · 반동 ${b.recoil!=null?b.recoil:6} · 소음 ${b.noise}</div>
       <div class="tip-mods">소켓: ${rails}</div>`;
   } else if(def.kind==='food'){
-    kind = '음식 · 더블클릭 사용';
-    extra = `<div class="tip-mods">체력 +${def.heal}</div>`;
+    if(def.effect==='extractDetect'){
+      kind = '소모품 · 더블클릭/퀵슬롯 사용';
+      extra = `<div class="tip-mods">📡 탈출구 방향 ${def.effectDur||10}초</div>`;
+    } else {
+      kind = '음식 · 더블클릭 사용';
+      extra = `<div class="tip-mods">체력 +${def.heal}</div>`;
+    }
   } else {
     kind = '귀중품 · 케이브 판매함에서 판매';
   }
-  return `<div class="tip-name">${def.emoji} ${def.name}${def.rare?' <span class="tip-rare">★ 희귀</span>':''}</div>
+  const rareTag = def.exotic ? ' <span class="tip-rare">★★ 엑조틱</span>'
+    : (def.rare ? ' <span class="tip-rare">★ 희귀</span>' : '');
+  return `<div class="tip-name">${def.emoji} ${def.name}${rareTag}</div>
     <div class="tip-kind">${kind}</div>${extra}
     ${def.desc?`<div class="tip-desc">${def.desc}</div>`:''}
     <div class="tip-val">가치 ${def.value}🪙</div>`;

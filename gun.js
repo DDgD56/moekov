@@ -73,17 +73,24 @@ function mountLocalCells(cells, side){
   return cells.map(([a,d])=>[md-d, a]); // back
 }
 
+// 발사 모드 우선순위 (여러 개 달면 높은 쪽이 이김)
+const FIRE_PRI = { laser:5, shock:4, flame:3, glue:2, dart:1 };
+
 // ---- 총 스탯 집계 ----
 function gunStats(gun){
   if(!gun || !gun.body){
     return { name:'맨손', cls:'', dmg:2, rpm:120, spread:10, ammo:0, reload:1, noise:100,
-             pellets:1, recoil:5, zoom:1, light:0, aim:1 };
+             pellets:1, recoil:5, zoom:1, light:0, aim:1,
+             fire:null, pierce:0, burn:0, poison:0, slow:0, stun:0, chain:0,
+             rangeMul:1, bulletSpd:1, ammoCost:1, extractDetect:false };
   }
   const b = gun.body.def;
   const s = { name:b.name, cls:b.cls||'', dmg:b.base.dmg, rpm:b.base.rpm, spread:b.base.spread,
               ammo:b.base.ammo, reload:b.base.reload, noise:b.base.noise,
               pellets:b.base.pellets||1, recoil:b.base.recoil!=null?b.base.recoil:6,
-              zoom:1, light:0, aim:1 };
+              zoom:1, light:0, aim:1,
+              fire:null, pierce:0, burn:0, poison:0, slow:0, stun:0, chain:0,
+              rangeMul:1, bulletSpd:1, ammoCost:1, extractDetect:false };
   for(const m of gun.atts){
     const mod = m.inst.def.mods||{};
     if(mod.dmg) s.dmg += mod.dmg;
@@ -97,11 +104,49 @@ function gunStats(gun){
     if(mod.rpmMul) s.rpm *= mod.rpmMul;
     if(mod.recoilMul) s.recoil *= mod.recoilMul;
     if(mod.pellets) s.pellets = Math.max(1, s.pellets + mod.pellets);
+    // 엑조틱 발사/특수
+    if(mod.fire && (!s.fire || (FIRE_PRI[mod.fire]||0) > (FIRE_PRI[s.fire]||0)))
+      s.fire = mod.fire;
+    if(mod.pierce) s.pierce = Math.max(s.pierce, mod.pierce|0);
+    if(mod.burn) s.burn += mod.burn;
+    if(mod.poison) s.poison += mod.poison;
+    if(mod.slow) s.slow += mod.slow;
+    if(mod.stun) s.stun += mod.stun;
+    if(mod.chain) s.chain = Math.max(s.chain, mod.chain|0);
+    if(mod.rangeMul) s.rangeMul *= mod.rangeMul;
+    if(mod.bulletSpd) s.bulletSpd *= mod.bulletSpd;
+    if(mod.ammoCost) s.ammoCost = Math.max(s.ammoCost, mod.ammoCost|0);
+    if(mod.extractDetect) s.extractDetect = true;
+  }
+  // fire 없이 stun/slow만 있는 파츠(배터리·양말 등) → 보조 모드 추론
+  if(!s.fire){
+    if(s.stun>0 && s.chain>0) s.fire = 'shock';
+    else if(s.slow>0 && s.burn<=0 && s.poison<=0) s.fire = 'glue';
   }
   s.spread = Math.max(1, s.spread);
   s.reload = Math.max(0.4, s.reload);
   s.noise = Math.round(s.noise);
   s.recoil = Math.max(0.3, s.recoil);
+  s.ammo = Math.max(1, Math.round(s.ammo));
+  s.dmg = Math.max(1, s.dmg);
+  s.pellets = Math.max(1, s.pellets|0);
+  s.ammoCost = Math.max(1, s.ammoCost|0);
+  s.rangeMul = Math.max(0.12, s.rangeMul);
+  s.bulletSpd = Math.max(0.2, s.bulletSpd);
+  // 모드별 기본 보정 (파츠가 안 넣은 여백 채움)
+  if(s.fire==='laser'){
+    s.pellets = Math.max(1, s.pellets);
+    s.spread = Math.min(s.spread, 6);
+  } else if(s.fire==='flame'){
+    s.pellets = Math.max(3, s.pellets);
+    s.rangeMul = Math.min(s.rangeMul, 0.45);
+  } else if(s.fire==='dart'){
+    s.pellets = 1;
+  } else if(s.fire==='glue'){
+    s.bulletSpd = Math.min(s.bulletSpd, 0.65);
+  } else if(s.fire==='shock'){
+    s.pellets = Math.max(1, s.pellets);
+  }
   return s;
 }
 
@@ -124,18 +169,21 @@ function loadGun(data){
 
 // ---- 총 보관대 (조립된 총을 통째로 넣었다 뺐다) ----
 const MAX_STASH = 6;      // 보관대 최대 칸 수 (물리 배열 크기)
-const STASH_START = 2;    // 보관대 해금 퀘스트를 깨면 한 번에 열리는 칸 수
-// 현재 해금된 보관 칸 수:
-//  · 보관대 미해금 → 0칸 (아예 닫힘)
-//  · 해금 시 START(2)칸, 이후 완료하는 퀘스트마다 1칸씩 추가 (최대 MAX_STASH)
+const STASH_START = 2;    // 「사장님의 금고」 완료 시 개방 칸 수
+// 칸 수는 State.stashSlots — 아무 퀘스트나 깨도 안 늘고, rewardStash 보상 퀘스트만 증가
 function stashSlots(){
-  if(!State.stashUnlocked) return 0;
-  const extra = Math.max(0, (State.questsDone||0) - (State.stashBaseDone||0));
-  return Math.min(MAX_STASH, STASH_START + extra);
+  return Math.min(MAX_STASH, Math.max(0, State.stashSlots|0));
+}
+function grantStashSlots(n){
+  if(!(n>0)) return 0;
+  const before = stashSlots();
+  State.stashSlots = Math.min(MAX_STASH, before + n);
+  State.stashUnlocked = State.stashSlots > 0;
+  return stashSlots() - before;
 }
 // 현재 편집 총을 보관 슬롯에 넣기 (슬롯이 비어있어야 함)
 function stashGun(slot){
-  if(slot >= stashSlots()){ toast('🔒 아직 잠긴 보관칸입니다 (퀘스트를 더 완료하세요)'); return; }
+  if(slot >= stashSlots()){ toast('🔒 아직 잠긴 보관칸입니다 (보관대 확장 퀘스트 보상)'); return; }
   const g = editGun();
   if(!g.body){ toast('작업대에 총이 없습니다'); return; }
   if(State.stash[slot]){ toast('그 보관칸은 이미 차 있습니다'); return; }
@@ -179,7 +227,7 @@ function renderStash(rootEl){
   for(let i=MAX_STASH-1;i>=show;i--){ if(State.stash[i]){ show=i+1; break; } }
   const lbl = unlocked
     ? `🔫 총 보관대 <span class="stash-count">${open}/${MAX_STASH}칸</span>`
-    : `🔫 총 보관대 <span class="stash-count locked">잠김 — 「사장님의 금고」 퀘스트로 개방</span>`;
+    : `🔫 총 보관대 <span class="stash-count locked">잠김 — 「사장님의 금고」 보상으로 개방</span>`;
   rootEl.innerHTML = `<div class="stash-label">${lbl}</div>`;
   const wrap = document.createElement('div');
   wrap.className = 'stash-slots';
@@ -191,13 +239,20 @@ function renderStash(rootEl){
     slot.className = 'stash-slot' + (locked?' locked':(st?' filled':''));
     if(locked){
       slot.innerHTML = `<div class="ss-lock">🔒</div>
-        <div class="ss-empty">퀘스트 완료로<br>개방</div>`;
+        <div class="ss-empty">확장 퀘스트<br>보상으로 개방</div>`;
     } else if(st){
       const s = gunStats({body:st.body, atts:st.atts});
-      slot.innerHTML = `<div class="ss-emoji">${st.body.def.emoji}</div>
+      slot.innerHTML = `<div class="ss-emoji"></div>
         <div class="ss-name">${st.body.def.name}</div>
         <div class="ss-stat">⚔️${s.dmg} 🔁${Math.round(s.rpm)} 🎒${st.atts.length}</div>
         <button class="btn mini ss-btn" data-take="${i}">꺼내기</button>`;
+      if(typeof itemIconEl==='function'){
+        const ic = itemIconEl(st.body.def, 32, false);
+        ic.style.margin = '0 auto 4px';
+        slot.querySelector('.ss-emoji').appendChild(ic);
+      } else {
+        slot.querySelector('.ss-emoji').textContent = st.body.def.emoji;
+      }
       attachTip(slot, st.body.def);
     } else {
       slot.innerHTML = `<div class="ss-empty">비어있음</div>
@@ -256,7 +311,11 @@ function renderBench(rootEl){
   bodyEl.style.backgroundSize = GS+'px '+GS+'px';
   const be = document.createElement('div');
   be.className = 'bench-body-emoji';
-  be.textContent = bd.emoji;
+  if(typeof itemIconEl==='function'){
+    const ic = itemIconEl(bd, 40, false);
+    ic.style.margin = '0 auto';
+    be.appendChild(ic);
+  } else be.textContent = bd.emoji;
   bodyEl.appendChild(be);
   const bn = document.createElement('div');
   bn.className = 'bench-body-name'; bn.textContent = bd.name;
@@ -410,18 +469,29 @@ function benchHighlight(d){
 // ---- 스탯 패널 ----
 function statsHTML(gun){
   const s = gunStats(gun);
+  const fireName = s.fire==='laser'?'🔴 레이저':s.fire==='flame'?'🔥 화염'
+    :s.fire==='dart'?'🦟 독다트':s.fire==='glue'?'🫧 끈끈이':s.fire==='shock'?'⚡ 감전':null;
   const rows = [
     ['공격력', s.dmg + (s.pellets>1? ' ×'+s.pellets+'발':'')],
     ['연사속도', Math.round(s.rpm)+' rpm'],
     ['탄퍼짐', s.spread.toFixed(1)+'°'],
     ['반동', s.recoil.toFixed(1) + (s.recoil>=15?' ⚠️':'')],
-    ['장탄수', s.ammo],
+    ['장탄수', s.ammo + (s.ammoCost>1? ' (소모'+s.ammoCost+')':'')],
     ['재장전', s.reload.toFixed(1)+'초'],
     ['소음', s.noise + (s.noise>400?' ⚠️':'')],
     ['줌', '×'+s.zoom.toFixed(1)],
     ['조준속도', '×'+s.aim.toFixed(2)],
   ];
+  if(fireName) rows.unshift(['발사', fireName]);
+  if(s.pierce>0) rows.push(['관통', String(s.pierce)]);
+  if(s.burn>0) rows.push(['화상', s.burn.toFixed(1)+'초']);
+  if(s.poison>0) rows.push(['독', s.poison.toFixed(1)+'초']);
+  if(s.slow>0) rows.push(['둔화', s.slow.toFixed(1)+'초']);
+  if(s.stun>0) rows.push(['기절', s.stun.toFixed(2)+'초']);
+  if(s.chain>0) rows.push(['체인', s.chain+'명']);
+  if(s.rangeMul!==1) rows.push(['사거리', '×'+s.rangeMul.toFixed(2)]);
   if(s.light>0) rows.push(['라이트','+'+Math.round(s.light*100)+'%']);
+  if(s.extractDetect) rows.push(['탐지','📡 탈출구 방향']);
   return `<div class="stats-title">${gun.body ? gun.body.def.emoji+' '+s.name : '총 없음'}${s.cls?` <span class="stats-cls">${s.cls}</span>`:''}</div>`
     + rows.map(r=>`<div class="stat-row"><span>${r[0]}</span><b>${r[1]}</b></div>`).join('');
 }
@@ -468,20 +538,18 @@ function drawGunWorld(ctx, gun, px, py, ang, flash, spin, kick){
   ctx.fillStyle = 'rgba(0,0,0,.25)';
   rrect(ctx, gx, gy+bd.bh*S*0.55, bd.bw*S, bd.bh*S*0.45, 2);
 
-  // 총구 화염
+  // 총구 화염 (도트 블롭)
   if(flash>0){
     ctx.globalAlpha = Math.min(1, flash*8);
-    ctx.fillStyle = '#ffd76a';
-    ctx.beginPath();
-    ctx.arc(gx+bd.bw*S+6, gy+bd.bh*S/2, 5+flash*22, 0, Math.PI*2);
-    ctx.fill();
+    const fr = Math.round(4 + flash*14);
+    pBlob(gx+bd.bw*S+5, gy+bd.bh*S/2, fr, '#ffd76a');
+    pBlob(gx+bd.bw*S+7, gy+bd.bh*S/2, Math.max(1, fr-2), '#fff2b0');
     ctx.globalAlpha = 1;
   }
   ctx.restore();
 }
 
+// 픽셀 톤: 둥근 모서리 무시, 정수 격자 박스만 (도트 통일)
 function rrect(ctx, x, y, w, h, r){
-  ctx.beginPath();
-  ctx.roundRect(x, y, w, h, r);
-  ctx.fill();
+  ctx.fillRect(Math.round(x), Math.round(y), Math.max(1, Math.round(w)), Math.max(1, Math.round(h)));
 }

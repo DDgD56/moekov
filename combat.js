@@ -2,6 +2,180 @@
 // MoeKov — 전투 (적 AI·사격·총알·드롭)
 // ============================================================
 
+// ---------------- 지역 보스 AI (bossStyle: thorn / king / mire) ----------------
+function bossSpawnMinions(e, ids, n, radMin, radMax){
+  for(let i=0;i<n;i++){
+    for(let tr=0; tr<8; tr++){
+      const a2 = rnd(0,Math.PI*2), dd = rnd(radMin, radMax);
+      const x2 = e.x+Math.cos(a2)*dd, y2 = e.y+Math.sin(a2)*dd;
+      if(!solidPx(x2,y2) && !houseAtPx(x2,y2)){
+        spawnEnemy(pick(ids), x2, y2);
+        raid.enemies[raid.enemies.length-1].state = 'chase';
+        break;
+      }
+    }
+  }
+}
+function bossDashTick(e, dt, dp, dmgN, dashSpd){
+  e.dashT -= dt;
+  const ox=e.x, oy=e.y;
+  moveCircle(e, e.dashX*dashSpd*dt, e.dashY*dashSpd*dt, solidPx);
+  if(Math.hypot(e.x-ox, e.y-oy) < dashSpd*dt*0.3){ e.dashT=0; shake=Math.min(16, shake+8); }
+  if(dp < e.r+player.r+6 && e.atkCd<=0){
+    e.atkCd=0.75;
+    hurtPlayer(Math.round(e.t.dmg*dmgN));
+  }
+  if(e.dashT<=0) e.mode='chase';
+}
+function updateBossAI(e, dt, ctx){
+  const {dirx, diry, dp, spd, dmgN, bSpdMul} = ctx;
+  const style = e.t.bossStyle || 'king';
+  e.atkT = (e.atkT||0) + dt;
+
+  // 공통: 돌진 예고/돌진 상태
+  if(e.mode==='windup'){
+    e.windT -= dt;
+    if(e.windT<=0){
+      e.mode='dash';
+      e.dashT = style==='mire' ? 0.4 : (style==='thorn' ? 0.5 : 0.55);
+      sfx('honk');
+    }
+    return;
+  }
+  if(e.mode==='dash'){
+    const dashSpd = style==='thorn' ? 500 : (style==='mire' ? 420 : 540);
+    bossDashTick(e, dt, dp, dmgN, dashSpd);
+    return;
+  }
+  if(e.mode==='leap'){
+    // 늪 여왕 도약: 짧은 공중 이동 후 착지 피해
+    e.leapT -= dt;
+    const t = 1 - Math.max(0, e.leapT)/(e.leapDur||0.45);
+    e.x = e.leapX0 + (e.leapX1-e.leapX0)*t;
+    e.y = e.leapY0 + (e.leapY1-e.leapY0)*t;
+    if(e.leapT<=0){
+      e.mode='chase'; e.x=e.leapX1; e.y=e.leapY1;
+      shake=Math.min(18, shake+10);
+      sfx('boss');
+      if(dp < e.r+player.r+40){
+        hurtPlayer(Math.round(e.t.dmg*1.35*dmgN));
+        player.slowT = Math.max(player.slowT||0, 1.8);
+      }
+      // 착지 독 고리
+      for(let i=0;i<12;i++){
+        const a2 = i/12*Math.PI*2;
+        raid.ebullets.push({x:e.x, y:e.y, vx:Math.cos(a2)*160*bSpdMul, vy:Math.sin(a2)*160*bSpdMul,
+          dmg:Math.round(10*dmgN), life:1.6, r:5, c:'#8ad040', poison:2.2});
+      }
+    }
+    return;
+  }
+
+  // 추격 + 근접
+  moveCircle(e, dirx*spd*dt, diry*spd*dt, solidPx);
+  if(dp < e.r+player.r+4 && e.atkCd<=0){
+    e.atkCd = style==='mire' ? 1.05 : 0.9;
+    hurtPlayer(Math.round(e.t.dmg*dmgN));
+    if(style==='thorn') player.slowT = Math.max(player.slowT||0, 1.2);
+    if(style==='mire') player.poisonT = Math.max(player.poisonT||0, 1.5);
+  }
+
+  const period = style==='thorn' ? 3.4 : (style==='mire' ? 4.0 : 4.2);
+  if(e.atkT < period) return;
+  e.atkT = 0;
+  e.cycle = (e.cycle||0)+1;
+
+  if(style==='thorn'){
+    // 🌿 덤불 대장: 가시 연사 / 뿌리 속박 / 돌진 / 부하
+    if(e.cycle%4===0){
+      sfx('boss');
+      raid.dnums.push({x:e.x, y:e.y-e.r-16, txt:'덤불아!!', t:1.0, c:'#8ad060'});
+      bossSpawnMinions(e, ['fastduck','fastduck','zduck'], 3, 45, 100);
+    } else if(e.cycle%4===1 || dp>200){
+      e.mode='windup'; e.windT=0.7; e.dashX=dirx; e.dashY=diry;
+    } else if(e.cycle%4===2){
+      // 가시 부채꼴
+      sfx('spit');
+      const base = Math.atan2(diry, dirx);
+      for(let i=-4;i<=4;i++){
+        const a2 = base + i*0.16;
+        raid.ebullets.push({x:e.x, y:e.y, vx:Math.cos(a2)*280*bSpdMul, vy:Math.sin(a2)*280*bSpdMul,
+          dmg:Math.round(11*dmgN), life:2.0, r:4, c:'#6aba40', slow:1.6});
+      }
+    } else {
+      // 뿌리 속박 파동
+      sfx('honk');
+      raid.dnums.push({x:e.x, y:e.y-e.r-12, txt:'얽혀라!', t:0.9, c:'#5a9a3a'});
+      for(let i=0;i<14;i++){
+        const a2 = i/14*Math.PI*2;
+        raid.ebullets.push({x:e.x, y:e.y, vx:Math.cos(a2)*190*bSpdMul, vy:Math.sin(a2)*190*bSpdMul,
+          dmg:Math.round(8*dmgN), life:1.8, r:4.5, c:'#3a6a28', slow:2.2});
+      }
+      if(dp < 200){
+        player.slowT = Math.max(player.slowT||0, 2.4);
+        hurtPlayer(Math.round(10*dmgN));
+      }
+    }
+    return;
+  }
+
+  if(style==='mire'){
+    // 🪷 황금 늪 여왕: 독 포자 / 도약 / 독침 부하 / 고리
+    if(e.cycle%4===0){
+      sfx('boss');
+      raid.dnums.push({x:e.x, y:e.y-e.r-16, txt:'기어나와라…', t:1.1, c:'#c9e060'});
+      bossSpawnMinions(e, ['spitter','spitter','bomber','zduck'], 4, 55, 120);
+    } else if(e.cycle%4===1){
+      // 도약 습격
+      let lx = player.x + rnd(-40,40), ly = player.y + rnd(-40,40);
+      if(solidPx(lx,ly) || houseAtPx(lx,ly)){ lx=player.x; ly=player.y; }
+      e.mode='leap'; e.leapDur=0.48; e.leapT=0.48;
+      e.leapX0=e.x; e.leapY0=e.y; e.leapX1=lx; e.leapY1=ly;
+      raid.dnums.push({x:e.x, y:e.y-e.r-12, txt:'폴짝!', t:0.7, c:'#e0c04a'});
+    } else if(e.cycle%4===2){
+      // 독 포자 연사 (플레이어 방향 부채 + 느린 독탄)
+      sfx('spit');
+      const base = Math.atan2(diry, dirx);
+      for(let i=-3;i<=3;i++){
+        const a2 = base + i*0.2;
+        raid.ebullets.push({x:e.x, y:e.y, vx:Math.cos(a2)*240*bSpdMul, vy:Math.sin(a2)*240*bSpdMul,
+          dmg:Math.round(14*dmgN), life:2.4, r:5.5, c:'#a070d0', poison:2.8});
+      }
+      for(let i=0;i<6;i++){
+        const a2 = rnd(0,Math.PI*2);
+        raid.ebullets.push({x:e.x, y:e.y, vx:Math.cos(a2)*120*bSpdMul, vy:Math.sin(a2)*120*bSpdMul,
+          dmg:Math.round(9*dmgN), life:2.8, r:6, c:'#70b040', poison:2.0, slow:1.0});
+      }
+    } else {
+      // 황금 독 노바 + 약 돌진 예고
+      sfx('honk');
+      for(let i=0;i<20;i++){
+        const a2 = i/20*Math.PI*2;
+        raid.ebullets.push({x:e.x, y:e.y, vx:Math.cos(a2)*210*bSpdMul, vy:Math.sin(a2)*210*bSpdMul,
+          dmg:Math.round(13*dmgN), life:2.3, r:5, c:'#e0c04a', poison:1.6});
+      }
+      if(dp>160){ e.mode='windup'; e.windT=0.75; e.dashX=dirx; e.dashY=diry; }
+    }
+    return;
+  }
+
+  // 👑 황금 미니 킹 (기본)
+  if(e.cycle%3===0){
+    sfx('boss');
+    raid.dnums.push({x:e.x, y:e.y-e.r-16, txt:'꽤애애액!!', t:1.1, c:'#ffd24a'});
+    bossSpawnMinions(e, ['zduck','zduck','fastduck'], 5, 50, 110);
+  } else if(dp>180){
+    e.mode='windup'; e.windT=0.85; e.dashX=dirx; e.dashY=diry;
+  } else {
+    sfx('honk');
+    for(let i=0;i<18;i++){
+      const a2 = i/18*Math.PI*2;
+      raid.ebullets.push({x:e.x, y:e.y, vx:Math.cos(a2)*230*bSpdMul, vy:Math.sin(a2)*230*bSpdMul,
+        dmg:Math.round(12*dmgN), life:2.2, r:5, c:'#ffd24a'});
+    }
+  }
+}
+
 // ---------------- 적 ----------------
 function spawnEnemy(typeId, x, y){
   const T = ENEMY_TYPES[typeId];
@@ -37,8 +211,28 @@ function updateEnemies(dt){
   let aggroR = night ? 460 : (dusk ? 240 : 165);
   if(raid.underTree) aggroR *= 0.45; // 수풀 은신
 
+  const dotDead = [];
   for(const e of raid.enemies){
     e.hitT -= dt; e.atkCd -= dt;
+    if(e.stun>0) e.stun -= dt;
+    if(e.slow>0) e.slow -= dt;
+    // 화상 / 독 지속 피해 (엑조틱 파츠) — 루프 중 splice 방지
+    if(e.burn>0){
+      e.burn -= dt;
+      e.hp -= 14*dt;
+      if(Math.random()<0.12) raid.parts.push({x:e.x,y:e.y,vx:rnd(-30,30),vy:rnd(-50,-10),t:0.25,c:'#ff8a3a',r:2.5});
+    }
+    if(e.poison>0){
+      e.poison -= dt;
+      e.hp -= 9*dt;
+      if(Math.random()<0.08) raid.parts.push({x:e.x,y:e.y,vx:rnd(-20,20),vy:rnd(-30,10),t:0.3,c:'#7ad060',r:2});
+    }
+    if(e.hp<=0){ dotDead.push(e); continue; }
+    // 기절 중: AI·이동 스킵 (파티클만)
+    if(e.stun>0){
+      if(Math.random()<0.15) raid.parts.push({x:e.x,y:e.y-e.r,vx:rnd(-20,20),vy:rnd(-30,-5),t:0.18,c:'#a8d0ff',r:2});
+      continue;
+    }
     // 끼임 탈출: 몸이 벽/장애물에 박혔으면 열린 방향으로 밀어냄
     if(solidPx(e.x, e.y)){
       let best=null, bd=1e9;
@@ -52,7 +246,8 @@ function updateEnemies(dt){
       if(best){ e.x=best[0]; e.y=best[1]; }
     }
     const dp = Math.max(0.001, dist(e.x,e.y,player.x,player.y)); // 0나눗셈(NaN) 방지
-    const spd = e.t.spd * (e.spdMul||1) * (night ? 1.10 : 1);   // 지역·밤 배율
+    // 끈끈이 둔화: 이속 ~38%
+    const spd = e.t.spd * (e.spdMul||1) * (night ? 1.10 : 1) * (e.slow>0 ? 0.38 : 1);
     const dmgN = (e.dmgMul||1) * (night ? 1.3 : 1);             // 지역·밤 배율
     // 원거리 발사 배율 (지역별): 총알 속도·발사 빈도·점사 수
     const RGF = curRegion.fire || {};
@@ -91,53 +286,7 @@ function updateEnemies(dt){
       if(canSee || dp < 220) e.lastSeen = {x:player.x, y:player.y};
       const dirx = (player.x-e.x)/dp, diry = (player.y-e.y)/dp;
       if(e.t.boss){
-        // 👑 보스: 추격 + 4.2초 사이클로 돌진/꽥노바/부하소환
-        e.atkT = (e.atkT||0) + dt;
-        if(e.mode==='windup'){
-          e.windT -= dt;
-          if(e.windT<=0){ e.mode='dash'; e.dashT=0.55; sfx('honk'); }
-        } else if(e.mode==='dash'){
-          e.dashT -= dt;
-          const ox=e.x, oy=e.y;
-          moveCircle(e, e.dashX*540*dt, e.dashY*540*dt, solidPx);
-          if(Math.hypot(e.x-ox, e.y-oy) < 540*dt*0.3){ e.dashT=0; shake=Math.min(16, shake+8); } // 벽에 쿵
-          if(dp < e.r+player.r+6 && e.atkCd<=0){ e.atkCd=0.8; hurtPlayer(Math.round(e.t.dmg*dmgN)); }
-          if(e.dashT<=0) e.mode='chase';
-        } else {
-          moveCircle(e, dirx*spd*dt, diry*spd*dt, solidPx);
-          if(dp < e.r+player.r+4 && e.atkCd<=0){ e.atkCd=0.9; hurtPlayer(Math.round(24*dmgN)); }
-          if(e.atkT>4.2){
-            e.atkT = 0;
-            e.cycle = (e.cycle||0)+1;
-            if(e.cycle%3===0){
-              // 부하 소환
-              sfx('boss');
-              raid.dnums.push({x:e.x, y:e.y-e.r-16, txt:'꽤애애액!!', t:1.1, c:'#ffd24a'});
-              for(let i=0;i<5;i++){
-                for(let tr=0; tr<6; tr++){
-                  const a2 = rnd(0,Math.PI*2), dd = rnd(50,110);
-                  const x2 = e.x+Math.cos(a2)*dd, y2 = e.y+Math.sin(a2)*dd;
-                  if(!solidPx(x2,y2)){
-                    spawnEnemy(pick(['zduck','zduck','fastduck']), x2, y2);
-                    raid.enemies[raid.enemies.length-1].state = 'chase';
-                    break;
-                  }
-                }
-              }
-            } else if(dp>180){
-              // 돌진 예고
-              e.mode='windup'; e.windT=0.85; e.dashX=dirx; e.dashY=diry;
-            } else {
-              // 꽥 노바 (방사탄)
-              sfx('honk');
-              for(let i=0;i<18;i++){
-                const a2 = i/18*Math.PI*2;
-                raid.ebullets.push({x:e.x, y:e.y, vx:Math.cos(a2)*230*bSpdMul, vy:Math.sin(a2)*230*bSpdMul,
-                  dmg:Math.round(12*dmgN), life:2.2, r:5, c:'#ffd24a'});
-              }
-            }
-          }
-        }
+        updateBossAI(e, dt, {dirx, diry, dp, spd, dmgN, bSpdMul});
       } else if(e.t.bomber){
         // 폭탄미니: 돌진 후 자폭
         moveCircle(e, dirx*spd*dt, diry*spd*dt, solidPx);
@@ -235,6 +384,8 @@ function updateEnemies(dt){
     }
   }
 
+  for(const e of dotDead) killEnemy(e);
+
   // 서로 밀어내기 (간단 해시)
   const cell = 48, hash = new Map();
   raid.enemies.forEach((e,i)=>{
@@ -271,8 +422,9 @@ function updateEnemies(dt){
 
   // 밤 웨이브: 시야 밖에서 무리로 스폰 → 즉시 떼로 몰려옴
   const ph = phase();
-  // 👑 밤 45초 후 황금미니 킹 등장 (보스 지역 한정, 레이드당 1회)
-  if(ph==='night' && !raid.bossSpawned && nightSec()>45 && curRegion.boss){
+  // 👑 밤 중반 지역 보스 1회 (맵마다 bossId 다름)
+  const bossDelay = curRegion.id==='hill' ? 35 : 45;
+  if(ph==='night' && !raid.bossSpawned && nightSec()>bossDelay && curRegion.boss){
     let bx=0, by=0, ok=false;
     for(let tries=0; tries<30 && !ok; tries++){
       const a=rnd(0,Math.PI*2), d0=rnd(600,850);
@@ -282,9 +434,10 @@ function updateEnemies(dt){
     }
     if(ok){
       raid.bossSpawned = true;
-      spawnEnemy('kingduck', bx, by);
+      const bid = curRegion.bossId || 'kingduck';
+      spawnEnemy(bid, bx, by);
       raid.boss = raid.enemies[raid.enemies.length-1];
-      // 알림 없음 — 돌아다니다가 우연히 마주쳐야 한다
+      // 알림 없음 — 조우 시 HUD/토스트
     }
   }
   const SPW = curRegion.spawn || {};
@@ -388,10 +541,11 @@ function updateShooting(dt){
 
   if(!mouse.down || panel || (!inCave && raid.over) || !g.body || player.swapT>0) return;
   if(player.fireCd>0 || player.reloading>0) return;
-  if(g.ammo<=0){ sfx('click'); startReload(); mouse.down=false; return; }
+  const cost = st.ammoCost||1;
+  if(g.ammo<cost){ sfx('click'); startReload(); mouse.down=false; return; }
 
   player.fireCd = 60/st.rpm;
-  g.ammo--;
+  g.ammo -= cost;
   player.flash = 0.06;
   if(inCave) caveMap.range.shots += st.pellets; // 사격장 통계
   const rec = st.recoil||5;
@@ -403,22 +557,44 @@ function updateShooting(dt){
   const bd = g.body.def;
   const mx0 = player.x + Math.cos(player.ang)*(12+bd.bw*7.5);
   const my0 = player.y + Math.sin(player.ang)*(12+bd.bw*7.5);
+  const mode = st.fire||null;
+  const spd = 760 * (st.bulletSpd||1);
+  const life = 0.95 * (st.rangeMul||1);
+  const col = mode==='laser' ? '#7af0ff'
+    : mode==='flame' ? '#ff8a3a'
+    : mode==='dart' ? '#9ae07a'
+    : mode==='glue' ? '#e8b0d8'
+    : mode==='shock' ? '#a8d0ff'
+    : '#ffe9a0';
+  const rad = mode==='laser' ? 2.2 : mode==='flame' ? 4.5 : mode==='dart' ? 3.2
+    : mode==='glue' ? 4.0 : mode==='shock' ? 3.0 : 2.5;
   for(let p=0;p<st.pellets;p++){
     let a;
-    if(st.pellets>1){ // 산탄: 부채꼴로 고르게 방사
-      const tt = p/(st.pellets-1);
+    if(st.pellets>1){ // 산탄/화염/끈끈: 부채꼴로 고르게 방사
+      const tt = st.pellets===1 ? 0.5 : p/(st.pellets-1);
       a = player.ang + (tt-0.5)*spreadDeg*Math.PI/180 + (Math.random()-0.5)*0.03;
     } else {
       a = player.ang + (Math.random()-0.5)*spreadDeg*Math.PI/180;
     }
-    world.bullets.push({x:mx0,y:my0,vx:Math.cos(a)*760,vy:Math.sin(a)*760,dmg:st.dmg,life:0.95});
+    world.bullets.push({
+      x:mx0, y:my0, vx:Math.cos(a)*spd, vy:Math.sin(a)*spd,
+      dmg:st.dmg, life, pierce:st.pierce|0, mode,
+      burn:st.burn||0, poison:st.poison||0, slow:st.slow||0, stun:st.stun||0,
+      chain:st.chain|0, c:col, r:rad,
+      hitSet: new Set(), // 관통 시 같은 적 중복 히트 방지
+    });
   }
   // 반동: 탄퍼짐 블룸 + 킥백 연출 + 뒤로 밀려남
   player.bloom = Math.min(24, player.bloom + rec*0.4);
   player.kick = 1;
   moveCircle(player, -Math.cos(player.ang)*rec*0.35, -Math.sin(player.ang)*rec*0.35, inCave?caveSolidPx:solidPx);
   if(!inCave) noiseEvent(player.x,player.y,st.noise);
-  if(st.noise>450) sfx('honk');
+  if(mode==='laser') sfx('silenced');
+  else if(mode==='flame') sfx('honk');
+  else if(mode==='dart') sfx('spit');
+  else if(mode==='glue') sfx('drop');
+  else if(mode==='shock') sfx('click');
+  else if(st.noise>450) sfx('honk');
   else if(st.noise<120) sfx('silenced');
   else sfx('shoot');
 }
@@ -444,34 +620,69 @@ function destroyContainer(c){
   toast('💥 '+c.ct.name+' 파괴 — 안의 물건도 박살났다');
 }
 
+function applyBulletHit(e, b){
+  if(b.hitSet && b.hitSet.has(e)) return false;
+  if(b.hitSet) b.hitSet.add(e);
+  e.hp -= b.dmg; e.hitT = 0.1; e.state='chase';
+  if(b.burn) e.burn = Math.max(e.burn||0, b.burn);
+  if(b.poison) e.poison = Math.max(e.poison||0, b.poison);
+  if(b.slow) e.slow = Math.max(e.slow||0, b.slow);
+  if(b.stun) e.stun = Math.max(e.stun||0, b.stun);
+  const spd = Math.hypot(b.vx,b.vy)||760;
+  const kb = 60/Math.max(1,e.r/12) * (b.mode==='glue' ? 0.35 : 1);
+  e.x += b.vx/spd*kb*0.1; e.y += b.vy/spd*kb*0.1;
+  const col = b.mode==='laser' ? '#7af0ff' : b.mode==='flame' ? '#ff9a50'
+    : b.mode==='dart' ? '#9ae07a' : b.mode==='glue' ? '#e8b0d8'
+    : b.mode==='shock' ? '#a8d0ff' : '#ffd76a';
+  if(raid) raid.dnums.push({x:e.x,y:e.y-e.r,txt:Math.round(b.dmg),t:0.7,c:col});
+  // 감전 체인: 근처 적에게 약한 데미지+짧은 스턴
+  if(b.chain>0 && raid){
+    let chained = 0;
+    for(const o of raid.enemies){
+      if(o===e || o.hp<=0) continue;
+      if(dist(e.x,e.y,o.x,o.y) > 90) continue;
+      o.hp -= b.dmg * 0.45;
+      o.hitT = 0.12; o.state='chase';
+      if(b.stun) o.stun = Math.max(o.stun||0, b.stun*0.6);
+      raid.dnums.push({x:o.x,y:o.y-o.r,txt:Math.round(b.dmg*0.45),t:0.55,c:'#a8d0ff'});
+      raid.parts.push({x:o.x,y:o.y,vx:rnd(-40,40),vy:rnd(-40,40),t:0.2,c:'#a8d0ff',r:2});
+      if(o.hp<=0) killEnemy(o);
+      if(++chained >= b.chain) break;
+    }
+  }
+  sfx('hit');
+  if(e.hp<=0) killEnemy(e);
+  return true;
+}
+
 function updateBullets(dt){
   for(let i=raid.bullets.length-1;i>=0;i--){
     const b = raid.bullets[i];
     b.x += b.vx*dt; b.y += b.vy*dt; b.life -= dt;
+    // 화염: 벽은 막히지만 약하게 통과 연출 (수명으로 끝)
     let dead = b.life<=0 || shotSolidPx(b.x,b.y);
     if(!dead){
       const hc = containerAt(b.x,b.y);
       if(hc){
-        dead = true;
-        hc.hp -= b.dmg;
-        raid.parts.push({x:b.x,y:b.y,vx:0,vy:0,t:0.15,c:'#c9a05a',r:2.5});
+        // 레이저/다트는 상자도 관통 가능(약한 데미지), 일반·화염은 막힘
+        hc.hp -= b.dmg * (b.mode==='flame'?0.5:1);
+        raid.parts.push({x:b.x,y:b.y,vx:0,vy:0,t:0.15,c:b.c||'#c9a05a',r:2.5});
         if(hc.hp<=0) destroyContainer(hc);
+        if(b.pierce>0 && b.mode==='laser'){ b.pierce--; b.dmg *= 0.65; }
+        else dead = true;
       }
     }
     if(!dead){
       for(const e of raid.enemies){
-        if(dist(b.x,b.y,e.x,e.y) < e.r+3){
-          e.hp -= b.dmg; e.hitT = 0.1; e.state='chase';
-          const kb = 60/Math.max(1,e.r/12);
-          e.x += b.vx/760*kb*0.1; e.y += b.vy/760*kb*0.1;
-          raid.dnums.push({x:e.x,y:e.y-e.r,txt:Math.round(b.dmg),t:0.7,c:'#ffd76a'});
-          sfx('hit');
-          if(e.hp<=0) killEnemy(e);
-          dead = true; break;
+        const hitR = e.r + (b.r||3);
+        if(dist(b.x,b.y,e.x,e.y) < hitR){
+          if(!applyBulletHit(e, b)) continue;
+          if(b.pierce>0){ b.pierce--; b.dmg *= 0.7; }
+          else { dead = true; break; }
         }
       }
     } else if(shotSolidPx(b.x,b.y)){
-      raid.parts.push({x:b.x,y:b.y,vx:0,vy:0,t:0.15,c:'#ccc',r:2});
+      raid.parts.push({x:b.x,y:b.y,vx:0,vy:0,t:0.15,c:b.c||'#ccc',r:2});
     }
     if(dead) raid.bullets.splice(i,1);
   }
@@ -480,7 +691,10 @@ function updateBullets(dt){
     b.x += b.vx*dt; b.y += b.vy*dt; b.life -= dt;
     let dead = b.life<=0 || shotSolidPx(b.x,b.y) || !!containerAt(b.x,b.y); // 적탄은 막히기만 함
     if(!dead && dist(b.x,b.y,player.x,player.y)<player.r+(b.r||4)){
-      hurtPlayer(b.dmg); dead = true;
+      hurtPlayer(b.dmg);
+      if(b.slow) player.slowT = Math.max(player.slowT||0, b.slow);
+      if(b.poison) player.poisonT = Math.max(player.poisonT||0, b.poison);
+      dead = true;
     }
     if(dead) raid.ebullets.splice(i,1);
   }
@@ -553,10 +767,16 @@ function killEnemy(e){
   raid.enemies.splice(i,1);
   player.kills++;
   sfx('kill');
-  const q = State.quest;
-  if(q && q.def.type==='kill' && q.prog<q.def.n && (q.def.enemy==='any' || q.def.enemy===e.id)){
-    q.prog++;
-    if(q.prog>=q.def.n) toast('📜 퀘스트 목표 달성! 케이브 창구로 돌아가세요');
+  // 일반·엑조틱 슬롯 모두 처치 진행 (동시 진행)
+  for(const q of [State.quest, State.exoQuest]){
+    if(!q || q.def.type!=='kill' || q.prog>=q.def.n) continue;
+    if(q.def.enemy==='any' || q.def.enemy===e.id){
+      q.prog++;
+      if(q.prog>=q.def.n){
+        const tag = (q.def.unlock==='exoticIntro') ? '🔧 부품 수집가' : '📜 창구';
+        toast(tag+' 퀘스트 목표 달성! 케이브로 돌아가세요');
+      }
+    }
   }
   for(let p=0;p<7;p++)
     raid.parts.push({x:e.x,y:e.y,vx:rnd(-80,80),vy:rnd(-80,80),t:rnd(0.3,0.6),c:e.t.color,r:rnd(2,4)});
@@ -564,14 +784,33 @@ function killEnemy(e){
   if(e.t.boss){
     raid.boss = null;
     if(raid.region) State.regionBoss[raid.region] = true; // 지역 보스 클리어 기록
-    raid.drops.push({kind:'item', x:e.x, y:e.y, inst:mkInst('crown'), bob:rnd(0,6)});
-    raid.drops.push({kind:'item', x:e.x-20, y:e.y+10, inst:mkInst(pick(LOOT_POOLS.rareAtt)), bob:rnd(0,6)});
+    // 보스 처치로 해금되는 지역 안내
+    for(const id of REGION_ORDER){
+      const rg = REGIONS[id];
+      if(rg && rg.unlock && rg.unlock.boss===raid.region)
+        toast('🔓 새 지역 해금: '+rg.emoji+' '+rg.name+'!', 3600);
+    }
+    const style = e.t.bossStyle || 'king';
+    // 공통 왕관 (킹·여왕), 덤불 대장은 희귀 부품 위주
+    if(style!=='thorn')
+      raid.drops.push({kind:'item', x:e.x, y:e.y, inst:mkInst('crown'), bob:rnd(0,6)});
+    else
+      raid.drops.push({kind:'item', x:e.x, y:e.y, inst:mkInst(pick(LOOT_POOLS.rareAtt)), bob:rnd(0,6)});
+    // 스테이지 높을수록 엑조틱 확률↑
+    const exoChance = style==='mire' ? 0.9 : (style==='king' ? 0.65 : 0.2);
+    const attDrop = (LOOT_POOLS.exoticAtt && Math.random()<exoChance)
+      ? pick(LOOT_POOLS.exoticAtt) : pick(LOOT_POOLS.rareAtt);
+    raid.drops.push({kind:'item', x:e.x-20, y:e.y+10, inst:mkInst(attDrop), bob:rnd(0,6)});
     raid.drops.push({kind:'item', x:e.x+20, y:e.y+10, inst:mkInst(pick(LOOT_POOLS.rareAtt)), bob:rnd(0,6)});
-    raid.drops.push({kind:'coin', x:e.x, y:e.y-14, v:rndi(150,250)});
+    if(style==='mire')
+      raid.drops.push({kind:'item', x:e.x, y:e.y+18, inst:mkInst(pick(LOOT_POOLS.exoticAtt||LOOT_POOLS.rareAtt)), bob:rnd(0,6)});
+    const coins = style==='mire' ? rndi(220,340) : (style==='king' ? rndi(150,250) : rndi(80,140));
+    raid.drops.push({kind:'coin', x:e.x, y:e.y-14, v:coins});
     for(let p=0;p<20;p++)
-      raid.parts.push({x:e.x,y:e.y,vx:rnd(-150,150),vy:rnd(-150,150),t:rnd(.4,.9),c:'#ffd24a',r:rnd(3,6)});
-    toast('👑 황금미니 킹 격파!! 왕관을 손에 넣어라', 3200);
+      raid.parts.push({x:e.x,y:e.y,vx:rnd(-150,150),vy:rnd(-150,150),t:rnd(.4,.9),c:e.t.color,r:rnd(3,6)});
+    toast(e.t.emoji+' '+e.t.name+' 격파!!', 3200);
     sfx('extract');
+    saveGame();
     return;
   }
   // 드롭

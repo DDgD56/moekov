@@ -2,6 +2,40 @@
 // MoeKov — 렌더 엔티티 (스프라이트·픽셀폰트·플레이어/적 드로우)
 // ============================================================
 
+// ---- 픽셀 드로우 헬퍼 (주인공 도트 톤과 통일) ----
+// 원·타원을 fillRect 스캔라인으로 찍어 저해상도에서도 또렷한 도트가 되게 한다.
+function pBlob(cx, cy, r, color){
+  cx = Math.round(cx); cy = Math.round(cy);
+  r = Math.max(1, Math.round(r));
+  ctx.fillStyle = color;
+  for(let dy=-r; dy<=r; dy++){
+    const w = Math.floor(Math.sqrt(r*r - dy*dy) + 0.5);
+    if(w>=0) ctx.fillRect(cx-w, cy+dy, w*2+1, 1);
+  }
+}
+function pOval(cx, cy, rx, ry, color){
+  cx = Math.round(cx); cy = Math.round(cy);
+  rx = Math.max(1, Math.round(rx)); ry = Math.max(1, Math.round(ry));
+  ctx.fillStyle = color;
+  for(let dy=-ry; dy<=ry; dy++){
+    const t = 1 - (dy*dy)/(ry*ry);
+    if(t<0) continue;
+    const w = Math.floor(rx * Math.sqrt(t) + 0.5);
+    ctx.fillRect(cx-w, cy+dy, w*2+1, 1);
+  }
+}
+function pRect(x, y, w, h, color){
+  ctx.fillStyle = color;
+  ctx.fillRect(Math.round(x), Math.round(y), Math.max(1, Math.round(w)), Math.max(1, Math.round(h)));
+}
+// 1px 도트 외곽 박스 (하이라이트용)
+function pBox(x, y, w, h, color){
+  x=Math.round(x); y=Math.round(y); w=Math.round(w); h=Math.round(h);
+  ctx.fillStyle = color;
+  ctx.fillRect(x, y, w, 1); ctx.fillRect(x, y+h-1, w, 1);
+  ctx.fillRect(x, y, 1, h); ctx.fillRect(x+w-1, y, 1, h);
+}
+
 // 색 계열에서 어두운 그림자색 생성 (음영은 1단계만)
 function shade(hex, f){
   const n = parseInt(hex.slice(1),16);
@@ -118,13 +152,9 @@ function drawGirl(sx, sy, r, pal, faceDir, hit, elite, opt){
   const bob = (opt.bob||0)*scale;
   ctx.save();
   ctx.translate(sx, sy);
-  // 그림자
-  ctx.fillStyle = 'rgba(0,0,0,.28)';
-  ctx.beginPath(); ctx.ellipse(0, dh*0.42, dw*0.4, dh*0.09, 0, 0, Math.PI*2); ctx.fill();
-  if(elite){
-    ctx.fillStyle = 'rgba(255,210,80,.22)';
-    ctx.beginPath(); ctx.arc(0, -dh*0.05, r*1.5, 0, Math.PI*2); ctx.fill();
-  }
+  // 그림자 / 엘리트 후광 (도트)
+  pOval(0, dh*0.42, dw*0.4, Math.max(2, dh*0.09), 'rgba(0,0,0,.28)');
+  if(elite) pBlob(0, -dh*0.05, Math.round(r*1.4), 'rgba(255,210,80,.25)');
   ctx.imageSmoothingEnabled = false;
   ctx.scale(faceDir, 1);          // 좌우 반전만
   const cn = girlCanvas(pal, hit);
@@ -143,7 +173,9 @@ const GIRL_PALS = {
   gunner:  { hair:'#b09040', skin:'#eac4a8', acc:'#d0b050', accType:'cap' },      // 총잡이: 금발+모자
   bomber:  { hair:'#c94a3a', skin:'#f0c0a0', acc:'#ff9040', accType:'ribbon' },   // 폭탄: 위험한 주황
   golden:  { hair:'#f0d860', skin:'#f4d4b0', acc:'#ffe880', accType:'ribbon' },   // 황금
-  kingduck:{ hair:'#ffe070', skin:'#f4d4b0', acc:'#ffd24a', accType:'cap' },      // 보스 (왕관은 별도)
+  hillchief:{ hair:'#3a6a28', skin:'#c8d8a0', acc:'#6aba40', accType:'pin' },     // 덤불 대장
+  kingduck:{ hair:'#ffe070', skin:'#f4d4b0', acc:'#ffd24a', accType:'cap' },      // 황금 킹
+  mirequeen:{ hair:'#e0c850', skin:'#d8c090', acc:'#a070d0', accType:'ribbon' },  // 늪 여왕
 };
 function enemyPal(e){
   const g = GIRL_PALS[e.id] || GIRL_PALS.zduck;

@@ -143,21 +143,24 @@ const State = {
   guns: [ {body:null, atts:[], ammo:0}, {body:null, atts:[], ammo:0} ],
   activeGun: 0,
   gun2: false, // 총기 슬롯 2 해금 (퀘스트 「이도류 면허」)
-  stashUnlocked: false,      // 총 보관대 해금 (퀘스트 「사장님의 금고」) — 해금 시 2칸 개방
-  stashBaseDone: 0,          // 보관대 해금 당시의 questsDone (이후 완료마다 1칸 추가)
+  stashUnlocked: false,      // 총 보관대 해금 (State.stashSlots>0 과 동기)
+  stashSlots: 0,             // 개방된 보관 칸 수 (퀘스트 rewardStash로만 증가, 최대 6)
   seenHelp: false,
-  quest: null, questOffers: null, questsDone: 0,
+  quest: null,           // 일반 퀘스트 슬롯 (창구)
+  exoQuest: null,        // 엑조틱 퀘스트 슬롯 (부품 수집가) — 일반과 동시 진행
+  questOffers: null, questsDone: 0,
   qslots: [null, null, null], // 음식 퀵슬롯 (3·4·5키)
   deathCache: null, // 사망 시 떨어뜨린 장비 {items:[{d,r}], x, y} — 다음 출격 1회 한정 회수
   region: 'hill',            // 마지막 선택 지역
   regionExtracts: {},        // 지역별 탈출 횟수 {hill:3, ...}
   regionBoss: {},            // 지역별 보스 처치 여부 {factory:true}
-  stash: [null,null,null,null,null,null], // 총 보관대 (칸 해금은 퀘스트 완료 수에 연동)
+  stash: [null,null,null,null,null,null], // 총 보관대 (칸 수는 stashSlots)
+  exoticIntroDone: false,    // 엑조틱 입문 퀘스트 「수상한 총구 주문서」 완료
 };
 
 function curGun(){ return State.guns[State.activeGun]; }
 let benchIdx = 0; // 작업대 탭에서 편집 중인 총
-let benchFilter = null; // 작업대 창고 소켓 필터 (null=전체, 'muzzle'|'mag'|'grip'|'scope'|'stock')
+let benchFilter = null; // 작업대 창고 필터 (null=전체, sock키 | 'body'|'loot'|'food')
 function editGun(){ return State.guns[benchIdx]; }
 
 function switchGun(i){
@@ -182,13 +185,15 @@ function saveGame(){
       v:1, coins: State.coins, up: State.up,
       storage: State.storage.serialize(), backpack: State.backpack.serialize(),
       guns: State.guns.map(serializeGun), activeGun: State.activeGun, gun2: State.gun2,
-      stashUnlocked: State.stashUnlocked, stashBaseDone: State.stashBaseDone||0,
+      stashUnlocked: !!State.stashUnlocked, stashSlots: State.stashSlots|0,
       seenHelp: State.seenHelp,
-      quest: State.quest, questOffers: State.questOffers, questsDone: State.questsDone||0,
+      quest: State.quest, exoQuest: State.exoQuest,
+      questOffers: State.questOffers, questsDone: State.questsDone||0,
       qslots: State.qslots.map(i=>i?{d:i.def.id}:null),
       deathCache: State.deathCache,
       region: State.region, regionExtracts: State.regionExtracts, regionBoss: State.regionBoss,
       stash: State.stash.map(serializeStash),
+      exoticIntroDone: !!State.exoticIntroDone,
     }));
   }catch(e){}
 }
@@ -207,22 +212,41 @@ function loadGame(){
     State.activeGun = (d.activeGun===1 && State.gun2 && State.guns[1].body) ? 1 : 0;
     State.seenHelp = !!d.seenHelp;
     State.quest = d.quest||null;
+    State.exoQuest = d.exoQuest||null;
+    // 구세이브: 엑조틱 입문이 일반 슬롯에 있으면 분리
+    if(State.quest && State.quest.def && State.quest.def.unlock==='exoticIntro'){
+      if(!State.exoQuest) State.exoQuest = State.quest;
+      State.quest = null;
+    }
     State.questOffers = d.questOffers||null;
     State.questsDone = d.questsDone||0;
-    // 총 보관대 해금 상태 (구세이브 마이그레이션: 이미 보관대에 총이 있거나
-    // 필드가 있으면 해금으로 간주, 기준값은 안전하게 0)
-    State.stashBaseDone = d.stashBaseDone||0;
-    State.stashUnlocked = d.stashUnlocked!==undefined
-      ? !!d.stashUnlocked
-      : (Array.isArray(d.stash) && d.stash.some(Boolean)); // 구세이브에 보관 총 있으면 해금 처리
+    // 총 보관대: stashSlots 명시. 구세이브는 예전 공식으로 고정 변환(이후 아무 퀘스트로 안 늘어남)
+    State.stash = (d.stash || []).map(loadStash);
+    while(State.stash.length<6) State.stash.push(null);
+    if(d.stashSlots != null){
+      State.stashSlots = Math.max(0, d.stashSlots|0);
+    } else if(d.stashUnlocked || (Array.isArray(d.stash) && d.stash.some(Boolean))){
+      const extra = Math.max(0, (d.questsDone||0) - (d.stashBaseDone||0));
+      let slots = Math.min(6, 2 + extra);
+      // 보관 중인 총이 더 뒤 칸에 있으면 그 칸까지 열어 꺼낼 수 있게
+      for(let i=State.stash.length-1;i>=0;i--){
+        if(State.stash[i]){ slots = Math.max(slots, i+1); break; }
+      }
+      State.stashSlots = slots;
+    } else {
+      State.stashSlots = 0;
+    }
+    State.stashUnlocked = State.stashSlots > 0;
     State.qslots = (d.qslots||[null,null,null]).map(s=> s && ITEMS[s.d] ? mkInst(s.d) : null);
     while(State.qslots.length<3) State.qslots.push(null);
     State.deathCache = d.deathCache||null;
     State.region = d.region || 'hill';
     State.regionExtracts = d.regionExtracts || {};
     State.regionBoss = d.regionBoss || {};
-    State.stash = (d.stash || []).map(loadStash);
-    while(State.stash.length<6) State.stash.push(null);
+    // 엑조틱 입문: 이미 레이저 포인터를 갖고 있거나 공장 탈출 이력이 많으면 완료로 간주
+    State.exoticIntroDone = d.exoticIntroDone!==undefined
+      ? !!d.exoticIntroDone
+      : !!(d.regionExtracts && d.regionExtracts.factory);
     return true;
   }
   return false;
@@ -233,13 +257,15 @@ function newGame(){
   State.storage = new Inv(s.w, s.h);
   State.guns = [ {body: mkInst('potato_pistol'), atts:[], ammo:0}, {body:null, atts:[], ammo:0} ];
   State.activeGun = 0; State.gun2 = false;
+  State.exoticIntroDone = false;
   State.backpack.autoPlace(mkInst('bandage'));
   State.backpack.autoPlace(mkInst('bandage'));
   State.backpack.autoPlace(mkInst('mushroom_mag'));
   State.storage.autoPlace(mkInst('glasses_scope'));
   State.storage.autoPlace(mkInst('soda'));
-  State.quest = null; State.questOffers = null; State.questsDone = 0;
-  State.stashUnlocked = false; State.stashBaseDone = 0;
+  State.quest = null; State.exoQuest = null;
+  State.questOffers = null; State.questsDone = 0;
+  State.stashUnlocked = false; State.stashSlots = 0;
   State.deathCache = null;
   saveGame();
 }
@@ -251,6 +277,9 @@ const player = {
   iframe:0, kills:0, coinsGained:0, lootMsgCd:0,
   stam:100, exhausted:false,
   bloom:0, kick:0, swapT:0, // 반동 블룸 / 킥백 / 무기 교체 딜레이
+  extractDetectT:0, // 휴대용 탐지기 남은 시간(초)
+  slowT:0,          // 보스 가시/속박 등 이속 저하
+  poisonT:0,        // 보스 독 지속 피해
 };
 function stamMax(){ return 100 + State.up.shoes*25; }
 

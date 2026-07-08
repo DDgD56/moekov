@@ -18,6 +18,8 @@ function buildCave(){
       // 생활공간(아래쪽)
       { x:3.5*TILE,  y:11.5*TILE, emoji:'📦', name:'창고', panel:'storage' },
       { x:18.5*TILE, y:11.5*TILE, emoji:'🛠️', name:'작업대', panel:'bench' },
+      // 엑조틱 의뢰 전용 NPC (작업대 옆)
+      { x:18.5*TILE, y:14.8*TILE, emoji:'🔧', name:'부품 수집가', panel:'exotic' },
       { x:7.5*TILE,  y:17*TILE,   emoji:'📌', name:'업그레이드', panel:'board' },
       { x:14.5*TILE, y:17*TILE,   emoji:'📜', name:'퀘스트 창구', panel:'quest' },
       { x:11*TILE,   y:18*TILE,   emoji:'🚪', name:'출격', panel:'deploy' },
@@ -125,6 +127,23 @@ function buildRaid(){
       for(let yy=-5;yy<=5;yy++) for(let xx=-5;xx<=5;xx++){
         if(Math.hypot(xx,yy) <= orr + Math.sin(xx*0.9+yy*0.6)*0.8 && t[(oy+yy)*w+ox+xx]===0)
           t[(oy+yy)*w+ox+xx]=5;
+      }
+    }
+  }
+
+  // 🪷 습지 연못: 중간 크기 물웅덩이 (과하면 맵이 고립·상자 전부 삭제되므로 절제)
+  if(RG.ponds){
+    for(let n=0;n<rndi(7,11);n++){
+      const ox=rndi(14,w-14), oy=rndi(14,h-14);
+      if(t[oy*w+ox]!==0) continue;
+      // 중앙·강 지대는 피해서 연못이 강을 삼키지 않게
+      if(Math.hypot(ox-w/2, oy-h/2) < 22) continue;
+      const orr=rnd(2.0,4.2);
+      for(let yy=-6;yy<=6;yy++) for(let xx=-6;xx<=6;xx++){
+        const ny=oy+yy, nx=ox+xx;
+        if(ny<2||nx<2||ny>=h-2||nx>=w-2) continue;
+        if(Math.hypot(xx,yy) <= orr + Math.sin(xx*0.7+yy*0.5)*0.7 && t[ny*w+nx]===0)
+          t[ny*w+nx]=5;
       }
     }
   }
@@ -297,7 +316,9 @@ function buildRaid(){
       const hs = {x:rx, y:ry, w:rw, h:rh, roofA:1, doors:[],
         roofC: RG.biome==='industrial'
           ? pick(['#4e5257','#585048','#4a4d50','#5a5148']) // 창고·사무동: 회색 금속지붕
-          : pick(['#7a4a3a','#6a5340','#5d4a45','#77503a'])};
+          : RG.biome==='swamp'
+            ? pick(['#4a5a3a','#5a4a28','#3a4a32','#6a5a30']) // 습지 사당·이끼 기와
+            : pick(['#7a4a3a','#6a5340','#5d4a45','#77503a'])};
       houses.push(hs);
       for(let y=ry;y<ry+rh;y++) for(let x=rx;x<rx+rw;x++)
         t[y*w+x] = (x===rx||y===ry||x===rx+rw-1||y===ry+rh-1) ? 1 : 2;
@@ -700,6 +721,9 @@ function buildRaid(){
   player.kills = 0; player.coinsGained = 0;
   player.iframe = 2;
   player.stam = stamMax(); player.exhausted = false;
+  player.extractDetectT = 0;
+  player.slowT = 0;
+  player.poisonT = 0;
   for(const g of State.guns){ if(g.body) g.ammo = gunStats(g).ammo; }
   player.reloading = 0; player.aimT = 0; player.swapT = 0;
 }
@@ -712,13 +736,22 @@ function mkContainer(type, tx, ty){
 function fillContainer(c){
   c.inv = new Inv(c.ct.w, c.ct.h);
   const n = rndi(c.ct.count[0], c.ct.count[1]);
+  const stars = (raid && REGIONS[raid.region] && REGIONS[raid.region].stars) || 1;
   for(let i=0;i<n;i++){
     const pool = pickWeighted(c.ct.roll);
-    // 부착물 슬롯은 3% 확률로 ★ 희귀 (지역 보너스 가산)
+    // 부착물: 3%+지역보너스로 ★희귀 / ★2+ 지역에선 일부 ★★엑조틱
     const rareCh = 0.03 + ((raid && raid.rareBonus)||0);
-    const id = (pool==='att' && Math.random()<rareCh)
-      ? pick(LOOT_POOLS.rareAtt)
-      : pick(LOOT_POOLS[pool]);
+    let id;
+    if(pool==='att' && Math.random()<rareCh){
+      // 엑조틱: 폐공장(★2) 약 28%, 습지(★3) 약 55% 로 희귀 대신 등장
+      const exoCh = stars>=3 ? 0.55 : (stars>=2 ? 0.28 : 0);
+      id = (exoCh>0 && LOOT_POOLS.exoticAtt && Math.random()<exoCh)
+        ? pick(LOOT_POOLS.exoticAtt)
+        : pick(LOOT_POOLS.rareAtt);
+    } else {
+      id = pick(LOOT_POOLS[pool]);
+    }
+    if(!ITEMS[id]) continue;
     const inst = mkInst(id);
     inst.hidden = true; // 열자마자는 실루엣만 — 조사(2초/개)로 식별
     c.inv.autoPlace(inst);
