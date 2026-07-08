@@ -1,0 +1,506 @@
+// ============================================================
+// MoeKov — UI (패널·업그레이드·퀘스트)
+// ============================================================
+
+// ---------------- 패널 UI ----------------
+let panel = null;
+let searchT = 0; // 루팅 조사 타이머
+const panelRoot = document.getElementById('panel-root');
+
+function openPanel(type, data){
+  cancelDrag();
+  panel = {type, data};
+  if(type==='loot') searchT = 1; // 첫 식별은 1초 뒤
+  renderPanel();
+}
+function closePanel(){
+  cancelDrag();
+  hideTip();
+  panel = null;
+  dropZones = [];
+  refreshQslotZones();
+  panelRoot.classList.add('hidden');
+  panelRoot.innerHTML = '';
+  if(scene==='cave') saveGame();
+}
+function refreshPanel(){ if(panel) renderPanel(); updateHud(); }
+
+function renderPanel(){
+  dropZones = [];
+  hideTip();
+  panelRoot.classList.remove('hidden');
+  panelRoot.innerHTML = '';
+  const p = document.createElement('div');
+  p.className = 'panel';
+  panelRoot.appendChild(p);
+  const t = panel.type;
+
+  if(t==='loot'){
+    const c = panel.data;
+    p.classList.add('wide');
+    p.innerHTML = `
+      <div class="panel-title">${c.ct.emoji} ${c.ct.name}</div>
+      <div class="panel-cols">
+        <div class="col"><div class="col-label">${c.ct.name} <button class="btn mini" id="takeall">📥 모두 담기</button></div><div id="ga"></div></div>
+        <div class="col"><div class="col-label">🎒 내 가방</div><div id="gb"></div></div>
+      </div>
+      <div class="panel-hint">드래그 이동 · <b>R</b> 회전 · <b>더블클릭</b> 빠른 이동 · <b>WASD/ESC</b> 닫기<br>
+      <span class="warn">🔍 창을 열어둔 동안 2초마다 하나씩 식별 · ⚠️ 그동안에도 적은 다가온다!</span></div>`;
+    renderGrid(p.querySelector('#ga'), c.inv, { rerender:refreshPanel, quickTarget:State.backpack, onDbl:inst=>{ quickTransfer(inst,c.inv,State.backpack); refreshPanel(); } });
+    renderGrid(p.querySelector('#gb'), State.backpack, { rerender:refreshPanel, quickTarget:c.inv, onDbl:inst=>{
+      if(inst.def.kind==='food') eatItem(inst);
+      else { quickTransfer(inst,State.backpack,c.inv); refreshPanel(); }
+    }});
+    p.querySelector('#takeall').addEventListener('click', ()=>{
+      let left = 0, searching = 0;
+      for(const it of c.inv.items.slice()){
+        if(it.inst.hidden){ searching++; continue; }
+        if(State.backpack.autoPlace(it.inst)) c.inv.remove(it.inst);
+        else left++;
+      }
+      if(left>0) toast('가방 공간 부족! '+left+'개를 못 담았습니다');
+      else if(searching>0) toast('🔍 '+searching+'개는 아직 조사 중');
+      sfx('pick');
+      refreshPanel();
+    });
+  }
+  else if(t==='bag'){
+    p.innerHTML = `
+      <div class="panel-title">🎒 내 가방 <span class="sub">(가치 ${State.backpack.totalValue()}🪙)</span></div>
+      <div class="panel-cols">
+        <div class="col"><div id="gb"></div></div>
+        <div class="col stats-col" id="gs"></div>
+      </div>
+      <div class="panel-hint"><b>더블클릭</b> 음식 사용 · <b>R</b> 회전 · <b>Tab/ESC</b> 닫기</div>`;
+    renderGrid(p.querySelector('#gb'), State.backpack, { rerender:refreshPanel, onDbl:inst=>{
+      if(inst.def.kind==='food' && scene==='raid') eatItem(inst);
+    }});
+    p.querySelector('#gs').innerHTML = statsHTML(curGun());
+  }
+  else if(t==='storage'){
+    p.classList.add('wide');
+    p.innerHTML = `
+      <div class="panel-title">📦 창고 <span class="sub">🪙 ${State.coins}</span></div>
+      <div class="panel-cols">
+        <div class="col"><div class="col-label">창고 <button class="btn mini" id="sortA">🧹 정리</button></div><div id="ga"></div></div>
+        <div class="col"><div class="col-label">🎒 내 가방 <button class="btn mini" id="sortB">🧹 정리</button> <button class="btn mini" id="tostoreS">📦 전부 창고로</button></div><div id="gb"></div>
+          <div class="sell-bin" id="sell">🪙 판매함<br><span>아이템을 끌어다 놓으면 판매</span></div>
+        </div>
+      </div>
+      <div class="panel-hint">드래그 이동 · <b>R</b> 회전 · <b>더블클릭</b> 빠른 이동 · <b>ESC</b> 닫기</div>`;
+    renderGrid(p.querySelector('#ga'), State.storage, { rerender:refreshPanel, quickTarget:State.backpack, onDbl:inst=>{ quickTransfer(inst,State.storage,State.backpack); refreshPanel(); } });
+    renderGrid(p.querySelector('#gb'), State.backpack, { rerender:refreshPanel, quickTarget:State.storage, onDbl:inst=>{ quickTransfer(inst,State.backpack,State.storage); refreshPanel(); } });
+    dropZones.push({el: p.querySelector('#sell'), kind:'sell'});
+    p.querySelector('#sortA').addEventListener('click', ()=>{ repackInv(State.storage); sfx('drop'); refreshPanel(); });
+    p.querySelector('#sortB').addEventListener('click', ()=>{ repackInv(State.backpack); sfx('drop'); refreshPanel(); });
+    p.querySelector('#tostoreS').addEventListener('click', ()=>{
+      let left = 0;
+      for(const it of State.backpack.items.slice()){
+        if(State.storage.autoPlace(it.inst)) State.backpack.remove(it.inst);
+        else left++;
+      }
+      if(left>0) toast('창고 공간 부족! '+left+'개 남음');
+      sfx('drop'); refreshPanel();
+    });
+  }
+  else if(t==='bench'){
+    if(!State.gun2) benchIdx = 0;
+    p.classList.add('xwide');
+    p.innerHTML = `
+      <div class="panel-title">🛠️ 총기 작업대
+        <span class="bench-tabs">
+          <button class="btn mini tab ${benchIdx===0?'on':''}" data-tab="0">🔫 총기 1</button>
+          <button class="btn mini tab ${benchIdx===1?'on':''} ${State.gun2?'':'locked'}" data-tab="1">${State.gun2?'🔫':'🔒'} 총기 2</button>
+        </span>
+      </div>
+      <div class="stash-row" id="stashRow"></div>
+      <div class="panel-cols bench-cols">
+        <div class="col">
+          <div class="col-label">창고</div>
+          <div class="sock-filter" id="sockFilter">
+            <button class="sf-btn ${benchFilter===null?'on':''}" data-sock="">전체</button>
+            ${Object.entries(SOCK_INFO).map(([k,v])=>
+              `<button class="sf-btn ${benchFilter===k?'on':''}" data-sock="${k}" style="--sc:${v.color}">${v.name}</button>`).join('')}
+          </div>
+          <div id="ga"></div>
+        </div>
+        <div class="col bench-col">
+          <div id="bench"></div>
+        </div>
+        <div class="col"><div class="col-label">🎒 내 가방 <button class="btn mini" id="tostore">📦 전부 창고로</button></div><div id="gb"></div>
+          <div class="col stats-col" id="gs"></div>
+        </div>
+      </div>
+      <div class="panel-hint">몸통/부착물을 <b>드래그</b>해서 조립 · 드래그 중 <b>R</b> 회전 ·
+      맞는 소켓에 <b>1칸만 걸쳐도</b> 장착 · <b>Ctrl(⌘)+클릭</b>으로 부품/총 즉시 창고 이동 · 🔫 보관대로 총 통째로 넣었다 뺐다 · <b>ESC</b> 닫기</div>`;
+    renderGrid(p.querySelector('#ga'), State.storage, { cs:36, rerender:refreshPanel, quickTarget:State.backpack, highlightSock:benchFilter, onDbl:inst=>{ quickTransfer(inst,State.storage,State.backpack); refreshPanel(); } });
+    renderGrid(p.querySelector('#gb'), State.backpack, { cs:36, rerender:refreshPanel, quickTarget:State.storage, highlightSock:benchFilter, onDbl:inst=>{ quickTransfer(inst,State.backpack,State.storage); refreshPanel(); } });
+    renderBench(p.querySelector('#bench'));
+    p.querySelectorAll('#sockFilter .sf-btn').forEach(b=>b.addEventListener('click', ()=>{
+      const s = b.dataset.sock || null;
+      benchFilter = (benchFilter===s) ? null : s; // 같은 버튼 다시 누르면 전체로
+      refreshPanel();
+    }));
+    p.querySelector('#gs').innerHTML = statsHTML(editGun());
+    renderStash(p.querySelector('#stashRow'));
+    p.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click', ()=>{
+      const i = +b.dataset.tab;
+      if(i===1 && !State.gun2){ toast('🔒 퀘스트 「이도류 면허」를 완료하면 해금됩니다'); return; }
+      benchIdx = i; refreshPanel();
+    }));
+    p.querySelector('#tostore').addEventListener('click', ()=>{
+      let left = 0;
+      for(const it of State.backpack.items.slice()){
+        if(State.storage.autoPlace(it.inst)) State.backpack.remove(it.inst);
+        else left++;
+      }
+      if(left>0) toast('창고 공간 부족! '+left+'개 남음');
+      sfx('drop'); refreshPanel();
+    });
+  }
+  else if(t==='board'){
+    let rows = '';
+    for(const key in UPGRADES){
+      const u = UPGRADES[key];
+      const cur = State.up[key], next = u.tiers[cur+1];
+      const afford = next && State.coins>=next.cost && matsOK(next.mats);
+      rows += `<div class="up-row">
+        <span class="up-emoji">${u.emoji}</span>
+        <span class="up-name">${u.name}<br><small>${u.desc(u.tiers[cur])}${next? ' → '+u.desc(next):''}</small>
+          ${next ? matsHTML(next.mats) : ''}</span>
+        ${next ? `<button class="btn" data-up="${key}" ${afford?'':'disabled'}>${next.cost}🪙</button>`
+               : '<span class="up-max">MAX</span>'}
+      </div>`;
+    }
+    p.innerHTML = `
+      <div class="panel-title">📌 업그레이드 <span class="sub">🪙 ${State.coins}</span></div>
+      <div class="up-list">${rows}</div>
+      <div class="panel-hint">재료 아이템은 창고/가방에서 자동 차감됩니다 · <b>ESC</b> 닫기</div>`;
+    p.querySelectorAll('[data-up]').forEach(btn=>{
+      btn.addEventListener('click', ()=>buyUpgrade(btn.dataset.up));
+    });
+  }
+  else if(t==='quest'){
+    const q = State.quest;
+    let body = '';
+    const noEquipped = State.guns.every(g=>!g.body);   // 장착된 총이 없음
+    const noBody = !hasAnyBody();                        // 어디에도 몸통이 없음
+    if(noBody){
+      // 정말 총이 하나도 없음 → 감자 권총 무료 지급
+      body += `<div class="quest-card relief">
+        <div class="npc-line">"또 빈손으로 왔군... 이거라도 받아가라. 다음엔 조심해."</div>
+        <div class="q-title">🥔 감자 권총 지급</div>
+        <div class="q-desc">총기 몸통을 모두 잃었을 때 창구에서 무료로 받을 수 있다.</div>
+        <div class="q-btns"><button class="btn" id="relief">받기</button></div>
+      </div>`;
+    } else if(noEquipped){
+      // 슬롯은 비었지만 창고/가방에 몸통 있음 → 작업대 안내
+      body += `<div class="quest-card relief">
+        <div class="npc-line">"총은 있는데 안 들고 왔구먼. 작업대에서 챙겨 가."</div>
+        <div class="q-title">🔧 장착 안내</div>
+        <div class="q-desc">창고에 총 몸통이 있다. <b>작업대</b>에서 몸통을 슬롯에 끌어다 장착하면 된다.</div>
+      </div>`;
+    }
+    if(q){
+      const d = q.def, pr = questProg(q), can = questCanComplete(q);
+      body += `<div class="npc-line">"${can ? pick(NPC_LINES.done) : pick(NPC_LINES.busy)}"</div>
+        <div class="quest-card">
+          <div class="q-title">📜 ${d.title}</div>
+          <div class="q-desc">${questDesc(d)} — <b>${pr}/${d.n}</b>${pr>=d.n?' ✔':''}</div>
+          ${questFetchLine(d)}
+          <div class="q-reward">보상: ${d.reward}🪙${d.rewardItem?` + <span class="q-item" data-item="${d.rewardItem}">${ITEMS[d.rewardItem].emoji} ${ITEMS[d.rewardItem].name}</span>`:''}</div>
+          <div class="q-btns">
+            ${can?'<button class="btn" id="qdone">완료 보고</button>':''}
+            <button class="btn danger" id="qdrop">포기</button>
+          </div>
+        </div>`;
+    } else {
+      ensureOffers();
+      body += `<div class="npc-line">"${pick(NPC_LINES.greet)}"</div>` +
+        State.questOffers.map((d,i)=>`
+        <div class="quest-card">
+          <div class="q-title">📜 ${d.title}</div>
+          <div class="q-desc">${questDesc(d)}</div>
+          ${d.fetch?`<div class="q-desc">+ 납품: <span class="q-item" data-item="${d.fetch.item}">${ITEMS[d.fetch.item].emoji} ${ITEMS[d.fetch.item].name}</span> ${d.fetch.n}개</div>`:''}
+          <div class="q-reward">보상: ${d.reward}🪙${d.rewardItem?` + <span class="q-item" data-item="${d.rewardItem}">${ITEMS[d.rewardItem].emoji} ${ITEMS[d.rewardItem].name}</span>`:''}</div>
+          <div class="q-btns"><button class="btn" data-q="${i}">수락</button></div>
+        </div>`).join('');
+    }
+    p.innerHTML = `
+      <div class="panel-title">📜 퀘스트 창구 <span class="sub">완료 ${State.questsDone||0}건</span></div>
+      <div class="quest-body">${body}</div>
+      <div class="panel-hint">한 번에 하나의 의뢰만 수행 가능 · 납품은 창고/가방에서 자동 차감 · <b>ESC</b> 닫기</div>`;
+    if(q){
+      const qd = p.querySelector('#qdone');
+      if(qd) qd.addEventListener('click', completeQuest);
+      p.querySelector('#qdrop').addEventListener('click', ()=>{
+        State.quest = null; toast('의뢰를 포기했습니다'); saveGame(); refreshPanel();
+      });
+    } else {
+      p.querySelectorAll('[data-q]').forEach(b=>b.addEventListener('click', ()=>acceptQuest(+b.dataset.q)));
+    }
+    const rb = p.querySelector('#relief');
+    if(rb) rb.addEventListener('click', ()=>{
+      if(hasAnyBody()) return;
+      const slot = State.guns.find(g=>!g.body) || State.guns[0];
+      slot.body = mkInst('potato_pistol');
+      sfx('mount');
+      toast('🥔 감자 권총을 받았다. 다음엔 조심하자!');
+      saveGame();
+      refreshPanel();
+    });
+  }
+  else if(t==='deploy'){
+    p.classList.add('wide');
+    const cards = REGION_ORDER.map(id=>{
+      const rg = REGIONS[id];
+      const unlocked = regionUnlocked(id);
+      const stars = '★'.repeat(rg.stars) + '☆'.repeat(4-rg.stars);
+      const ext = State.regionExtracts[id]||0;
+      const bossClear = State.regionBoss[id];
+      const sel = State.region===id ? ' sel' : '';
+      return `<div class="region-card${unlocked?'':' locked'}${sel}" data-region="${id}">
+        <div class="rg-emoji">${rg.emoji}</div>
+        <div class="rg-info">
+          <div class="rg-name">${rg.name} <span class="rg-stars">${stars}</span></div>
+          <div class="rg-desc">${rg.desc}</div>
+          <div class="rg-stat">🪙 보상 ×${rg.coinMul} · ☀️ 낮 ${rg.dayLen}초${rg.boss?' · 👑 보스':''} · 탈출 ${ext}회${bossClear?' · 👑✔':''}</div>
+          ${unlocked ? '' : `<div class="rg-lock">🔒 ${rg.unlockDesc||'잠김'}</div>`}
+        </div>
+      </div>`;
+    }).join('');
+    p.innerHTML = `
+      <div class="panel-title">🚪 출격 — 지역 선택</div>
+      <div class="region-list">${cards}</div>
+      <p class="deploy-tips">🚩 탈출구를 직접 찾아 3초 대기 · 💀 죽으면 가방·장착 총·주운 코인 상실(창고는 안전)</p>
+      <button class="btn big" id="go" ${regionUnlocked(State.region)?'':'disabled'}>${REGIONS[State.region].emoji} ${REGIONS[State.region].name} 출격! 🚀</button>
+      <div class="panel-hint">지역을 클릭해 선택 · <b>ESC</b> 닫기</div>`;
+    p.querySelectorAll('.region-card').forEach(c=>{
+      c.addEventListener('click', ()=>{
+        const id = c.dataset.region;
+        if(!regionUnlocked(id)){ toast('🔒 '+(REGIONS[id].unlockDesc||'아직 잠긴 지역')); return; }
+        State.region = id; sfx('click'); saveGame(); refreshPanel();
+      });
+    });
+    p.querySelector('#go').addEventListener('click', ()=>{
+      if(!regionUnlocked(State.region)) return;
+      startRaid();
+    });
+  }
+  else if(t==='extract'){
+    const newly = (panel.data && panel.data.newly) || [];
+    const unlockHtml = newly.length ? newly.map(id=>
+      `<p class="rg-unlocked">🎉 새 지역 해금: <b>${REGIONS[id].emoji} ${REGIONS[id].name}</b>!</p>`).join('') : '';
+    p.innerHTML = `
+      <div class="panel-title">✅ 탈출 성공!</div>
+      <div class="deploy-body">
+        ${unlockHtml}
+        <p>🪙 주운 코인: <b>${player.coinsGained}</b></p>
+        <p>🎒 가져온 물건 가치: <b>${State.backpack.totalValue()}</b> (창고에서 판매 가능)</p>
+        <p>💀 처치: <b>${player.kills}</b></p>
+        <button class="btn big" id="home">케이브로 돌아가기 🏠</button>
+      </div>`;
+    p.querySelector('#home').addEventListener('click', returnToCave);
+  }
+  else if(t==='death'){
+    const lost = panel.data.lost;
+    p.innerHTML = `
+      <div class="panel-title dead">💀 사망...</div>
+      <div class="deploy-body">
+        <p>총과 가방을 모두 그 자리에 떨어뜨렸다:</p>
+        <p class="lost-list">${lost.length? lost.join(', ') : '(없음)'}</p>
+        <p>💀 <b>다음 출격</b>에서 쓰러진 자리를 찾아가면 회수할 수 있다.<br>
+        <small>단 한 번뿐 — 그 판에 못 찾으면 영영 사라진다. 창고는 무사하다.</small></p>
+        ${panel.data.needBody ? '<p>🔫 총기 몸통이 하나도 없다. <b>퀘스트 창구</b>에 들러라 (❗ 표시).</p>' : ''}
+        <button class="btn big" id="home">케이브로 돌아가기 🏠</button>
+      </div>`;
+    p.querySelector('#home').addEventListener('click', returnToCave);
+  }
+  else if(t==='help'){
+    p.innerHTML = `
+      <div class="panel-title">🎀 MoeKov — 조작법</div>
+      <div class="help-body">
+        <div><b>WASD</b> 이동 · <b>마우스</b> 조준 · <b>좌클릭</b> 사격 · <b>우클릭(꾹)</b> 정조준(줌)</div>
+        <div><b>E</b> 상자·기물 열기 (클릭은 사격 전용) · <b>Tab</b> 가방 · <b>R</b> 재장전 / (드래그 중) 회전</div>
+        <div><b>Q</b> 빠른 회복 · <b>더블클릭</b> 빠른 이동/음식 사용 · <b>H</b> 도움말</div>
+        <div><b>Shift</b> 질주(스태미너 소모) · <b>1·2</b> 총기 교체 · <b>3·4·5</b> 퀵슬롯 음식 · 아이템 <b>호버</b>로 설명</div>
+        <div>음식을 화면 하단 <b>퀵슬롯에 드래그</b>해 두면 전투 중 바로 먹을 수 있습니다</div>
+        <hr>
+        <div>🔫 <b>작업대</b>에서 부품을 조립하세요. 드래그 중 <b>R</b>로 회전 — 세로로 세우면 레일 1칸만 차지!</div>
+        <div>🌙 밤이 되면 미니 떼가 몰려옵니다. 그 전에 🚩 탈출 지점으로!</div>
+        <div>🌳 나무 수풀에 숨으면 적이 잘 못 봅니다 · 📜 케이브 창구에서 의뢰를 받아 보상을 챙기세요</div>
+        <div>📢 시끄러운 총은 적을 부릅니다. 소음기를 고려하세요.</div>
+        <div class="help-btns">
+          <button class="btn big" id="ok">알겠다! 🎀</button>
+          <button class="btn danger" id="wipe">🗑️ 처음부터</button>
+        </div>
+      </div>`;
+    p.querySelector('#ok').addEventListener('click', ()=>{ State.seenHelp=true; closePanel(); saveGame(); });
+    p.querySelector('#wipe').addEventListener('click', ()=>{
+      if(confirm('저장 데이터를 모두 지우고 처음부터 시작할까요?')){
+        localStorage.removeItem('quackscape_save');
+        location.reload();
+      }
+    });
+  }
+
+  // 아이템 언급(재료 칩·퀘스트 납품/보상)에 호버 툴팁 연결
+  p.querySelectorAll('[data-item]').forEach(el=>{
+    const def = ITEMS[el.dataset.item];
+    if(def) attachTip(el, def);
+  });
+
+  // 닫기 버튼 (모달 아닌 것들)
+  if(!['extract','death','help'].includes(t)){
+    const x = document.createElement('button');
+    x.className = 'panel-close'; x.textContent = '✕';
+    x.addEventListener('click', closePanel);
+    p.appendChild(x);
+  }
+  refreshQslotZones(); // 퀵슬롯은 패널 위에서도 드롭 가능
+}
+
+function buyUpgrade(key){
+  const u = UPGRADES[key];
+  const next = u.tiers[State.up[key]+1];
+  if(!next || State.coins<next.cost || !matsOK(next.mats)) return;
+  for(const [id,n] of (next.mats||[])) consumeItem(id, n);
+  State.coins -= next.cost;
+  State.up[key]++;
+  if(key==='pack'){
+    const nb = new Inv(next.w, next.h);
+    for(const it of State.backpack.items) nb.autoPlace(it.inst);
+    State.backpack = nb;
+  }
+  if(key==='store'){
+    const ns = new Inv(next.w, next.h);
+    for(const it of State.storage.items) ns.autoPlace(it.inst);
+    State.storage = ns;
+  }
+  if(key==='hp') player.hp = maxHp();
+  sfx('coin');
+  toast(u.name+' 업그레이드 완료!');
+  saveGame();
+  refreshPanel();
+}
+
+// ---------------- 아이템 재료 헬퍼 ----------------
+function countItem(id){
+  let c = 0;
+  for(const inv of [State.storage, State.backpack])
+    c += inv.items.filter(it=>it.inst.def.id===id).length;
+  return c;
+}
+function consumeItem(id, n){
+  for(const inv of [State.storage, State.backpack]){
+    for(const it of inv.items.slice()){
+      if(n<=0) return true;
+      if(it.inst.def.id===id){ inv.remove(it.inst); n--; }
+    }
+  }
+  return n<=0;
+}
+function matsOK(mats){
+  return (mats||[]).every(([id,n])=>countItem(id)>=n);
+}
+function matsHTML(mats){
+  if(!mats || !mats.length) return '';
+  return '<span class="up-mats">'+mats.map(([id,n])=>{
+    const have = countItem(id), ok = have>=n;
+    return `<span class="${ok?'ok':'lack'}" data-item="${id}">${ITEMS[id].emoji}${have}/${n}</span>`;
+  }).join('')+'</span>';
+}
+
+// ---------------- 퀘스트 ----------------
+function questDesc(d){
+  if(d.type==='kill') return (d.enemy==='any' ? '아무 미니나' : ENEMY_TYPES[d.enemy].name)+' '+d.n+'마리 처치';
+  if(d.type==='fetch') return `<span class="q-item" data-item="${d.item}">${ITEMS[d.item].emoji} ${ITEMS[d.item].name}</span> ${d.n}개 납품`;
+  return d.n+'회 생존 탈출';
+}
+function questProg(q){
+  if(q.def.type==='fetch'){
+    let cnt = 0;
+    for(const inv of [State.backpack, State.storage])
+      cnt += inv.items.filter(it=>it.inst.def.id===q.def.item).length;
+    return Math.min(cnt, q.def.n);
+  }
+  return Math.min(q.prog, q.def.n);
+}
+function questCanComplete(q){
+  return questProg(q) >= q.def.n
+    && (!q.def.fetch || countItem(q.def.fetch.item) >= q.def.fetch.n);
+}
+// 부가 납품 조건 표시줄
+function questFetchLine(d){
+  if(!d.fetch) return '';
+  const have = Math.min(countItem(d.fetch.item), d.fetch.n);
+  const ok = have>=d.fetch.n;
+  return `<div class="q-desc">+ 납품: <span class="q-item" data-item="${d.fetch.item}">${ITEMS[d.fetch.item].emoji} ${ITEMS[d.fetch.item].name}</span> — <b>${have}/${d.fetch.n}</b>${ok?' ✔':''}</div>`;
+}
+function ensureOffers(){
+  if(State.questOffers && State.questOffers.length) return;
+  const pool = QUESTS.filter(q=>!q.unlock); // 해금 퀘스트는 아래에서 별도 처리
+  const offers = [];
+  // 총 보관대 해금 퀘스트: 의뢰 2건 완료 후 미해금이면 우선 제안
+  const stashQ = QUESTS.find(q=>q.unlock==='stash');
+  if(stashQ && !State.stashUnlocked && (State.questsDone||0)>=2) offers.push({...stashQ});
+  // 총기 슬롯 2 해금 퀘스트: 의뢰 3건 완료 후 미해금 상태면 반드시 제안
+  const lic = QUESTS.find(q=>q.unlock==='gun2');
+  if(lic && !State.gun2 && (State.questsDone||0)>=3) offers.push({...lic});
+  while(offers.length<2 && pool.length){
+    const q = {...pool.splice(Math.floor(Math.random()*pool.length),1)[0]};
+    q.reward = Math.round(q.reward*(1+(State.questsDone||0)*0.15));
+    offers.push(q);
+  }
+  State.questOffers = offers;
+  saveGame();
+}
+function acceptQuest(i){
+  if(State.quest || !State.questOffers || !State.questOffers[i]) return;
+  State.quest = { def: State.questOffers[i], prog: 0 };
+  State.questOffers = null;
+  sfx('open');
+  toast('📜 의뢰 수락: '+State.quest.def.title);
+  saveGame(); refreshPanel();
+}
+function completeQuest(){
+  const q = State.quest;
+  if(!q || !questCanComplete(q)) return;
+  const d = q.def;
+  if(d.type==='fetch'){
+    if(!consumeItem(d.item, d.n)){ toast('납품할 아이템이 부족합니다!'); return; }
+  }
+  if(d.fetch){
+    if(!consumeItem(d.fetch.item, d.fetch.n)){ toast('납품할 아이템이 부족합니다!'); return; }
+  }
+  State.coins += d.reward;
+  if(d.rewardItem){
+    const inst = mkInst(d.rewardItem);
+    if(!State.storage.autoPlace(inst)) State.backpack.autoPlace(inst);
+    toast('보상 획득: '+ITEMS[d.rewardItem].emoji+' '+ITEMS[d.rewardItem].name);
+  }
+  if(d.unlock==='gun2'){
+    State.gun2 = true;
+    toast('🔫 총기 슬롯 2 해금! 작업대에서 조립하고 1·2키로 교체하세요');
+  }
+  // 보관대 해금 여부(칸 계산은 questsDone 증가 후에)
+  const stashJustUnlocked = (d.unlock==='stash' && !State.stashUnlocked);
+  const beforeSlots = stashSlots();
+  State.questsDone = (State.questsDone||0)+1;
+  if(stashJustUnlocked){
+    State.stashUnlocked = true;
+    // 기준을 증가 후 questsDone으로 → 해금 퀘스트 자신은 추가칸으로 안 세고 START(2)칸부터
+    State.stashBaseDone = State.questsDone;
+  }
+  State.quest = null;
+  State.questOffers = null;
+  sfx('extract');
+  toast('📜 퀘스트 완료! +'+d.reward+'🪙');
+  // 총 보관대 안내
+  if(stashJustUnlocked){
+    toast('🔓 총 보관대 개방! '+stashSlots()+'칸이 열렸습니다 (작업대에서 총 보관)');
+  } else if(stashSlots() > beforeSlots){
+    toast('🔓 총 보관대 확장! 이제 '+stashSlots()+'칸 (작업대)');
+  }
+  saveGame(); refreshPanel();
+}
