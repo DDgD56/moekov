@@ -1,5 +1,5 @@
 // ============================================================
-// EZKov — 메인 게임
+// MoeKov — 메인 게임
 // 탑뷰 미니 익스트랙션 슈터 (덕코프 오마주)
 // ============================================================
 
@@ -1860,7 +1860,7 @@ function renderPanel(){
   }
   else if(t==='help'){
     p.innerHTML = `
-      <div class="panel-title">🎀 EZKov — 조작법</div>
+      <div class="panel-title">🎀 MoeKov — 조작법</div>
       <div class="help-body">
         <div><b>WASD</b> 이동 · <b>마우스</b> 조준 · <b>좌클릭</b> 사격 · <b>우클릭(꾹)</b> 정조준(줌)</div>
         <div><b>E</b> 상자·기물 열기 (클릭은 사격 전용) · <b>Tab</b> 가방 · <b>R</b> 재장전 / (드래그 중) 회전</div>
