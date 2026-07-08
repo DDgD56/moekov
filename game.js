@@ -251,30 +251,31 @@ let caveMap = null;
 
 // ---------------- 케이브 ----------------
 function buildCave(){
-  const w=22, h=20; // 아래쪽에 사격장 레인 공간 확보 (14→20)
+  const w=22, h=20; // 위쪽에 사격장, 아래쪽에 생활공간
   const t = new Uint8Array(w*h);
   for(let y=0;y<h;y++) for(let x=0;x<w;x++)
     t[y*w+x] = (x===0||y===0||x===w-1||y===h-1) ? 1 : 2;
-  // 사격장 레인 칸막이: 위쪽 생활공간과 아래 사격장을 낮은 벽으로 구분 (가운데 통로)
-  const dividerY = 13;
+  // 사격장 칸막이: 위쪽 사격장과 아래 생활공간을 벽으로 구분 (가운데 통로로 오르내림)
+  const dividerY = 7;
   for(let x=1;x<w-1;x++){ if(x<9||x>12) t[dividerY*w+x]=1; } // 9~12 통로
 
   caveMap = {
     w, h, tiles: t,
     stations: [
-      { x:3.5*TILE, y:3.5*TILE, emoji:'📦', name:'창고', panel:'storage' },
-      { x:18.5*TILE, y:3.5*TILE, emoji:'🛠️', name:'작업대', panel:'bench' },
-      { x:7.5*TILE, y:2.3*TILE, emoji:'📌', name:'업그레이드', panel:'board' },
-      { x:14*TILE, y:1.9*TILE, emoji:'📜', name:'퀘스트 창구', panel:'quest' },
-      { x:2.5*TILE, y:11*TILE, emoji:'🚪', name:'출격', panel:'deploy' },
+      // 생활공간(아래쪽)
+      { x:3.5*TILE,  y:11.5*TILE, emoji:'📦', name:'창고', panel:'storage' },
+      { x:18.5*TILE, y:11.5*TILE, emoji:'🛠️', name:'작업대', panel:'bench' },
+      { x:7.5*TILE,  y:17*TILE,   emoji:'📌', name:'업그레이드', panel:'board' },
+      { x:14.5*TILE, y:17*TILE,   emoji:'📜', name:'퀘스트 창구', panel:'quest' },
+      { x:11*TILE,   y:18*TILE,   emoji:'🚪', name:'출격', panel:'deploy' },
     ],
-    // 🎯 사격장: 아래쪽 레인. 과녁은 벽 앞(위쪽)에, 플레이어는 아래에서 위로 쏨
+    // 🎯 사격장: 맨 위쪽. 과녁은 위 벽 앞에, 플레이어는 통로에서 올라와 위를 보고 쏨
     range: {
-      lineY: 17.6*TILE,   // 사대(플레이어가 서서 쏘는 기준선)
+      lineY: 5.4*TILE,   // 사대(플레이어가 서서 쏘는 기준선)
       targets: [
-        mkTarget(5.5*TILE, 15*TILE, 'near'),
-        mkTarget(11*TILE,  15*TILE, 'mid'),
-        mkTarget(16.5*TILE,15*TILE, 'far'),
+        mkTarget(5.5*TILE,  2.4*TILE, 'near'),
+        mkTarget(11*TILE,   2.4*TILE, 'mid'),
+        mkTarget(16.5*TILE, 2.4*TILE, 'far'),
       ],
       totalDmg: 0, hits: 0, shots: 0, dpsWin: [], lastShotAmmo: 0,
     },
@@ -1774,7 +1775,7 @@ function hasAnyBody(){
 function returnToCave(){
   scene = 'cave';
   raid = null;
-  player.x = 11*TILE; player.y = 8*TILE;
+  player.x = 11*TILE; player.y = 13.5*TILE;
   player.hp = maxHp();
   closePanel();
   playMusic('cave');
@@ -2545,8 +2546,8 @@ function renderCaveWorld(){
       if(hsh%3===0) ctx.fillRect(sx+(hsh%28), sy+((hsh%2)?2:15), 1.5, 11);
     }
   }
-  // 러그
-  const [rx,ry] = worldToScreen(11*TILE, 8*TILE);
+  // 러그 (생활공간 중앙)
+  const [rx,ry] = worldToScreen(11*TILE, 14*TILE);
   ctx.fillStyle = 'rgba(160,60,60,.3)';
   ctx.beginPath(); ctx.ellipse(rx,ry,80,50,0,0,Math.PI*2); ctx.fill();
   ctx.strokeStyle = 'rgba(220,150,120,.3)'; ctx.lineWidth = 3;
@@ -3614,7 +3615,7 @@ function loop(now){
 buildCave();
 if(!loadGame()) newGame();
 // 몸통이 하나도 없어도 자동 지급하지 않음 — 퀘스트 창구(❗)에서 받는다
-player.x = 11*TILE; player.y = 8*TILE;
+player.x = 11*TILE; player.y = 13.5*TILE;
 player.hp = maxHp();
 player.stam = stamMax();
 cam.x = player.x; cam.y = player.y;
