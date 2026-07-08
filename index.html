@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
 <!-- 개발 중: 브라우저 캐시 끄기 (파일 저장 후 새로고침하면 바로 반영) -->
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
@@ -40,6 +40,38 @@
 <div id="redflash"></div>
 <div id="panel-root" class="hidden"></div>
 <div id="drag-layer"></div>
+
+<!-- 브라우저 확대/축소 차단 (핀치줌·Ctrl휠·Ctrl+/-/0·더블탭) -->
+<script>
+(function(){
+  // Ctrl/⌘ + 마우스휠 줌
+  window.addEventListener('wheel', function(e){
+    if(e.ctrlKey || e.metaKey) e.preventDefault();
+  }, {passive:false});
+  // 트랙패드 핀치 줌 (Safari 제스처 + 크롬 ctrl휠은 위에서 처리)
+  ['gesturestart','gesturechange','gestureend'].forEach(function(g){
+    window.addEventListener(g, function(e){ e.preventDefault(); }, {passive:false});
+  });
+  // 키보드 줌: Ctrl/⌘ + (=,+,-,0,숫자패드)
+  window.addEventListener('keydown', function(e){
+    if((e.ctrlKey || e.metaKey) &&
+       ['=','+','-','_','0'].indexOf(e.key) !== -1){
+      e.preventDefault();
+    }
+  }, {passive:false});
+  // 모바일 더블탭 줌
+  var lastTouch = 0;
+  document.addEventListener('touchend', function(e){
+    var now = e.timeStamp;
+    if(now - lastTouch <= 350) e.preventDefault();
+    lastTouch = now;
+  }, {passive:false});
+  // 멀티터치(핀치) 자체 차단
+  document.addEventListener('touchmove', function(e){
+    if(e.touches.length > 1) e.preventDefault();
+  }, {passive:false});
+})();
+</script>
 
 <!-- 개발용: 매 로드마다 타임스탬프를 붙여 캐시를 항상 무효화 (저장→F5 하면 바로 반영) -->
 <script>
