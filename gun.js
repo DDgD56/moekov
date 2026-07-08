@@ -60,8 +60,8 @@ function mountLocalCells(cells, side){
 // ---- 총 스탯 집계 ----
 function gunStats(gun){
   if(!gun || !gun.body){
-    return { name:'맨손', dmg:2, rpm:120, spread:10, ammo:0, reload:1, noise:100,
-             pellets:1, zoom:1, light:0, aim:1 };
+    return { name:'맨손', cls:'', dmg:2, rpm:120, spread:10, ammo:0, reload:1, noise:100,
+             pellets:1, recoil:5, zoom:1, light:0, aim:1 };
   }
   const b = gun.body.def;
   const s = { name:b.name, cls:b.cls||'', dmg:b.base.dmg, rpm:b.base.rpm, spread:b.base.spread,
@@ -106,10 +106,71 @@ function loadGun(data){
   return gun;
 }
 
+// ---- 총 보관대 (조립된 총을 통째로 넣었다 뺐다) ----
+// 현재 편집 총을 보관 슬롯에 넣기 (슬롯이 비어있어야 함)
+function stashGun(slot){
+  const g = editGun();
+  if(!g.body){ toast('작업대에 총이 없습니다'); return; }
+  if(State.stash[slot]){ toast('그 보관칸은 이미 차 있습니다'); return; }
+  // 총 구성을 통째로 저장하고 작업대는 비움
+  State.stash[slot] = { body:g.body, atts:g.atts };
+  g.body = null; g.atts = []; g.ammo = 0;
+  if(typeof sfx==='function') sfx('drop');
+  toast('📦 보관대 '+(slot+1)+'에 넣었습니다');
+  saveGame();
+  refreshPanel();
+}
+// 보관 슬롯의 총을 작업대로 꺼내기 (작업대가 비어있어야 함)
+function unstashGun(slot){
+  const st = State.stash[slot];
+  if(!st){ return; }
+  const g = editGun();
+  if(g.body){ toast('작업대를 먼저 비우세요 (총을 보관대나 창고로)'); return; }
+  g.body = st.body; g.atts = st.atts; g.ammo = 0;
+  State.stash[slot] = null;
+  if(typeof sfx==='function') sfx('mount');
+  toast('🔧 보관대 '+(slot+1)+'에서 꺼냈습니다: '+g.body.def.name);
+  saveGame();
+  refreshPanel();
+}
+// 보관대 직렬화/역직렬화 (세이브용)
+function serializeStash(st){ return st ? { body:st.body.def.id, atts:st.atts.map(m=>({d:m.inst.def.id, side:m.side, idx:m.idx, r:m.rot||0})) } : null; }
+function loadStash(data){
+  if(!data || !data.body || !ITEMS[data.body]) return null;
+  const g = loadGun(data);
+  return g.body ? { body:g.body, atts:g.atts } : null;
+}
+// 보관대 UI 렌더
+function renderStash(rootEl){
+  rootEl.innerHTML = '<div class="stash-label">🔫 총 보관대</div>';
+  const wrap = document.createElement('div');
+  wrap.className = 'stash-slots';
+  for(let i=0;i<3;i++){
+    const st = State.stash[i];
+    const slot = document.createElement('div');
+    slot.className = 'stash-slot' + (st?' filled':'');
+    if(st){
+      const s = gunStats({body:st.body, atts:st.atts});
+      slot.innerHTML = `<div class="ss-emoji">${st.body.def.emoji}</div>
+        <div class="ss-name">${st.body.def.name}</div>
+        <div class="ss-stat">⚔️${s.dmg} 🔁${Math.round(s.rpm)} 🎒${st.atts.length}</div>
+        <button class="btn mini ss-btn" data-take="${i}">꺼내기</button>`;
+      attachTip(slot, st.body.def);
+    } else {
+      slot.innerHTML = `<div class="ss-empty">비어있음</div>
+        <button class="btn mini ss-btn" data-put="${i}">현재 총 넣기</button>`;
+    }
+    wrap.appendChild(slot);
+  }
+  rootEl.appendChild(wrap);
+  rootEl.querySelectorAll('[data-put]').forEach(b=>b.addEventListener('click', ()=>stashGun(+b.dataset.put)));
+  rootEl.querySelectorAll('[data-take]').forEach(b=>b.addEventListener('click', ()=>unstashGun(+b.dataset.take)));
+}
+
 // ============================================================
 // 작업대 UI
 // ============================================================
-const GS = 52;      // 작업대 몸통 셀 픽셀
+const GS = 44;      // 작업대 몸통 셀 픽셀
 const RAIL_T = 5;   // 레일 선 두께
 const RAIL_G = 2;   // 레일 선 간격
 
@@ -131,7 +192,7 @@ function renderBench(rootEl){
   }
 
   const bd = gun.body.def;
-  const PADX = 205, PADY = 218;
+  const PADX = 165, PADY = 150;
   const wrap = document.createElement('div');
   wrap.className = 'bench-wrap';
   wrap.style.width = (bd.bw*GS + PADX*2)+'px';
@@ -157,12 +218,21 @@ function renderBench(rootEl){
   const bn = document.createElement('div');
   bn.className = 'bench-body-name'; bn.textContent = bd.name;
   bodyEl.appendChild(bn);
+  const bodyToStore = ()=>{
+    if(gun.atts.length>0){ toast('부착물을 먼저 떼어내세요!'); return; }
+    const b = gun.body;
+    if(State.storage.autoPlace(b)){ gun.body=null; if(typeof sfx==='function') sfx('drop'); refreshPanel(); }
+    else if(State.backpack.autoPlace(b)){ gun.body=null; if(typeof sfx==='function') sfx('drop'); refreshPanel(); }
+    else toast('창고·가방에 공간이 부족합니다!');
+  };
   bodyEl.addEventListener('mousedown', e=>{
     if(e.button!==0) return;
     e.preventDefault(); e.stopPropagation();
     if(gun.atts.length>0){ toast('부착물을 먼저 떼어내세요!'); return; }
+    if(e.ctrlKey || e.metaKey){ bodyToStore(); return; } // Ctrl/Cmd+클릭 → 창고로
     armDrag(gun.body, {kind:'gunbody'}, e, CS);
   });
+  bodyEl.addEventListener('contextmenu', e=>{ if(e.ctrlKey||e.metaKey){ e.preventDefault(); e.stopPropagation(); bodyToStore(); } });
   attachTip(bodyEl, bd);
   wrap.appendChild(bodyEl);
 
@@ -211,12 +281,22 @@ function renderBench(rootEl){
     else if(m.side==='front'){ lx = PADX + bd.bw*GS; ly = PADY + m.idx*GS; }
     else { lx = PADX - lw*GS; ly = PADY + m.idx*GS; }
     el.style.left = lx+'px'; el.style.top = ly+'px';
+    const detachToStore = ()=>{
+      const i = editGun().atts.findIndex(x=>x.inst.uid===m.inst.uid);
+      if(i<0) return;
+      m.inst.rot = 0;
+      if(State.storage.autoPlace(m.inst)){ editGun().atts.splice(i,1); if(typeof sfx==='function') sfx('drop'); refreshPanel(); }
+      else if(State.backpack.autoPlace(m.inst)){ editGun().atts.splice(i,1); if(typeof sfx==='function') sfx('drop'); refreshPanel(); }
+      else toast('창고·가방에 공간이 부족합니다!');
+    };
     el.addEventListener('mousedown', e=>{
       if(e.button!==0) return;
       e.preventDefault(); e.stopPropagation();
+      if(e.ctrlKey || e.metaKey){ detachToStore(); return; } // Ctrl/Cmd+클릭 → 창고로
       m.inst.rot = m.rot||0;
       armDrag(m.inst, {kind:'gun'}, e, CS);
     });
+    el.addEventListener('contextmenu', e=>{ if(e.ctrlKey||e.metaKey){ e.preventDefault(); e.stopPropagation(); detachToStore(); } });
     wrap.appendChild(el);
   }
 

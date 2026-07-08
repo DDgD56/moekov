@@ -146,6 +146,7 @@ const State = {
   region: 'hill',            // 마지막 선택 지역
   regionExtracts: {},        // 지역별 탈출 횟수 {hill:3, ...}
   regionBoss: {},            // 지역별 보스 처치 여부 {factory:true}
+  stash: [null, null, null], // 총 보관대 (조립된 총을 통째로) {body:inst, atts:[...]}
 };
 
 function curGun(){ return State.guns[State.activeGun]; }
@@ -179,6 +180,7 @@ function saveGame(){
       qslots: State.qslots.map(i=>i?{d:i.def.id}:null),
       deathCache: State.deathCache,
       region: State.region, regionExtracts: State.regionExtracts, regionBoss: State.regionBoss,
+      stash: State.stash.map(serializeStash),
     }));
   }catch(e){}
 }
@@ -205,6 +207,8 @@ function loadGame(){
     State.region = d.region || 'hill';
     State.regionExtracts = d.regionExtracts || {};
     State.regionBoss = d.regionBoss || {};
+    State.stash = (d.stash || [null,null,null]).map(loadStash);
+    while(State.stash.length<3) State.stash.push(null);
     return true;
   }
   return false;
@@ -1674,17 +1678,23 @@ function renderPanel(){
           <button class="btn mini tab ${benchIdx===1?'on':''} ${State.gun2?'':'locked'}" data-tab="1">${State.gun2?'🔫':'🔒'} 총기 2</button>
         </span>
       </div>
+      <div class="stash-row" id="stashRow"></div>
       <div class="panel-cols bench-cols">
         <div class="col"><div class="col-label">창고</div><div id="ga"></div></div>
-        <div class="col bench-col"><div id="bench"></div><div class="col stats-col" id="gs"></div></div>
-        <div class="col"><div class="col-label">🎒 내 가방 <button class="btn mini" id="tostore">📦 전부 창고로</button></div><div id="gb"></div></div>
+        <div class="col bench-col">
+          <div id="bench"></div>
+        </div>
+        <div class="col"><div class="col-label">🎒 내 가방 <button class="btn mini" id="tostore">📦 전부 창고로</button></div><div id="gb"></div>
+          <div class="col stats-col" id="gs"></div>
+        </div>
       </div>
       <div class="panel-hint">몸통/부착물을 <b>드래그</b>해서 조립 · 드래그 중 <b>R</b> 회전 ·
-      맞는 소켓에 <b>1칸만 걸쳐도</b> 장착 · <b>더블클릭/Ctrl(⌘)+클릭</b>으로 창고↔가방 즉시 이동 · <b>ESC</b> 닫기</div>`;
+      맞는 소켓에 <b>1칸만 걸쳐도</b> 장착 · <b>Ctrl(⌘)+클릭</b>으로 부품/총 즉시 창고 이동 · 🔫 보관대로 총 통째로 넣었다 뺐다 · <b>ESC</b> 닫기</div>`;
     renderGrid(p.querySelector('#ga'), State.storage, { cs:36, rerender:refreshPanel, quickTarget:State.backpack, onDbl:inst=>{ quickTransfer(inst,State.storage,State.backpack); refreshPanel(); } });
     renderGrid(p.querySelector('#gb'), State.backpack, { cs:36, rerender:refreshPanel, quickTarget:State.storage, onDbl:inst=>{ quickTransfer(inst,State.backpack,State.storage); refreshPanel(); } });
     renderBench(p.querySelector('#bench'));
     p.querySelector('#gs').innerHTML = statsHTML(editGun());
+    renderStash(p.querySelector('#stashRow'));
     p.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click', ()=>{
       const i = +b.dataset.tab;
       if(i===1 && !State.gun2){ toast('🔒 퀘스트 「이도류 면허」를 완료하면 해금됩니다'); return; }
