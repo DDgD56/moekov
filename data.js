@@ -719,14 +719,14 @@ const NPC_LINES = {
 // ---- 적 정의 ----
 const ENEMY_TYPES = {
   // 근접은 플레이어 도보(175)보다 빠름 — 질주/사격으로 대응해야 함
-  zduck:   { name:'좀비 미니', emoji:'🧟', hp:40, spd:185, dmg:6,  r:14, color:'#6a8a5a', xp:1, ranged:false },
-  fastduck:{ name:'광란 미니', emoji:'😡', hp:24, spd:230, dmg:5, r:11, color:'#b05a5a', xp:1, ranged:false },
-  bigduck: { name:'거구 미니', emoji:'🗿', hp:160, spd:150, dmg:14, r:22, color:'#5a6a8a', xp:3, ranged:false },
+  zduck:   { name:'좀비 미니', emoji:'🧟', hp:40, spd:185, dmg:21, r:14, color:'#6a8a5a', xp:1, ranged:false },
+  fastduck:{ name:'광란 미니', emoji:'😡', hp:24, spd:230, dmg:20, r:11, color:'#b05a5a', xp:1, ranged:false },
+  bigduck: { name:'거구 미니', emoji:'🗿', hp:160, spd:150, dmg:30, r:22, color:'#5a6a8a', xp:3, ranged:false },
   spitter: { name:'독침 미니', emoji:'🤢', hp:26, spd:55, dmg:6,  r:13, color:'#8a5aa0', xp:2, ranged:'spit' },
   sniper:  { name:'저격 미니', emoji:'🎯', hp:20, spd:48, dmg:16, r:12, color:'#3a7a8a', xp:2, ranged:'sniper' },
   gunner:  { name:'난사 미니', emoji:'🔫', hp:35, spd:58, dmg:4,  r:14, color:'#7a6a3a', xp:2, ranged:'burst' },
   bomber:  { name:'폭탄 미니', emoji:'💣', hp:30, spd:215, dmg:20, r:12, color:'#b03a3a', xp:2, ranged:false, bomber:true },
-  golden:  { name:'황금 미니', emoji:'✨', hp:260, spd:200, dmg:10, r:17, color:'#d4a832', xp:10, ranged:false, elite:true },
+  golden:  { name:'황금 미니', emoji:'✨', hp:260, spd:200, dmg:24, r:17, color:'#d4a832', xp:10, ranged:false, elite:true },
   kingduck:{ name:'황금 미니 킹', emoji:'👑', hp:750, spd:118, dmg:22, r:32, color:'#e0b83a', xp:100, ranged:false, boss:true },
 };
 
