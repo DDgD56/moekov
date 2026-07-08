@@ -2638,9 +2638,9 @@ function renderCaveUI(){
       ctx.fillStyle = d.c; ctx.fillText(d.txt, dx, dy);
       ctx.globalAlpha = 1;
     }
-    // 사격장 안내판 + 통계 (레인 바닥에 월드 좌표로 고정 — HUD와 안 겹침)
+    // 사격장 안내판 + 통계 (과녁 아래·사대 근처 = 사격장 안쪽 위에 표시)
     const R = caveMap.range;
-    const [px, py] = worldToScreen(11*TILE, 18.6*TILE);
+    const [px, py] = worldToScreen(11*TILE, 6.2*TILE);
     ctx.font = 'bold 12px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
     ctx.fillStyle = '#e8c060';
     ctx.fillText('🎯 사격장 · 과녁을 향해 클릭 · R 재장전', px, py);
