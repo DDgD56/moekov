@@ -81,7 +81,7 @@ window.addEventListener('keydown', e=>{
 
   if(k==='r'){
     if(Drag.active){ rotateDrag(); return; }
-    if(scene==='raid' && !panel) startReload();
+    if((scene==='raid' || scene==='cave') && !panel) startReload();
     return;
   }
   if(['w','a','s','d'].includes(k)){
@@ -114,7 +114,12 @@ cv.addEventListener('mousedown', e=>{
   if(panel) return;
   if(e.button===2){ mouse.rdown = true; return; }
   if(e.button!==0) return;
-  if(scene==='cave'){ clickInteract(e.clientX, e.clientY); return; }
+  if(scene==='cave'){
+    // 스테이션을 클릭하면 상호작용, 아니면 사격 (사격장에서 총 시험)
+    if(clickInteract(e.clientX, e.clientY)) return;
+    mouse.down = true; // 빈 공간 클릭 = 사격
+    return;
+  }
   mouse.down = true; // 레이드에선 클릭 = 무조건 사격 (상자는 E로만)
 });
 document.addEventListener('mouseup', e=>{
@@ -246,10 +251,14 @@ let caveMap = null;
 
 // ---------------- 케이브 ----------------
 function buildCave(){
-  const w=22, h=14;
+  const w=22, h=20; // 아래쪽에 사격장 레인 공간 확보 (14→20)
   const t = new Uint8Array(w*h);
   for(let y=0;y<h;y++) for(let x=0;x<w;x++)
     t[y*w+x] = (x===0||y===0||x===w-1||y===h-1) ? 1 : 2;
+  // 사격장 레인 칸막이: 위쪽 생활공간과 아래 사격장을 낮은 벽으로 구분 (가운데 통로)
+  const dividerY = 13;
+  for(let x=1;x<w-1;x++){ if(x<9||x>12) t[dividerY*w+x]=1; } // 9~12 통로
+
   caveMap = {
     w, h, tiles: t,
     stations: [
@@ -257,9 +266,24 @@ function buildCave(){
       { x:18.5*TILE, y:3.5*TILE, emoji:'🛠️', name:'작업대', panel:'bench' },
       { x:7.5*TILE, y:2.3*TILE, emoji:'📌', name:'업그레이드', panel:'board' },
       { x:14*TILE, y:1.9*TILE, emoji:'📜', name:'퀘스트 창구', panel:'quest' },
-      { x:11*TILE, y:12*TILE, emoji:'🚪', name:'출격', panel:'deploy' },
+      { x:2.5*TILE, y:11*TILE, emoji:'🚪', name:'출격', panel:'deploy' },
     ],
+    // 🎯 사격장: 아래쪽 레인. 과녁은 벽 앞(위쪽)에, 플레이어는 아래에서 위로 쏨
+    range: {
+      lineY: 17.6*TILE,   // 사대(플레이어가 서서 쏘는 기준선)
+      targets: [
+        mkTarget(5.5*TILE, 15*TILE, 'near'),
+        mkTarget(11*TILE,  15*TILE, 'mid'),
+        mkTarget(16.5*TILE,15*TILE, 'far'),
+      ],
+      totalDmg: 0, hits: 0, shots: 0, dpsWin: [], lastShotAmmo: 0,
+    },
+    bullets: [], dnums: [], parts: [],
   };
+}
+// 사격장 과녁 하나 생성
+function mkTarget(x, y, kind){
+  return { x, y, kind, r:26, hp:1, hitT:0, popT:0, lastDmg:0, wob:0 };
 }
 
 // ---------------- 레이드 맵 생성 ----------------
@@ -1331,6 +1355,8 @@ function startReload(){
   sfx('reload');
 }
 function updateShooting(dt){
+  const inCave = scene==='cave';
+  const world = inCave ? caveMap : raid;   // 총알을 담을 대상
   const g = curGun();
   const st = gunStats(g);
   player.fireCd -= dt; player.flash -= dt;
@@ -1341,13 +1367,14 @@ function updateShooting(dt){
   }
   g.ammo = Math.min(g.ammo, st.ammo);
 
-  if(!mouse.down || panel || raid.over || !g.body || player.swapT>0) return;
+  if(!mouse.down || panel || (!inCave && raid.over) || !g.body || player.swapT>0) return;
   if(player.fireCd>0 || player.reloading>0) return;
   if(g.ammo<=0){ sfx('click'); startReload(); mouse.down=false; return; }
 
   player.fireCd = 60/st.rpm;
   g.ammo--;
   player.flash = 0.06;
+  if(inCave) caveMap.range.shots += st.pellets; // 사격장 통계
   const rec = st.recoil||5;
   shake = Math.min(12, shake + 1 + rec*0.12);
 
@@ -1364,13 +1391,13 @@ function updateShooting(dt){
     } else {
       a = player.ang + (Math.random()-0.5)*spreadDeg*Math.PI/180;
     }
-    raid.bullets.push({x:mx0,y:my0,vx:Math.cos(a)*760,vy:Math.sin(a)*760,dmg:st.dmg,life:0.95});
+    world.bullets.push({x:mx0,y:my0,vx:Math.cos(a)*760,vy:Math.sin(a)*760,dmg:st.dmg,life:0.95});
   }
   // 반동: 탄퍼짐 블룸 + 킥백 연출 + 뒤로 밀려남
   player.bloom = Math.min(24, player.bloom + rec*0.4);
   player.kick = 1;
-  moveCircle(player, -Math.cos(player.ang)*rec*0.35, -Math.sin(player.ang)*rec*0.35, solidPx);
-  noiseEvent(player.x,player.y,st.noise);
+  moveCircle(player, -Math.cos(player.ang)*rec*0.35, -Math.sin(player.ang)*rec*0.35, inCave?caveSolidPx:solidPx);
+  if(!inCave) noiseEvent(player.x,player.y,st.noise);
   if(st.noise>450) sfx('honk');
   else if(st.noise<120) sfx('silenced');
   else sfx('shoot');
@@ -1437,6 +1464,46 @@ function updateBullets(dt){
     }
     if(dead) raid.ebullets.splice(i,1);
   }
+}
+
+// 🎯 사격장 총알 업데이트 (케이브) — 벽·과녁 충돌, 데미지 통계
+function updateCaveBullets(dt){
+  const R = caveMap.range;
+  for(let i=caveMap.bullets.length-1;i>=0;i--){
+    const b = caveMap.bullets[i];
+    b.x += b.vx*dt; b.y += b.vy*dt; b.life -= dt;
+    let dead = b.life<=0 || caveSolidPx(b.x,b.y);
+    if(!dead){
+      for(const tg of R.targets){
+        if(dist(b.x,b.y,tg.x,tg.y) < tg.r){
+          dead = true;
+          tg.hitT = 0.12; tg.popT = 0.9; tg.lastDmg = Math.round(b.dmg); tg.wob = 1;
+          R.totalDmg += b.dmg; R.hits++;
+          caveMap.dnums.push({x:tg.x, y:tg.y-tg.r-4, txt:Math.round(b.dmg), t:0.8, c:'#ffd76a'});
+          // 순간 DPS 창(최근 2초 히트 데미지)
+          R.dpsWin.push({t:0, d:b.dmg});
+          for(let p=0;p<6;p++)
+            caveMap.parts.push({x:b.x,y:b.y,vx:rnd(-90,90),vy:rnd(-90,90),t:rnd(.2,.4),c:'#e8c05a',r:rnd(2,4)});
+          sfx('hit');
+          break;
+        }
+      }
+    }
+    if(dead && caveSolidPx(b.x,b.y))
+      caveMap.parts.push({x:b.x,y:b.y,vx:0,vy:0,t:0.15,c:'#ccc',r:2});
+    if(dead) caveMap.bullets.splice(i,1);
+  }
+  // 과녁 반응 감쇠
+  for(const tg of R.targets){
+    tg.hitT = Math.max(0, tg.hitT - dt);
+    tg.popT = Math.max(0, tg.popT - dt);
+    tg.wob = Math.max(0, tg.wob - dt*3);
+  }
+  // DPS 창 유지 (2초)
+  for(let i=R.dpsWin.length-1;i>=0;i--){ R.dpsWin[i].t += dt; if(R.dpsWin[i].t>2) R.dpsWin.splice(i,1); }
+  // 파티클/데미지숫자
+  for(let i=caveMap.parts.length-1;i>=0;i--){ const p=caveMap.parts[i]; p.x+=p.vx*dt; p.y+=p.vy*dt; p.t-=dt; if(p.t<=0) caveMap.parts.splice(i,1); }
+  for(let i=caveMap.dnums.length-1;i>=0;i--){ const d=caveMap.dnums[i]; d.y-=30*dt; d.t-=dt; if(d.t<=0) caveMap.dnums.splice(i,1); }
 }
 
 // 폭발 (폭탄미니) — 플레이어·적 모두 피해
@@ -2312,6 +2379,12 @@ function update(dt){
     }
   }
 
+  // 🎯 케이브 사격장: 발사 + 총알·과녁 처리
+  if(scene==='cave' && caveMap){
+    updateShooting(dt);
+    updateCaveBullets(dt);
+  }
+
   // 루팅 조사: 패널을 열어둔 동안 2초마다 하나씩 식별 (그동안 적은 계속 다가옴)
   if(scene==='raid' && raid && panel && panel.type==='loot' && panel.data.inv){
     const hiddenItems = panel.data.inv.items.filter(it=>it.inst.hidden);
@@ -2386,7 +2459,11 @@ function updateHud(){
     clock.className = '';
     kills.textContent = '';
     gname.textContent = slotTag + (g.body ? g.body.def.emoji+' '+st.name : '맨손');
-    ammo.textContent = '';
+    // 케이브에서도 탄약 표시 (사격장에서 총 시험 사격 중)
+    ammo.textContent = g.body
+      ? (player.reloading>0 ? '재장전... '+player.reloading.toFixed(1) : g.ammo+' / '+st.ammo)
+      : '';
+    ammo.classList.toggle('low', !!g.body && g.ammo<=Math.max(1,st.ammo*0.2) && player.reloading<=0);
     const near = nearestInteractable();
     hint.textContent = near ? '[E] '+near.name : 'H: 도움말';
   }
@@ -2475,6 +2552,32 @@ function renderCaveWorld(){
   ctx.strokeStyle = 'rgba(220,150,120,.3)'; ctx.lineWidth = 3;
   ctx.beginPath(); ctx.ellipse(rx,ry,68,40,0,0,Math.PI*2); ctx.stroke();
 
+  // 🎯 사격장: 사대(발사선) + 과녁 + 총알 + 파티클
+  if(caveMap.range){
+    const R = caveMap.range;
+    // 사대 라인 (플레이어가 서서 쏘는 기준선)
+    const [lx0] = worldToScreen(1*TILE, R.lineY);
+    const [lx1, ly] = worldToScreen((caveMap.w-1)*TILE, R.lineY);
+    ctx.strokeStyle = 'rgba(230,200,120,.35)'; ctx.lineWidth = 2; ctx.setLineDash([8,6]);
+    ctx.beginPath(); ctx.moveTo(lx0, ly); ctx.lineTo(lx1, ly); ctx.stroke(); ctx.setLineDash([]);
+    // 과녁
+    for(const tg of R.targets) drawTarget(tg);
+    // 사격장 총알
+    for(const b of caveMap.bullets){
+      const [bx,by] = worldToScreen(b.x,b.y);
+      ctx.fillStyle = '#ffe08a';
+      ctx.fillRect(bx-2, by-2, 4, 4);
+      ctx.strokeStyle = 'rgba(255,220,120,.4)'; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.moveTo(bx,by); ctx.lineTo(bx-b.vx*0.012, by-b.vy*0.012); ctx.stroke();
+    }
+    // 파티클
+    for(const p of caveMap.parts){
+      const [px,py] = worldToScreen(p.x,p.y);
+      ctx.globalAlpha = Math.max(0, p.t*2.5); ctx.fillStyle = p.c;
+      ctx.fillRect(px-p.r/2, py-p.r/2, p.r, p.r); ctx.globalAlpha = 1;
+    }
+  }
+
   // 스테이션 (가구 아트)
   for(const s of caveMap.stations){
     const [sx,sy] = worldToScreen(s.x,s.y);
@@ -2482,6 +2585,33 @@ function renderCaveWorld(){
   }
 
   drawPlayer();
+}
+
+// 사격장 과녁 그리기
+function drawTarget(tg){
+  const wob = Math.sin(performance.now()/40)*tg.wob*3;
+  const [x,y] = worldToScreen(tg.x + wob, tg.y);
+  const flash = tg.hitT>0;
+  // 지지대
+  ctx.fillStyle = '#4a3a28'; ctx.fillRect(x-3, y, 6, 30);
+  // 과녁 원판 (동심원)
+  const rings = [[tg.r, flash?'#ff6a5a':'#e8e0d0'], [tg.r*0.7, flash?'#ffd76a':'#c94a3a'], [tg.r*0.42, '#e8e0d0'], [tg.r*0.18, flash?'#fff':'#c94a3a']];
+  for(const [rr,c] of rings){
+    ctx.fillStyle = c; ctx.beginPath(); ctx.arc(x, y, rr, 0, Math.PI*2); ctx.fill();
+  }
+  ctx.strokeStyle = 'rgba(0,0,0,.35)'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(x, y, tg.r, 0, Math.PI*2); ctx.stroke();
+  // 거리 라벨
+  const distTxt = tg.kind==='near'?'가까움':tg.kind==='mid'?'중간':'멀리';
+  ctx.font = 'bold 10px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillStyle = '#c9b8a0'; ctx.fillText(distTxt, x, y+42);
+  // 마지막 데미지 팝(과녁 위)
+  if(tg.popT>0){
+    ctx.globalAlpha = Math.min(1, tg.popT*2);
+    ctx.font = 'bold 14px sans-serif'; ctx.fillStyle = '#ffd76a';
+    ctx.fillText(tg.lastDmg, x, y - tg.r - 12);
+    ctx.globalAlpha = 1;
+  }
 }
 
 // 케이브 선명한 UI (라벨/하이라이트)
@@ -2495,6 +2625,28 @@ function renderCaveUI(){
     ctx.font = 'bold 12px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
     ctx.fillStyle = s===near ? '#ffd76a' : '#c9b8a0';
     ctx.fillText(s.name, s.x, s.y+36);
+  }
+
+  // 🎯 사격장 데미지 숫자 (월드 좌표를 UI 레이어에)
+  if(caveMap.range){
+    for(const d of caveMap.dnums){
+      const [dx,dy] = worldToScreen(d.x, d.y);
+      ctx.globalAlpha = Math.min(1, d.t*2);
+      ctx.font = 'bold 15px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillStyle = '#000'; ctx.fillText(d.txt, dx+1, dy+1);
+      ctx.fillStyle = d.c; ctx.fillText(d.txt, dx, dy);
+      ctx.globalAlpha = 1;
+    }
+    // 사격장 안내판 + 통계 (레인 바닥에 월드 좌표로 고정 — HUD와 안 겹침)
+    const R = caveMap.range;
+    const [px, py] = worldToScreen(11*TILE, 18.6*TILE);
+    ctx.font = 'bold 12px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillStyle = '#e8c060';
+    ctx.fillText('🎯 사격장 · 과녁을 향해 클릭 · R 재장전', px, py);
+    const dps = Math.round(R.dpsWin.reduce((a,b)=>a+b.d,0) / 2);
+    const acc = R.shots>0 ? Math.round(R.hits/R.shots*100) : 0;
+    ctx.fillStyle = '#c9b8a0';
+    ctx.fillText(`DPS ${dps}  ·  명중 ${R.hits}/${R.shots} (${acc}%)`, px, py+16);
   }
 }
 
