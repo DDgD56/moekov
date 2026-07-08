@@ -1434,7 +1434,8 @@ function updateShooting(dt){
   shake = Math.min(12, shake + 1 + rec*0.12);
 
   const moving = (keys.w||keys.a||keys.s||keys.d);
-  const spreadDeg = Math.max(0.5, (st.spread + player.bloom)*(moving?1.5:1)*(1-0.4*player.aimT));
+  // 조준 시 탄퍼짐은 조금만 감소(최대 20%) — 대신 이동속도로 큰 대가를 치른다
+  const spreadDeg = Math.max(0.5, (st.spread + player.bloom)*(moving?1.5:1)*(1-0.2*player.aimT));
   const bd = g.body.def;
   const mx0 = player.x + Math.cos(player.ang)*(12+bd.bw*7.5);
   const my0 = player.y + Math.sin(player.ang)*(12+bd.bw*7.5);
@@ -2373,7 +2374,9 @@ function update(dt){
   }
   if(vx||vy){
     const l = Math.hypot(vx,vy);
-    const spd = moveSpd() * (player.aimT>0.3 ? 0.6 : 1) * (sprinting?1.5:1);
+    // 조준할수록 크게 느려짐 (완전 조준 시 25% 속도) — 뿌리박고 정밀사격, 대신 회피 불가
+    const aimSlow = 1 - 0.75*player.aimT;
+    const spd = moveSpd() * aimSlow * (sprinting?1.5:1);
     const solidFn = scene==='cave' ? caveSolidPx : solidPx;
     moveCircle(player, vx/l*spd*dt, vy/l*spd*dt, solidFn);
   }
