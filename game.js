@@ -1067,7 +1067,9 @@ function nightSec(){ return Math.max(0, raid.time - dayLen() - DUSK_LEN); }
 
 function updateEnemies(dt){
   const night = phase()==='night';
-  let aggroR = night ? 300 : 165;
+  const dusk = phase()==='dusk';
+  // 밤엔 미니의 감지 시야가 크게 넓어진다 (해질녘도 약간). 낮 165 → 밤 460
+  let aggroR = night ? 460 : (dusk ? 240 : 165);
   if(raid.underTree) aggroR *= 0.45; // 수풀 은신
 
   for(const e of raid.enemies){
