@@ -295,8 +295,8 @@ function buildRaid(){
   const doormats = [];
   const decor = []; // 실내 장식물 (공장 기계·랙·컨베이어 등)
 
-  // 강: 맵 한가운데를 가로지름 + 다리 3개
-  {
+  // 강: 맵 한가운데를 가로지름 + 다리 3개 (지역에 강이 있을 때만)
+  if(RG.river){
     const vert = Math.random()<0.5;
     let c = Math.floor((vert?w:h)/2) + rndi(-4,4);
     const rw2 = rndi(1,2);
@@ -316,9 +316,44 @@ function buildRaid(){
     }
   }
 
-  // 🏝️ 호수 + 섬: 탈출 요충지 — 양쪽 다리로만 진입 가능
+  // 🏭 콘크리트 배수로: 강 대신 맵을 가로지르는 직선 도랑 + 건널목(다리) — 산업 지역용
+  if(RG.canal){
+    const vert = Math.random()<0.5;
+    const axisLen = vert? h : w;
+    let c = Math.floor((vert?w:h)/2) + rndi(-6,6);
+    const cw2 = rndi(1,2); // 도랑 폭
+    // 건널목(다리) 5개 — 격리 방지 위해 촘촘히
+    const cross = [];
+    while(cross.length<5){
+      const b = rndi(Math.floor(axisLen*0.12), Math.floor(axisLen*0.88));
+      if(cross.every(o=>Math.abs(o-b)>10)) cross.push(b);
+    }
+    for(let i=0;i<axisLen;i++){
+      if(i%22===0) c = clamp(c + rndi(-2,2), 6, (vert?w:h)-7); // 완만히 꺾임 (거의 직선)
+      const isBridge = cross.some(b=>Math.abs(b-i)<=1);
+      for(let k=-cw2;k<=cw2;k++){
+        const x = vert? c+k : i, y = vert? i : c+k;
+        if(t[y*w+x]===0) t[y*w+x] = isBridge ? 7 : 5;
+      }
+    }
+  }
+
+  // 🛢️ 기름웅덩이: 작은 오염 물웅덩이 몇 개 (통행 불가, 산업 지역 분위기)
+  if(RG.ground && RG.ground.oilStain){
+    for(let n=0;n<rndi(5,8);n++){
+      const ox=rndi(14,w-14), oy=rndi(14,h-14);
+      if(t[oy*w+ox]!==0) continue;
+      const orr=rnd(2.5,4.5);
+      for(let yy=-5;yy<=5;yy++) for(let xx=-5;xx<=5;xx++){
+        if(Math.hypot(xx,yy) <= orr + Math.sin(xx*0.9+yy*0.6)*0.8 && t[(oy+yy)*w+ox+xx]===0)
+          t[(oy+yy)*w+ox+xx]=5;
+      }
+    }
+  }
+
+  // 🏝️ 호수 + 섬: 탈출 요충지 — 양쪽 다리로만 진입 가능 (지역이 호수섬을 쓸 때만)
   let island = null;
-  for(let tries=0; tries<80 && !island; tries++){
+  for(let tries=0; RG.lakeIsland && tries<80 && !island; tries++){
     const lx = rndi(18, w-18), ly = rndi(18, h-18);
     if(Math.hypot(lx-w/2, ly-h/2) < 34) continue; // 중앙 강 지대 회피
     let grass=0, tot=0;
@@ -341,8 +376,41 @@ function buildRaid(){
     island = {x:(lx+0.5)*TILE, y:(ly+0.5)*TILE};
   }
 
+  // 📦 화물 컨테이너 야적장: 격자로 늘어선 컨테이너 미로 (산업 지역 랜드마크·최우선 배치)
+  const yards = [];
+  for(let n=0;n<(RG.yardCount??0);n++){
+    for(let tries=0;tries<120;tries++){
+      const cols=rndi(3,5), rows=rndi(2,4);
+      // 컨테이너 1개 = 가로 5 x 세로 2, 칸 사이 통로 2칸
+      const cellW=5+2, cellH=2+2;
+      const yw=cols*cellW+1, yh=rows*cellH+1;
+      const yx=rndi(3,w-yw-3), yy=rndi(3,h-yh-3);
+      if(yards.some(f=>yx<f.x+f.w+2 && f.x<yx+f.w+2 && yy<f.y+f.h+2 && f.y<yy+f.h+2)) continue;
+      let clear4=true;
+      for(let y=yy;y<yy+yh && clear4;y++) for(let x=yx;x<yx+yw;x++)
+        if(t[y*w+x]!==0){ clear4=false; break; }
+      if(!clear4) continue;
+      const yard={x:yx,y:yy,w:yw,h:yh,boxes:[]};
+      yards.push(yard);
+      for(let ci=0;ci<cols;ci++) for(let ri=0;ri<rows;ri++){
+        if(Math.random()<0.18) continue; // 빈 자리 (통로 다양성)
+        const bx=yx+1+ci*cellW, by=yy+1+ri*cellH;
+        for(let y=by;y<by+2;y++) for(let x=bx;x<bx+5;x++) t[y*w+x]=1; // 컨테이너 = 벽
+        const col=pick(['#8a5a3a','#3a6a7a','#6a7a3a','#7a3a3a','#5a5a6a','#9a8a4a']);
+        yard.boxes.push({tx:bx,ty:by,w:5,h:2,color:col,seed:rndi(0,9)});
+        // 일부 컨테이너 옆에 파밍 상자
+        if(Math.random()<0.4){
+          const sx2=bx+rndi(0,4), sy2=by+2; // 컨테이너 남쪽 통로
+          if(sy2<yy+yh-1 && t[sy2*w+sx2]===0 && !containers.some(k=>k.tx===sx2&&k.ty===sy2))
+            containers.push(mkContainer(Math.random()<0.15?'safe':pick(['pallet','toolbox','crate']), sx2, sy2));
+        }
+      }
+      break;
+    }
+  }
+
   // 🏭 공장: 초대형 실내 (집보다 먼저 배치해 빈 땅 우선 확보)
-  for(let n=0;n<2;n++){
+  for(let n=0;n<(RG.factoryCount??2);n++){
     for(let tries=0;tries<120;tries++){
       const rw=rndi(20,26), rh=rndi(15,20);
       const rx=rndi(3,w-rw-3), ry=rndi(3,h-rh-3);
@@ -435,9 +503,9 @@ function buildRaid(){
     }
   }
 
-  // 집 (앞의 5채는 방 구조가 촘촘한 대형 저택)
-  for(let n=0;n<22;n++){
-    const big = n<5;
+  // 집 (앞 몇 채는 방 구조가 촘촘한 대형 저택 / 공장 지역에선 창고·사무동)
+  for(let n=0;n<(RG.houseCount??22);n++){
+    const big = n<(RG.bigHouses??5);
     for(let tries=0;tries<40;tries++){
       const rw = big? rndi(13,18) : rndi(6,9);
       const rh = big? rndi(11,15) : rndi(5,7);
@@ -449,7 +517,9 @@ function buildRaid(){
           if(t[y*w+x]!==0){ clearArea=false; break; }
       if(!clearArea) continue;
       const hs = {x:rx, y:ry, w:rw, h:rh, roofA:1, doors:[],
-        roofC:pick(['#7a4a3a','#6a5340','#5d4a45','#77503a'])};
+        roofC: RG.biome==='industrial'
+          ? pick(['#4e5257','#585048','#4a4d50','#5a5148']) // 창고·사무동: 회색 금속지붕
+          : pick(['#7a4a3a','#6a5340','#5d4a45','#77503a'])};
       houses.push(hs);
       for(let y=ry;y<ry+rh;y++) for(let x=rx;x<rx+rw;x++)
         t[y*w+x] = (x===rx||y===ry||x===rx+rw-1||y===ry+rh-1) ? 1 : 2;
@@ -517,7 +587,7 @@ function buildRaid(){
 
   // 🚜 울타리 농장: 개방된 밭 + 여물통 + 헛간 상자 (울타리는 낮은 벽)
   const farms=[];
-  for(let n=0;n<3;n++){
+  for(let n=0;n<(RG.farmCount??3);n++){
     for(let tries=0;tries<50;tries++){
       const fw=rndi(12,18), fh=rndi(10,14);
       const fx=rndi(3,w-fw-3), fy=rndi(3,h-fh-3);
@@ -549,8 +619,8 @@ function buildRaid(){
     }
   }
 
-  // 바위 (나무는 아래에서 캐노피 엔티티로)
-  for(let n=0;n<70;n++){
+  // 바위 (나무는 아래에서 캐노피 엔티티로) — 산업 지역은 드럼통/잔해로 렌더
+  for(let n=0;n<(RG.rockCount??70);n++){
     const x=rndi(2,w-3), y=rndi(2,h-3);
     if(t[y*w+x]===0) t[y*w+x]=4;
   }
@@ -582,7 +652,7 @@ function buildRaid(){
     }
     return true;
   };
-  for(let n=0;n<50;n++){
+  for(let n=0;n<(RG.treeClusters??50);n++){
     const cx=rnd(4,w-4)*TILE, cy=rnd(4,h-4)*TILE;
     const cnt=rndi(2,5);
     for(let i=0;i<cnt;i++){
@@ -590,7 +660,7 @@ function buildRaid(){
       if(treeOK(x,y)) trees.push({x,y,r:rnd(38,58),seed:rnd(0,7),a:1});
     }
   }
-  for(let n=0;n<40;n++){
+  for(let n=0;n<(RG.treeSingles??40);n++){
     const x=rnd(3,w-3)*TILE, y=rnd(3,h-3)*TILE;
     if(treeOK(x,y)) trees.push({x,y,r:rnd(30,46),seed:rnd(0,7),a:1});
   }
@@ -767,13 +837,14 @@ function buildRaid(){
   const farFrom = (tr)=> dist(tr.x,tr.y,spawn.x,spawn.y)>130 && extracts.every(z=>dist(tr.x,tr.y,z.x,z.y)>130);
 
   raid = {
-    w, h, tiles:t, houses, containers, extracts, cars, doormats, farms, decor,
+    w, h, tiles:t, houses, containers, extracts, cars, doormats, farms, decor, yards,
     trees: trees.filter(farFrom),
     enemies:[], bullets:[], ebullets:[], drops:[], parts:[], dnums:[], noises:[],
     time:0, waveT:6, trickleT:10, extractT:0, over:false, nightToast:false, duskToast:false,
     inside:null, underTree:false, treeToastDone:false,
     bossSpawned:false, boss:null,
-    region: RG.id, dayLen: RG.dayLen, coinMul: RG.coinMul, rareBonus: RG.rareBonus,
+    region: RG.id, biome: RG.biome, ground: RG.ground,
+    dayLen: RG.dayLen, coinMul: RG.coinMul, rareBonus: RG.rareBonus,
   };
 
   // 낮 배회 미니들 (지역 풀)
@@ -2460,9 +2531,10 @@ function drawStation(s, x, y){
 }
 
 function renderRaidWorld(){
-  // 지형 — 배경은 맵 밖(울창한 숲), 지형 안쪽만 풀색
+  // 지형 — 배경은 맵 밖(울창한 숲/담장), 지형 안쪽만 풀/콘크리트
+  const G0 = (raid && raid.ground) || {base:'#3f5136', patchHi:'rgba(110,140,80,.10)', patchLo:'rgba(15,25,10,.10)', blade:'rgba(125,165,95,.45)', flower:true, outer:'#1d2618', forest1:'#243020', forest2:'#1f2a1b'};
   const vw = W/ZOOM, vh = H/ZOOM;
-  ctx.fillStyle = '#1d2618';
+  ctx.fillStyle = G0.outer;
   ctx.fillRect(cam.x-vw/2-40, cam.y-vh/2-40, vw+80, vh+80);
   const [x0,x1,y0,y1] = tileRange(raid.w, raid.h);
   for(let ty=y0;ty<=y1;ty++) for(let tx=x0;tx<=x1;tx++){
@@ -2470,38 +2542,53 @@ function renderRaidWorld(){
     const [sx,sy] = worldToScreen(tx*TILE, ty*TILE);
     const hsh = ((tx*73856093) ^ (ty*19349663)) >>> 0;
     if(v===8){
-      // 맵 밖 숲: 어두운 수풀 실루엣
+      // 맵 밖: 어두운 수풀/폐허 실루엣
       if(hsh%3===0){
-        ctx.fillStyle = (hsh%2)?'#243020':'#1f2a1b';
+        ctx.fillStyle = (hsh%2)?G0.forest1:G0.forest2;
         ctx.beginPath(); ctx.arc(sx+(hsh%32), sy+((hsh>>4)%32), 14+(hsh%10), 0, Math.PI*2); ctx.fill();
       }
     } else if(v===0){
-      // 풀: 불규칙 명암 패치 + 풀포기 + 드문 꽃
-      ctx.fillStyle = '#3f5136';
+      // 지면: 불규칙 명암 패치 + 풀포기/균열 + 드문 꽃/기름때
+      ctx.fillStyle = G0.base;
       ctx.fillRect(sx,sy,TILE,TILE);
       if(hsh%4===0){
-        ctx.fillStyle = (hsh%8===0) ? 'rgba(110,140,80,.10)' : 'rgba(15,25,10,.10)';
+        ctx.fillStyle = (hsh%8===0) ? G0.patchHi : G0.patchLo;
         ctx.beginPath();
         ctx.arc(sx+(hsh%29), sy+(hsh%23), 12+(hsh%14), 0, Math.PI*2);
         ctx.fill();
       }
-      if(hsh%7===2){
-        const gx = sx+6+(hsh%19), gy = sy+9+(hsh%17);
-        ctx.strokeStyle = 'rgba(125,165,95,.45)';
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.moveTo(gx,gy); ctx.lineTo(gx-2,gy-6);
-        ctx.moveTo(gx+3,gy); ctx.lineTo(gx+4,gy-7);
-        ctx.moveTo(gx+6,gy); ctx.lineTo(gx+8,gy-5);
-        ctx.stroke();
+      if(G0.crack){
+        // 콘크리트 균열: 각진 금 + 이음새
+        if(hsh%9===3){
+          ctx.strokeStyle = 'rgba(0,0,0,.22)'; ctx.lineWidth = 1;
+          const gx=sx+(hsh%20), gy=sy+((hsh>>3)%20);
+          ctx.beginPath(); ctx.moveTo(gx,gy);
+          ctx.lineTo(gx+5-(hsh%9), gy+4+(hsh%5));
+          ctx.lineTo(gx+9-(hsh%4), gy+2+(hsh%7)); ctx.stroke();
+        }
+        if(hsh%13===5){ ctx.fillStyle='rgba(0,0,0,.10)'; ctx.fillRect(sx, sy+((hsh>>2)%28), TILE, 1); }
+      } else {
+        if(hsh%7===2){
+          const gx = sx+6+(hsh%19), gy = sy+9+(hsh%17);
+          ctx.strokeStyle = G0.blade; ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(gx,gy); ctx.lineTo(gx-2,gy-6);
+          ctx.moveTo(gx+3,gy); ctx.lineTo(gx+4,gy-7);
+          ctx.moveTo(gx+6,gy); ctx.lineTo(gx+8,gy-5);
+          ctx.stroke();
+        }
       }
-      if(hsh%61===7){
+      if(G0.oilStain && hsh%23===4){
+        ctx.fillStyle = 'rgba(10,8,14,.28)';
+        ctx.beginPath(); ctx.ellipse(sx+(hsh%22)+5, sy+(hsh%18)+5, 6+(hsh%5), 4+(hsh%3), 0, 0, Math.PI*2); ctx.fill();
+      }
+      if(G0.flower && hsh%61===7){
         ctx.fillStyle = (hsh%2)?'#e8d8a0':'#d8a8c0';
         ctx.beginPath(); ctx.arc(sx+(hsh%26)+3, sy+(hsh%22)+3, 2.2, 0, Math.PI*2); ctx.fill();
       }
     } else if(v===1){
-      // 벽: 벽돌 줄눈
-      ctx.fillStyle = '#5d5348'; ctx.fillRect(sx,sy,TILE,TILE);
+      // 벽: 벽돌 줄눈 (산업 지역은 콘크리트 패널)
+      ctx.fillStyle = raid.biome==='industrial' ? '#5a5c5e' : '#5d5348'; ctx.fillRect(sx,sy,TILE,TILE);
       ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.fillRect(sx,sy+TILE-7,TILE,7);
       ctx.fillStyle = 'rgba(255,255,255,.07)'; ctx.fillRect(sx,sy,TILE,4);
       ctx.fillStyle = 'rgba(0,0,0,.13)';
@@ -2514,20 +2601,44 @@ function renderRaidWorld(){
       for(let yy=Math.ceil(sy/12)*12; yy<sy+TILE; yy+=12) ctx.fillRect(sx, yy, TILE, 1.5);
       if(hsh%3===0) ctx.fillRect(sx+(hsh%28), sy+((hsh%2)?2:14), 1.5, 10);
     } else if(v===4){
-      // 바위
-      ctx.fillStyle = 'rgba(0,0,0,.2)';
-      ctx.beginPath(); ctx.ellipse(sx+16, sy+22, 13, 6, 0, 0, Math.PI*2); ctx.fill();
-      ctx.fillStyle = '#8a8a84';
-      ctx.beginPath(); ctx.ellipse(sx+16, sy+15, 12, 10, 0, 0, Math.PI*2); ctx.fill();
-      ctx.fillStyle = '#a0a09a';
-      ctx.beginPath(); ctx.ellipse(sx+12, sy+11, 6, 4.5, 0, 0, Math.PI*2); ctx.fill();
+      if(raid.biome==='industrial'){
+        // 드럼통 / 잔해 더미 (산업 지역의 엄폐물)
+        ctx.fillStyle = 'rgba(0,0,0,.25)';
+        ctx.beginPath(); ctx.ellipse(sx+16, sy+24, 11, 4.5, 0, 0, Math.PI*2); ctx.fill();
+        if(hsh%2===0){
+          // 기름 드럼통 (원통)
+          const dc = (hsh%3===0)?'#8a5a2a':(hsh%3===1)?'#5a6a4a':'#7a3a3a';
+          ctx.fillStyle = dc; rrect(ctx, sx+7, sy+7, 18, 17, 3);
+          ctx.fillStyle = 'rgba(255,255,255,.12)'; ctx.fillRect(sx+7, sy+7, 18, 3);
+          ctx.fillStyle = 'rgba(0,0,0,.22)'; ctx.fillRect(sx+7, sy+13, 18, 1.5); ctx.fillRect(sx+7, sy+19, 18, 1.5);
+        } else {
+          // 콘크리트 잔해 덩어리
+          ctx.fillStyle = '#6a655c';
+          ctx.beginPath(); ctx.moveTo(sx+6,sy+22); ctx.lineTo(sx+9,sy+9); ctx.lineTo(sx+20,sy+7); ctx.lineTo(sx+26,sy+16); ctx.lineTo(sx+22,sy+23); ctx.closePath(); ctx.fill();
+          ctx.fillStyle = '#807a70'; ctx.beginPath(); ctx.moveTo(sx+10,sy+11); ctx.lineTo(sx+18,sy+9); ctx.lineTo(sx+20,sy+15); ctx.closePath(); ctx.fill();
+          ctx.strokeStyle = 'rgba(0,0,0,.25)'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(sx+13,sy+10); ctx.lineTo(sx+16,sy+21); ctx.stroke();
+        }
+      } else {
+        // 바위
+        ctx.fillStyle = 'rgba(0,0,0,.2)';
+        ctx.beginPath(); ctx.ellipse(sx+16, sy+22, 13, 6, 0, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#8a8a84';
+        ctx.beginPath(); ctx.ellipse(sx+16, sy+15, 12, 10, 0, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#a0a09a';
+        ctx.beginPath(); ctx.ellipse(sx+12, sy+11, 6, 4.5, 0, 0, Math.PI*2); ctx.fill();
+      }
     } else if(v===5){
-      // 강물 (일렁임 애니메이션)
-      ctx.fillStyle = '#35566e'; ctx.fillRect(sx,sy,TILE,TILE);
+      // 물 (강물 / 산업 지역은 탁한 오수·배수로)
+      const indus = raid.biome==='industrial';
+      ctx.fillStyle = indus ? '#3a4238' : '#35566e'; ctx.fillRect(sx,sy,TILE,TILE);
       const tt = Math.floor(performance.now()/400);
       if((hsh+tt)%7<2){
-        ctx.fillStyle = 'rgba(160,200,230,.28)';
+        ctx.fillStyle = indus ? 'rgba(120,140,110,.20)' : 'rgba(160,200,230,.28)';
         ctx.fillRect(sx+((hsh+tt*13)%24), sy+4+((hsh>>3)%24), 7, 2);
+      }
+      if(indus && hsh%5===0){ // 기름 무지개 얼룩
+        ctx.fillStyle = 'rgba(80,60,90,.22)';
+        ctx.beginPath(); ctx.ellipse(sx+(hsh%20)+6, sy+(hsh%18)+6, 5, 3, 0, 0, Math.PI*2); ctx.fill();
       }
       const landAt = (X,Y)=>{ const vv=raid.tiles[Y*raid.w+X]; return vv!==5 && vv!==7; };
       ctx.fillStyle = 'rgba(180,220,240,.35)';
@@ -2536,12 +2647,21 @@ function renderRaidWorld(){
       if(tx>0 && landAt(tx-1,ty)) ctx.fillRect(sx,sy,2.5,TILE);
       if(tx<raid.w-1 && landAt(tx+1,ty)) ctx.fillRect(sx+TILE-2.5,sy,2.5,TILE);
     } else if(v===7){
+      if(raid.biome==='industrial'){
+        // 철판 건널목 (배수로 위 강판)
+        ctx.fillStyle = '#6a6660'; ctx.fillRect(sx,sy,TILE,TILE);
+        ctx.fillStyle = 'rgba(0,0,0,.20)';
+        for(let xx=sx+4; xx<sx+TILE; xx+=8) for(let yy=sy+4; yy<sy+TILE; yy+=8) ctx.fillRect(xx, yy, 2, 2); // 마름모 미끄럼방지
+        ctx.fillStyle = 'rgba(255,255,255,.10)'; ctx.fillRect(sx, sy, TILE, 2);
+        ctx.fillStyle = '#3f3c38'; ctx.fillRect(sx, sy, TILE, 2.5); ctx.fillRect(sx, sy+TILE-2.5, TILE, 2.5);
+      } else {
       // 다리 (널빤지)
       ctx.fillStyle = '#8a6a42'; ctx.fillRect(sx,sy,TILE,TILE);
       ctx.fillStyle = 'rgba(0,0,0,.18)';
       for(let xx=Math.ceil(sx/9)*9; xx<sx+TILE; xx+=9) ctx.fillRect(xx, sy, 1.5, TILE);
       ctx.fillStyle = '#5d4526';
       ctx.fillRect(sx, sy, TILE, 2.5); ctx.fillRect(sx, sy+TILE-2.5, TILE, 2.5);
+      }
     }
   }
 
@@ -2555,6 +2675,28 @@ function renderRaidWorld(){
     ctx.strokeStyle = '#8a6a3a'; ctx.lineWidth = 2;
     if(m.horiz) ctx.strokeRect(mx+6, my+10, TILE*2-12, TILE-20);
     else ctx.strokeRect(mx+10, my+6, TILE-20, TILE*2-12);
+  }
+
+  // 📦 화물 컨테이너 야적장 (벽 위에 색색 컨테이너 스프라이트를 덮어 그림)
+  if(raid.yards) for(const yard of raid.yards){
+    for(const b of yard.boxes){
+      const bx=b.tx*TILE, by=b.ty*TILE, bw2=b.w*TILE, bh2=b.h*TILE;
+      if(offscreenW(bx+bw2/2, by+bh2/2, 120)) continue;
+      const [sx,sy]=worldToScreen(bx,by);
+      // 그림자
+      ctx.fillStyle='rgba(0,0,0,.28)'; ctx.fillRect(sx+3, sy+bh2-4, bw2, 6);
+      // 몸통
+      ctx.fillStyle=b.color; ctx.fillRect(sx, sy, bw2, bh2-2);
+      // 세로 골판 리브
+      ctx.fillStyle='rgba(0,0,0,.16)';
+      for(let x=sx+5; x<sx+bw2-2; x+=7) ctx.fillRect(x, sy+2, 2, bh2-6);
+      // 상단 하이라이트 + 하단 그늘
+      ctx.fillStyle='rgba(255,255,255,.12)'; ctx.fillRect(sx, sy, bw2, 3);
+      ctx.fillStyle='rgba(0,0,0,.22)'; ctx.fillRect(sx, sy+bh2-5, bw2, 3);
+      // 문짝 손잡이 (오른쪽 끝)
+      ctx.fillStyle='rgba(0,0,0,.35)'; ctx.fillRect(sx+bw2-6, sy+6, 2, bh2-14);
+      ctx.fillRect(sx+bw2-11, sy+6, 2, bh2-14);
+    }
   }
 
   // 탈출 지점

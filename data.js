@@ -625,6 +625,20 @@ const REGIONS = {
     pool:[['zduck',6],['spitter',1],['gunner',0.5],['bigduck',0.5]],
     nightPool:[['zduck',6],['fastduck',2],['spitter',1.2],['gunner',0.8],['bomber',0.5],['bigduck',0.5]],
     unlock:null,
+    // ── 지형 프로필 (buildRaid/렌더가 참조) ──
+    biome:'meadow',        // 지형 테마 키
+    factoryCount:2,        // 대형 공장 건물 수
+    houseCount:22, bigHouses:5, // 집 수 / 대형 저택 수
+    farmCount:3,           // 울타리 농장 수
+    treeClusters:50, treeSingles:40, // 나무 군락/단독 수
+    rockCount:70,          // 바위 수
+    yardCount:0,           // 컨테이너 야적장 수
+    river:true, lakeIsland:true, // 강 + 호수섬 생성 여부
+    ground:{ // 지형 색 (풀/패치/풀포기/꽃/맵밖숲)
+      base:'#3f5136', patchHi:'rgba(110,140,80,.10)', patchLo:'rgba(15,25,10,.10)',
+      blade:'rgba(125,165,95,.45)', flower:true,
+      outer:'#1d2618', forest1:'#243020', forest2:'#1f2a1b',
+    },
   },
   factory: {
     id:'factory', name:'폐공장 지구', emoji:'🏭', stars:2, color:'#8a7a5a',
@@ -635,6 +649,21 @@ const REGIONS = {
     nightPool:[['zduck',5],['fastduck',2.5],['gunner',1.8],['sniper',1.2],['spitter',1.4],['bomber',1.2],['bigduck',1.1],['golden',0.2]],
     unlock:{extracts:{hill:3}}, // 뒷동산 3회 탈출하면 해금
     unlockDesc:'뒷동산에서 3회 탈출',
+    // ── 산업 지형: 콘크리트 단지, 공장 다수, 컨테이너 야적장, 나무 거의 없음 ──
+    biome:'industrial',
+    factoryCount:5,        // 공장 건물 대폭 증가
+    houseCount:8, bigHouses:1, // 사무동/창고 소수
+    farmCount:0,           // 농장 없음
+    treeClusters:5, treeSingles:8, // 나무 희소 (잡초처럼)
+    rockCount:22,          // 바위 대신 잔해(드럼통 등)로 렌더
+    yardCount:3,           // 화물 컨테이너 야적장 다수
+    river:false, lakeIsland:false, // 강 대신 배수로/기름웅덩이
+    canal:true,            // 콘크리트 배수로
+    ground:{ // 회갈색 콘크리트 단지 + 균열 + 기름때
+      base:'#4c4a44', patchHi:'rgba(150,140,110,.10)', patchLo:'rgba(20,18,14,.18)',
+      blade:'rgba(120,140,80,.28)', flower:false, crack:true, oilStain:true,
+      outer:'#151513', forest1:'#22201a', forest2:'#1a1815',
+    },
   },
 };
 const REGION_ORDER = ['hill','factory'];
