@@ -633,6 +633,8 @@ const REGIONS = {
       nightCap:140, nightBase:5, nightMax:16, nightGrow:15, // 밤 웨이브: 상한/기본수/최대수/증가속도
       indoorMul:1, // 실내 상주 미니 배수
     },
+    // 원거리 발사 배율: 총알 속도 / 발사 빈도 / 점사 추가 발수 (기본=평범)
+    fire:{ bulletSpd:1, fireRate:1, burstAdd:0 },
     // ── 지형 프로필 (buildRaid/렌더가 참조) ──
     biome:'meadow',        // 지형 테마 키
     factoryCount:2,        // 대형 공장 건물 수
@@ -659,12 +661,14 @@ const REGIONS = {
     unlockDesc:'뒷동산에서 3회 탈출',
     // ── 스폰 밀도 프로필: 뒷동산보다 훨씬 빽빽하고 빠르게 몰려온다 ──
     spawn:{
-      roam:62,                    // 초기 배회 대폭 증가
-      dayCap:34, dayEvery:7,      // 낮에도 끊임없이 유입
-      duskCap:100, duskBurst:5,
-      nightCap:200, nightBase:8, nightMax:22, nightGrow:11,
-      indoorMul:1.5, // 공장 실내 상주 미니 1.5배
+      roam:80,                    // 초기 배회 대폭 증가
+      dayCap:44, dayEvery:5,      // 낮에도 끊임없이 유입
+      duskCap:120, duskBurst:6,
+      nightCap:240, nightBase:10, nightMax:26, nightGrow:9,
+      indoorMul:1.8, // 공장 실내 상주 미니 1.8배
     },
+    // 총알 더 빠르고 더 자주·더 많이 쏨 (원거리 압박 강화)
+    fire:{ bulletSpd:1.4, fireRate:1.55, burstAdd:3 },
     // ── 산업 지형: 콘크리트 단지, 공장 다수, 컨테이너 야적장, 나무 거의 없음 ──
     biome:'industrial',
     factoryCount:5,        // 공장 건물 대폭 증가

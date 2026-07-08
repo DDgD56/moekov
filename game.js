@@ -1011,6 +1011,11 @@ function updateEnemies(dt){
     const dp = Math.max(0.001, dist(e.x,e.y,player.x,player.y)); // 0나눗셈(NaN) 방지
     const spd = e.t.spd * (e.spdMul||1) * (night ? 1.10 : 1);   // 지역·밤 배율
     const dmgN = (e.dmgMul||1) * (night ? 1.3 : 1);             // 지역·밤 배율
+    // 원거리 발사 배율 (지역별): 총알 속도·발사 빈도·점사 수
+    const RGF = curRegion.fire || {};
+    const bSpdMul = (RGF.bulletSpd || 1) * (night ? 1.08 : 1);  // 총알 속도 배수
+    const fireCdMul = (RGF.fireRate ? 1/RGF.fireRate : 1) * (night ? 0.85 : 1); // 발사 쿨 배수(작을수록 자주)
+    const burstAdd = RGF.burstAdd || 0;                          // 점사 추가 발수
 
     // 시야 확보 여부 (벽·차량 너머면 못 봄) — 보스는 항상 봄
     const canSee = e.t.boss || (dp < (night?1500:700) && !sightBlocked(e.x,e.y,player.x,player.y));
@@ -1084,7 +1089,7 @@ function updateEnemies(dt){
               sfx('honk');
               for(let i=0;i<18;i++){
                 const a2 = i/18*Math.PI*2;
-                raid.ebullets.push({x:e.x, y:e.y, vx:Math.cos(a2)*230, vy:Math.sin(a2)*230,
+                raid.ebullets.push({x:e.x, y:e.y, vx:Math.cos(a2)*230*bSpdMul, vy:Math.sin(a2)*230*bSpdMul,
                   dmg:Math.round(12*dmgN), life:2.2, r:5, c:'#ffd24a'});
               }
             }
@@ -1105,12 +1110,12 @@ function updateEnemies(dt){
         if(dp>240) mv=1; else if(dp<150) mv=-0.8;
         moveCircle(e, dirx*spd*mv*dt, diry*spd*mv*dt, solidPx);
         if(dp<320 && e.shootCd<=0 && canSee){
-          e.shootCd = 1.7;
-          raid.ebullets.push({x:e.x,y:e.y,vx:dirx*250,vy:diry*250,dmg:Math.round(e.t.dmg*dmgN),life:2,r:4,c:'#b070e0'});
+          e.shootCd = 1.7 * fireCdMul;
+          raid.ebullets.push({x:e.x,y:e.y,vx:dirx*250*bSpdMul,vy:diry*250*bSpdMul,dmg:Math.round(e.t.dmg*dmgN),life:2,r:4,c:'#b070e0'});
           sfx('spit');
         }
       } else if(e.t.ranged==='burst'){
-        // 따발미니: 4발 점사
+        // 따발미니: 점사 (지역에 따라 발수 증가)
         e.shootCd -= dt;
         let mv = 0;
         if(dp>300) mv=1; else if(dp<180) mv=-0.7;
@@ -1120,10 +1125,10 @@ function updateEnemies(dt){
           if(e.burstT<=0){
             e.burstT = 0.09; e.burstN--;
             const a = Math.atan2(diry,dirx) + (Math.random()-0.5)*0.24;
-            raid.ebullets.push({x:e.x,y:e.y,vx:Math.cos(a)*330,vy:Math.sin(a)*330,dmg:Math.round(e.t.dmg*dmgN),life:1.6,r:3.5,c:'#e8c05a'});
+            raid.ebullets.push({x:e.x,y:e.y,vx:Math.cos(a)*330*bSpdMul,vy:Math.sin(a)*330*bSpdMul,dmg:Math.round(e.t.dmg*dmgN),life:1.6,r:3.5,c:'#e8c05a'});
             sfx('spit');
           }
-        } else if(dp<360 && e.shootCd<=0 && canSee){ e.shootCd = 2.6; e.burstN = 4; e.burstT = 0; }
+        } else if(dp<360 && e.shootCd<=0 && canSee){ e.shootCd = 2.6 * fireCdMul; e.burstN = 4 + burstAdd; e.burstT = 0; }
       } else if(e.t.ranged==='sniper'){
         // 저격미니: 멀리서 조준(레이저) 후 고속탄
         let mv = 0;
@@ -1131,9 +1136,9 @@ function updateEnemies(dt){
         moveCircle(e, dirx*spd*mv*dt, diry*spd*mv*dt, solidPx);
         if(dp<600 && mv===0 && canSee){
           e.aimT = (e.aimT||0)+dt;
-          if(e.aimT>1.35){
+          if(e.aimT > 1.35 * fireCdMul){
             e.aimT = 0;
-            raid.ebullets.push({x:e.x,y:e.y,vx:dirx*560,vy:diry*560,dmg:Math.round(e.t.dmg*dmgN),life:1.5,r:4.5,c:'#7ae0e8'});
+            raid.ebullets.push({x:e.x,y:e.y,vx:dirx*560*bSpdMul,vy:diry*560*bSpdMul,dmg:Math.round(e.t.dmg*dmgN),life:1.5,r:4.5,c:'#7ae0e8'});
             sfx('shoot');
           }
         } else e.aimT = 0;
