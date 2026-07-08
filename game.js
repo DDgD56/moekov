@@ -146,7 +146,7 @@ const State = {
   region: 'hill',            // 마지막 선택 지역
   regionExtracts: {},        // 지역별 탈출 횟수 {hill:3, ...}
   regionBoss: {},            // 지역별 보스 처치 여부 {factory:true}
-  stash: [null, null, null], // 총 보관대 (조립된 총을 통째로) {body:inst, atts:[...]}
+  stash: [null,null,null,null,null,null], // 총 보관대 (칸 해금은 퀘스트 완료 수에 연동)
 };
 
 function curGun(){ return State.guns[State.activeGun]; }
@@ -207,8 +207,8 @@ function loadGame(){
     State.region = d.region || 'hill';
     State.regionExtracts = d.regionExtracts || {};
     State.regionBoss = d.regionBoss || {};
-    State.stash = (d.stash || [null,null,null]).map(loadStash);
-    while(State.stash.length<3) State.stash.push(null);
+    State.stash = (d.stash || []).map(loadStash);
+    while(State.stash.length<6) State.stash.push(null);
     return true;
   }
   return false;
@@ -2179,11 +2179,17 @@ function completeQuest(){
     State.gun2 = true;
     toast('🔫 총기 슬롯 2 해금! 작업대에서 조립하고 1·2키로 교체하세요');
   }
+  const beforeSlots = stashSlots();
   State.questsDone = (State.questsDone||0)+1;
   State.quest = null;
   State.questOffers = null;
   sfx('extract');
   toast('📜 퀘스트 완료! +'+d.reward+'🪙');
+  // 총 보관대 칸이 새로 열렸으면 안내
+  const afterSlots = stashSlots();
+  if(afterSlots > beforeSlots){
+    toast('🔓 총 보관대 '+afterSlots+'번 칸 개방! (작업대에서 총 보관)');
+  }
   saveGame(); refreshPanel();
 }
 

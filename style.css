@@ -272,5 +272,10 @@ canvas#cv { image-rendering:pixelated; image-rendering:crisp-edges; }
 .stash-slot .ss-emoji { font-size:22px; }
 .stash-slot .ss-name { font-size:11px; font-weight:bold; color:#f0d9a8; text-align:center; line-height:1.15; }
 .stash-slot .ss-stat { font-size:10px; color:#98a888; }
-.stash-slot .ss-empty { font-size:12px; color:#78685a; }
+.stash-slot .ss-empty { font-size:12px; color:#78685a; text-align:center; line-height:1.2; }
 .stash-slot .ss-btn { margin-left:0 !important; margin-top:3px; padding:2px 10px; }
+.stash-slot.locked { border-style:dashed; border-color:#3a332a; background:rgba(0,0,0,.18); opacity:.7; }
+.stash-slot.locked .ss-lock { font-size:22px; filter:grayscale(1); opacity:.7; }
+.stash-slot.locked .ss-empty { color:#6a5f50; }
+.stash-count { font-size:11px; font-weight:normal; color:#98a888; margin-left:6px; }
+.stash-count.locked { color:#b08a5a; }

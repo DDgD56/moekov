@@ -107,8 +107,12 @@ function loadGun(data){
 }
 
 // ---- 총 보관대 (조립된 총을 통째로 넣었다 뺐다) ----
+const MAX_STASH = 6; // 보관대 최대 칸 수 (물리 배열 크기)
+// 현재 해금된 보관 칸 수 = 완료한 퀘스트 수 (퀘스트 1건당 1칸, 최대 MAX_STASH)
+function stashSlots(){ return Math.min(MAX_STASH, State.questsDone||0); }
 // 현재 편집 총을 보관 슬롯에 넣기 (슬롯이 비어있어야 함)
 function stashGun(slot){
+  if(slot >= stashSlots()){ toast('🔒 아직 잠긴 보관칸입니다 (퀘스트를 더 완료하세요)'); return; }
   const g = editGun();
   if(!g.body){ toast('작업대에 총이 없습니다'); return; }
   if(State.stash[slot]){ toast('그 보관칸은 이미 차 있습니다'); return; }
@@ -142,14 +146,27 @@ function loadStash(data){
 }
 // 보관대 UI 렌더
 function renderStash(rootEl){
-  rootEl.innerHTML = '<div class="stash-label">🔫 총 보관대</div>';
+  const open = stashSlots();
+  // 해금된 칸 + 다음 잠금 칸 1개 미리보기 (최대치 넘지 않게)
+  let show = Math.min(MAX_STASH, open + (open < MAX_STASH ? 1 : 0));
+  // 방어: 잠긴 칸에 이미 총이 들어있으면(구세이브 등) 그 칸까지 표시해 꺼낼 수 있게
+  for(let i=MAX_STASH-1;i>=show;i--){ if(State.stash[i]){ show=i+1; break; } }
+  const lbl = open>0
+    ? `🔫 총 보관대 <span class="stash-count">${open}/${MAX_STASH}칸</span>`
+    : `🔫 총 보관대 <span class="stash-count locked">잠김 — 퀘스트 완료 시 개방</span>`;
+  rootEl.innerHTML = `<div class="stash-label">${lbl}</div>`;
   const wrap = document.createElement('div');
   wrap.className = 'stash-slots';
-  for(let i=0;i<3;i++){
+  for(let i=0;i<show;i++){
     const st = State.stash[i];
+    // 잠긴 칸이라도 총이 들어있으면(구세이브) 꺼낼 수 있게 열린 칸으로 취급
+    const locked = i >= open && !st;
     const slot = document.createElement('div');
-    slot.className = 'stash-slot' + (st?' filled':'');
-    if(st){
+    slot.className = 'stash-slot' + (locked?' locked':(st?' filled':''));
+    if(locked){
+      slot.innerHTML = `<div class="ss-lock">🔒</div>
+        <div class="ss-empty">퀘스트 완료로<br>개방</div>`;
+    } else if(st){
       const s = gunStats({body:st.body, atts:st.atts});
       slot.innerHTML = `<div class="ss-emoji">${st.body.def.emoji}</div>
         <div class="ss-name">${st.body.def.name}</div>
