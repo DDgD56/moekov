@@ -6,6 +6,15 @@ html, body { width:100%; height:100%; overflow:hidden; background:#15120e;
   -webkit-text-size-adjust:100%; text-size-adjust:100%; }
 canvas#cv { display:block; position:fixed; inset:0; cursor:crosshair; }
 
+/* 배경음악 음소거 토글 */
+#musicBtn { position:fixed; top:12px; right:14px; z-index:30;
+  width:38px; height:38px; border-radius:9px; border:2px solid #5a4a38;
+  background:rgba(20,16,10,.6); color:#e8dcc8; font-size:18px; line-height:1;
+  cursor:pointer; display:flex; align-items:center; justify-content:center;
+  transition:background .12s, transform .1s; }
+#musicBtn:hover { background:rgba(50,40,24,.75); }
+#musicBtn:active { transform:scale(.92); }
+
 /* ---------- HUD ---------- */
 #hud { position:fixed; inset:0; pointer-events:none; z-index:5; }
 #hud-tl { position:absolute; top:14px; left:16px; }

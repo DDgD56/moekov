@@ -1710,12 +1710,14 @@ function returnToCave(){
   player.x = 11*TILE; player.y = 8*TILE;
   player.hp = maxHp();
   closePanel();
+  playMusic('cave');
   saveGame();
 }
 function startRaid(){
   closePanel();
   buildRaid();
   scene = 'raid';
+  playMusic('dayRaid');
   toast('🚩 표시된 탈출 지점으로 이동해 탈출하세요. 밤이 되면... 조심하세요.');
 }
 
@@ -2257,6 +2259,8 @@ function update(dt){
     const ph = phase();
     if(ph==='dusk' && !raid.duskToast){ raid.duskToast=true; toast('🌆 해가 지고 있다... 서둘러!'); sfx('night'); }
     if(ph==='night' && !raid.nightToast){ raid.nightToast=true; toast('🌙 밤이 왔다. 미니 떼가 몰려온다!!'); sfx('night'); }
+    // 배경음악: 밤엔 어두운 곡, 그 외엔 낮 곡
+    playMusic(ph==='night' ? 'nightRaid' : 'dayRaid');
 
     // 실내 판정 & 지붕 페이드
     raid.inside = houseAtPx(player.x, player.y);
@@ -3468,6 +3472,23 @@ refreshQslotZones();
 if(!State.seenHelp) openPanel('help');
 updateHud();
 requestAnimationFrame(loop);
+
+// ---------------- 배경음악 시작 ----------------
+// WebAudio는 사용자 상호작용 후에만 소리가 난다 → 첫 클릭/키 입력에서 현재 씬 곡을 켠다.
+updateMusicBtn();
+{
+  const startBgm = ()=>{
+    playMusic(scene==='raid' ? (raid && phase()==='night' ? 'nightRaid':'dayRaid') : 'cave');
+    window.removeEventListener('mousedown', startBgm);
+    window.removeEventListener('keydown', startBgm);
+  };
+  window.addEventListener('mousedown', startBgm, {passive:true});
+  window.addEventListener('keydown', startBgm, {passive:true});
+}
+{
+  const b = document.getElementById('musicBtn');
+  if(b) b.addEventListener('click', (e)=>{ e.stopPropagation(); const a=ac(); if(a&&a.state==='suspended')a.resume(); if(!Music.cur) playMusic(scene==='raid'?'dayRaid':'cave'); toggleMusic(); });
+}
 
 // 테스트/디버그용
 window.G = { State, player, startRaid, openPanel, closePanel, get raid(){return raid;}, get scene(){return scene;}, gunStats };

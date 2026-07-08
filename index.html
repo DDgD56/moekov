@@ -36,6 +36,7 @@
   <div class="qslot" data-i="2"><span class="qs-key">5</span><span class="qs-emoji"></span><span class="qs-heal"></span></div>
 </div>
 
+<button id="musicBtn" title="배경음악 켜기/끄기">🔊</button>
 <div id="toast"></div>
 <div id="redflash"></div>
 <div id="panel-root" class="hidden"></div>
@@ -76,7 +77,7 @@
 <!-- 개발용: 매 로드마다 타임스탬프를 붙여 캐시를 항상 무효화 (저장→F5 하면 바로 반영) -->
 <script>
   var _t = Date.now();
-  ['sprite.js','data.js','inventory.js','gun.js','game.js'].forEach(function(f){
+  ['sprite.js','data.js','inventory.js','gun.js','music.js','game.js'].forEach(function(f){
     document.write('<scr'+'ipt src="'+f+'?t='+_t+'"></scr'+'ipt>');
   });
 </script>
