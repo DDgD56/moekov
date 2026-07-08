@@ -714,13 +714,17 @@ function buildRaid(){
   }
   const ctr = {x:w/2*TILE, y:h/2*TILE};
   grassSpots.sort((a,b)=>dist(b.x,b.y,ctr.x,ctr.y)-dist(a.x,a.y,ctr.x,ctr.y));
+  // 탈출구는 스폰에서 최소 이만큼 떨어져야 함 (바로 옆 탈출 방지). 실제 강제는
+  // 연결성 검사 뒤 그 판의 도달 범위에 맞춰 적응적으로 다시 적용한다.
+  const MIN_EXIT_DIST = 1400;
   // 스폰: 가장자리, 섬에서 멀리
   let spawn = ctr;
   for(const s of grassSpots){
-    if(island && dist(s.x,s.y,island.x,island.y)<700) continue;
+    if(island && dist(s.x,s.y,island.x,island.y)<MIN_EXIT_DIST) continue;
     spawn = s; break;
   }
-  let ex1 = island;
+  // 섬이 스폰에 너무 가까우면 탈출구로 쓰지 않는다 (위험 없는 즉시 탈출 방지)
+  let ex1 = (island && dist(island.x,island.y,spawn.x,spawn.y)>=MIN_EXIT_DIST) ? island : null;
   if(!ex1){
     let bd1=0;
     for(const s of grassSpots){ const d0=dist(s.x,s.y,spawn.x,spawn.y); if(d0>bd1){bd1=d0; ex1=s;} }
@@ -830,18 +834,55 @@ function buildRaid(){
     for(let i=0;i<w*h;i++){
       if(!reach[i] && walkable(t[i])) t[i]=8;
     }
-    // 탈출구가 격리됐으면 도달 가능한 가장 먼 지점으로 재배치
-    for(const z of extracts){
-      const zx=clamp(Math.floor(z.x/TILE),0,w-1), zy=clamp(Math.floor(z.y/TILE),0,h-1);
-      if(reach[zy*w+zx]) continue;
-      // 도달 가능한 지점 중 스폰에서 가장 먼 곳
-      let best=null, bd=-1;
-      for(const s of grassSpots){
-        const gx=Math.floor(s.x/TILE), gy=Math.floor(s.y/TILE);
-        if(!reach[gy*w+gx]) continue;
-        const d0=dist(s.x,s.y,spawn.x,spawn.y);
-        if(d0>bd){ bd=d0; best=s; }
+    // 지점의 "개방도": 반경 5칸 안에서 걸을 수 있는(도달 가능) 타일 비율.
+    // 낮으면 사방이 막힌 안전 주머니 → 적이 못 와서 위험 없이 탈출됨.
+    const openness = (px,py)=>{
+      const cx=clamp(Math.floor(px/TILE),0,w-1), cy=clamp(Math.floor(py/TILE),0,h-1);
+      let open=0, tot=0;
+      for(let dy=-5;dy<=5;dy++) for(let dx=-5;dx<=5;dx++){
+        const nx=cx+dx, ny=cy+dy;
+        if(nx<0||ny<0||nx>=w||ny>=h) continue;
+        if(dx*dx+dy*dy>30) continue; // 대략 원형
+        tot++;
+        if(reach[ny*w+nx]) open++;
       }
+      return tot? open/tot : 0;
+    };
+    // 실제 도달 가능한 모든 타일을 후보로 수집(grassSpots는 메우기 전 좌표라 부실).
+    // 스폰에서의 거리도 함께 기록해 "도달 범위 최대거리"를 파악한다.
+    const reachSpots = [];
+    let maxReach = 0;
+    for(let y=2;y<h-2;y++) for(let x=2;x<w-2;x++){
+      if(!reach[y*w+x]) continue;
+      const px=(x+.5)*TILE, py=(y+.5)*TILE;
+      const dS = dist(px,py,spawn.x,spawn.y);
+      if(dS>maxReach) maxReach = dS;
+      reachSpots.push({x:px, y:py, d:dS});
+    }
+    const MIN_OPEN = 0.5; // 주변 절반 이상이 트여 있어야 탈출구로 인정
+    // 스폰 최소거리: 그 판 도달 범위의 55% (넓은 맵은 멀리, 좁은 맵은 가능한 만큼)
+    const minExit = Math.min(MIN_EXIT_DIST*1.6, maxReach*0.55);
+    // 탈출구가 ①격리 ②안전 주머니 ③스폰에 너무 가까움 중 하나면 재배치.
+    for(let zi=0; zi<extracts.length; zi++){
+      const z = extracts[zi];
+      const other = extracts[1-zi]; // 나머지 탈출구
+      const zx=clamp(Math.floor(z.x/TILE),0,w-1), zy=clamp(Math.floor(z.y/TILE),0,h-1);
+      const isolated = !reach[zy*w+zx];
+      const cramped = openness(z.x,z.y) < MIN_OPEN;
+      const tooClose = dist(z.x,z.y,spawn.x,spawn.y) < minExit;
+      if(!isolated && !cramped && !tooClose) continue;
+      // 우선순위별로 후보를 완화: (거리+개방) → (개방만) → (거리만) → (아무 도달지점)
+      const pickBest = (needOpen, needDist)=>{
+        let best=null, bd=-1;
+        for(const s of reachSpots){
+          if(other && dist(s.x,s.y,other.x,other.y) < minExit*0.6) continue; // 두 탈출구 분리
+          if(needDist && s.d < minExit) continue;
+          if(needOpen && openness(s.x,s.y) < MIN_OPEN) continue;
+          if(s.d>bd){ bd=s.d; best=s; }
+        }
+        return best;
+      };
+      const best = pickBest(true,true) || pickBest(true,false) || pickBest(false,true) || pickBest(false,false);
       if(best){ z.x=best.x; z.y=best.y; }
     }
     // 격리된 상자 제거 (접근 불가라 무의미) — 단 내 시체(corpse)는 유지 시도

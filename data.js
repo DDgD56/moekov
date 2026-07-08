@@ -167,17 +167,17 @@ const ITEMS = {
   // ===== 탄창 =====
   mushroom_mag: {
     id:'mushroom_mag', kind:'att', sock:'mag', plug:1, name:'버섯 탄창', emoji:'🍄',
-    shape:'v2', value:45, mods:{ ammo:7, reload:-0.1 },
+    shape:'v2', value:45, mods:{ ammo:7, reload:0.3 },
     desc:'포자가 총알이 된다. 가볍고 빠르다.',
   },
   corn_mag: {
     id:'corn_mag', kind:'att', sock:'mag', plug:1, name:'옥수수 탄창', emoji:'🌽',
-    shape:'v3', value:75, mods:{ ammo:15, reload:0.4 },
+    shape:'v3', value:75, mods:{ ammo:15, reload:0.7 },
     desc:'알알이 총알. 갈아끼우기는 좀 느리다.',
   },
   can_drum: {
     id:'can_drum', kind:'att', sock:'mag', plug:2, name:'통조림 드럼', emoji:'🥫',
-    shape:'sq2', value:135, mods:{ ammo:26, reload:1.0, spread:1 },
+    shape:'sq2', value:135, mods:{ ammo:26, reload:1.4, spread:1 },
     desc:'대용량 참치캔 드럼탄창. 탄창 소켓 2칸 필요.',
   },
 
@@ -276,27 +276,27 @@ const ITEMS = {
   // ===== 확장 탄창 =====
   baguette_mag: {
     id:'baguette_mag', kind:'att', sock:'mag', name:'바게트 탄창', emoji:'🥖',
-    shape:'h4', value:110, mods:{ ammo:18, reload:0.6 },
+    shape:'h4', value:110, mods:{ ammo:18, reload:0.8 },
     desc:'가로로 무지 길다. 어디에 꽂을지 고민되는 맛.',
   },
   snail_drum: {
     id:'snail_drum', kind:'att', sock:'mag', name:'달팽이 드럼', emoji:'🐌',
-    shape:'donut', value:190, mods:{ ammo:34, reload:1.4, aim:-0.15 },
+    shape:'donut', value:190, mods:{ ammo:34, reload:1.85, aim:-0.15 },
     desc:'가운데가 뚫린 대용량 드럼. 느리지만 든든하다.',
   },
   eggcarton_mag: {
     id:'eggcarton_mag', kind:'att', sock:'mag', name:'계란판 탄창', emoji:'🥚',
-    shape:'U', value:130, mods:{ ammo:20, reload:0.8 },
+    shape:'U', value:130, mods:{ ammo:20, reload:0.9 },
     desc:'한 알 한 알 소중하게. U자 모양이라 끼우기 까다롭다.',
   },
   sausage_mag: {
     id:'sausage_mag', kind:'att', sock:'mag', name:'소시지 체인', emoji:'🌭',
-    shape:'stairs', value:90, mods:{ ammo:12, reload:0.2 },
+    shape:'stairs', value:90, mods:{ ammo:12, reload:0.55 },
     desc:'계단 모양으로 줄줄이 이어진 소시지 탄띠.',
   },
   dice_mag: {
     id:'dice_mag', kind:'att', sock:'mag', name:'주사위 탄창', emoji:'🎲',
-    shape:'sq1', value:40, mods:{ ammo:4, reload:-0.15 },
+    shape:'sq1', value:40, mods:{ ammo:4, reload:0.2 },
     desc:'초소형. 운이 좋으면 6발쯤 들어있는 기분.',
   },
   // ===== 확장 그립 =====
@@ -366,27 +366,27 @@ const ITEMS = {
   // ===== 확장 2차: 탄창 =====
   octopus_mag: {
     id:'octopus_mag', kind:'att', sock:'mag', name:'문어 탄창', emoji:'🐙',
-    shape:'H', value:200, mods:{ ammo:28, reload:1.0 },
+    shape:'H', value:200, mods:{ ammo:28, reload:1.55 },
     desc:'다리 8개로 탄을 꽉 쥔다. H자 7칸의 위엄.',
   },
   centipede_belt: {
     id:'centipede_belt', kind:'att', sock:'mag', name:'지네 탄띠', emoji:'🐛',
-    shape:'h5', value:160, mods:{ ammo:22, reload:0.5 },
+    shape:'h5', value:160, mods:{ ammo:22, reload:1.0 },
     desc:'가로 5칸짜리 탄띠. 어디에 눕힐 것인가.',
   },
   takeout_mag: {
     id:'takeout_mag', kind:'att', sock:'mag', name:'포장용기 탄창', emoji:'🥡',
-    shape:'sq2', value:120, mods:{ ammo:16, reload:0.4 },
+    shape:'sq2', value:120, mods:{ ammo:16, reload:0.7 },
     desc:'곱빼기로 담았습니다.',
   },
   necklace_mag: {
     id:'necklace_mag', kind:'att', sock:'mag', name:'진주 목걸이 탄창', emoji:'📿',
-    shape:'plus', value:150, mods:{ ammo:14, reload:0.3 },
+    shape:'plus', value:150, mods:{ ammo:14, reload:0.6 },
     desc:'알알이 진주 총알. 우아하게 십자 모양.',
   },
   question_mag: {
     id:'question_mag', kind:'att', sock:'mag', name:'물음표 탄창', emoji:'❓',
-    shape:'J', value:85, mods:{ ammo:10, reload:-0.1 },
+    shape:'J', value:85, mods:{ ammo:10, reload:0.45 },
     desc:'몇 발 들었는지 세다가 만 탄창.',
   },
   // ===== 확장 2차: 그립 =====
@@ -461,12 +461,12 @@ const ITEMS = {
   },
   magic_pouch: {
     id:'magic_pouch', kind:'att', rare:true, sock:'mag', name:'요술 주머니', emoji:'👝',
-    shape:'sq2', value:420, mods:{ ammo:30, reload:-0.3 },
+    shape:'sq2', value:420, mods:{ ammo:30, reload:0.9 },
     desc:'★ 넣은 것보다 많이 나온다. 원리는 묻지 말 것.',
   },
   honeycomb_mag: {
     id:'honeycomb_mag', kind:'att', rare:true, sock:'mag', name:'벌집 탄창', emoji:'🍯',
-    shape:'plus', value:360, mods:{ ammo:20, reload:-0.2 },
+    shape:'plus', value:360, mods:{ ammo:20, reload:0.6 },
     desc:'★ 육각형은 완벽한 탄약 수납 구조다.',
   },
   hawk_scope: {
