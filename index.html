@@ -8,7 +8,8 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>MoeKov</title>
-<link rel="stylesheet" href="style.css">
+<!-- CSS도 매 로드마다 타임스탬프로 캐시 무효화 (스타일 수정 즉시 반영) -->
+<script>document.write('<link rel="stylesheet" href="style.css?t='+Date.now()+'">');</script>
 </head>
 <body>
 <canvas id="cv"></canvas>

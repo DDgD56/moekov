@@ -218,6 +218,13 @@ function renderGrid(rootEl, inv, opts={}){
   for(const it of inv.items){
     const el = buildItemEl(it.inst, cs);
     el.style.left = it.x*cs+'px'; el.style.top = it.y*cs+'px';
+    // 소켓 필터: 선택된 소켓 타입이 아니면 흐리게 (부착물만 대상, 나머지는 항상 dim)
+    if(opts.highlightSock){
+      const d = it.inst.def;
+      const match = d.kind==='att' && d.sock===opts.highlightSock;
+      if(!match) el.classList.add('dimmed');
+      else el.classList.add('sock-hi');
+    }
     // Ctrl/Cmd + 클릭 → 지정 인벤토리로 즉시 이동 (공통 처리)
     const quickMove = ()=>{
       if(it.inst.hidden){ toast('🔍 아직 조사 중...'); return true; }

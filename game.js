@@ -158,6 +158,7 @@ const State = {
 
 function curGun(){ return State.guns[State.activeGun]; }
 let benchIdx = 0; // 작업대 탭에서 편집 중인 총
+let benchFilter = null; // 작업대 창고 소켓 필터 (null=전체, 'muzzle'|'mag'|'grip'|'scope'|'stock')
 function editGun(){ return State.guns[benchIdx]; }
 
 function switchGun(i){
@@ -1955,7 +1956,15 @@ function renderPanel(){
       </div>
       <div class="stash-row" id="stashRow"></div>
       <div class="panel-cols bench-cols">
-        <div class="col"><div class="col-label">창고</div><div id="ga"></div></div>
+        <div class="col">
+          <div class="col-label">창고</div>
+          <div class="sock-filter" id="sockFilter">
+            <button class="sf-btn ${benchFilter===null?'on':''}" data-sock="">전체</button>
+            ${Object.entries(SOCK_INFO).map(([k,v])=>
+              `<button class="sf-btn ${benchFilter===k?'on':''}" data-sock="${k}" style="--sc:${v.color}">${v.name}</button>`).join('')}
+          </div>
+          <div id="ga"></div>
+        </div>
         <div class="col bench-col">
           <div id="bench"></div>
         </div>
@@ -1965,9 +1974,14 @@ function renderPanel(){
       </div>
       <div class="panel-hint">몸통/부착물을 <b>드래그</b>해서 조립 · 드래그 중 <b>R</b> 회전 ·
       맞는 소켓에 <b>1칸만 걸쳐도</b> 장착 · <b>Ctrl(⌘)+클릭</b>으로 부품/총 즉시 창고 이동 · 🔫 보관대로 총 통째로 넣었다 뺐다 · <b>ESC</b> 닫기</div>`;
-    renderGrid(p.querySelector('#ga'), State.storage, { cs:36, rerender:refreshPanel, quickTarget:State.backpack, onDbl:inst=>{ quickTransfer(inst,State.storage,State.backpack); refreshPanel(); } });
-    renderGrid(p.querySelector('#gb'), State.backpack, { cs:36, rerender:refreshPanel, quickTarget:State.storage, onDbl:inst=>{ quickTransfer(inst,State.backpack,State.storage); refreshPanel(); } });
+    renderGrid(p.querySelector('#ga'), State.storage, { cs:36, rerender:refreshPanel, quickTarget:State.backpack, highlightSock:benchFilter, onDbl:inst=>{ quickTransfer(inst,State.storage,State.backpack); refreshPanel(); } });
+    renderGrid(p.querySelector('#gb'), State.backpack, { cs:36, rerender:refreshPanel, quickTarget:State.storage, highlightSock:benchFilter, onDbl:inst=>{ quickTransfer(inst,State.backpack,State.storage); refreshPanel(); } });
     renderBench(p.querySelector('#bench'));
+    p.querySelectorAll('#sockFilter .sf-btn').forEach(b=>b.addEventListener('click', ()=>{
+      const s = b.dataset.sock || null;
+      benchFilter = (benchFilter===s) ? null : s; // 같은 버튼 다시 누르면 전체로
+      refreshPanel();
+    }));
     p.querySelector('#gs').innerHTML = statsHTML(editGun());
     renderStash(p.querySelector('#stashRow'));
     p.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click', ()=>{

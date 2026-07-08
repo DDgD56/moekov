@@ -95,6 +95,18 @@ canvas#cv { display:block; position:fixed; inset:0; cursor:crosshair; }
 .panel-cols { display:flex; gap:26px; align-items:flex-start; }
 .col-label { font-size:13px; font-weight:bold; color:#b8a888; margin-bottom:6px; }
 .panel-hint { margin-top:14px; font-size:12px; color:#98866a; line-height:1.7; }
+
+/* ---------- 작업대 창고 소켓 필터 ---------- */
+.sock-filter { display:flex; flex-wrap:wrap; gap:4px; margin-bottom:7px; }
+.sf-btn { --sc:#b8a888; font-size:11px; font-weight:bold; padding:3px 9px;
+  border-radius:6px; cursor:pointer; color:#c9b8a0; background:rgba(0,0,0,.3);
+  border:1.5px solid #4a3f30; transition:all .12s; }
+.sf-btn:hover { border-color:var(--sc); color:#f0e4d0; }
+.sf-btn.on { background:var(--sc); border-color:var(--sc); color:#1a1510;
+  box-shadow:0 0 8px color-mix(in srgb, var(--sc) 60%, transparent); }
+/* 필터에 안 맞는 아이템: 흐리게 */
+.inv-grid .item.dimmed { opacity:.22; filter:grayscale(.75); transition:opacity .12s, filter .12s; }
+.inv-grid .item.sock-hi svg { filter:drop-shadow(0 0 4px rgba(255,230,150,.7)); }
 .panel-hint .warn { color:#e8a05a; }
 
 /* ---------- 인벤토리 그리드 ---------- */
