@@ -36,16 +36,32 @@ function canMount(gun, attDef, side, idx, rot, ignoreInst){
     if(cell>=0 && cell<len && rail.has(cell)) touching++;
   }
   if(touching===0) return false;
-  // 같은 변 2D 겹침 검사 (깊이 방향 포함)
-  const mine = new Set(cells.map(([a,d])=>(idx+a)+','+d));
+  // 2D 겹침 검사 — 화면에 실제로 그려지는 격자 좌표(mountLocalCells 변환 후)로 비교.
+  // 서로 다른 변(side)의 부착물이라도 몸통 밖으로 뻗어 같은 격자칸을 차지하면 겹침으로 막는다.
+  const mineCells = new Set(attFootprint(bd, attDef, side, idx, rot||0));
   for(const m of gun.atts){
     if(ignoreInst && m.inst.uid===ignoreInst.uid) continue;
-    if(m.side!==side) continue;
-    for(const [a,d] of shapeOf(m.inst.def, m.rot||0)){
-      if(mine.has((m.idx+a)+','+d)) return false;
+    for(const k of attFootprint(bd, m.inst.def, m.side, m.idx, m.rot||0)){
+      if(mineCells.has(k)) return false;
     }
   }
   return true;
+}
+
+// 부착물이 몸통 격자에서 실제로 차지하는 칸들의 절대 좌표 문자열 집합.
+// 몸통: x 0..bw-1, y 0..bh-1. top→y음수, bottom→y>=bh, front→x>=bw, back→x음수.
+// renderBench의 배치 공식과 동일한 좌표계를 쓴다(화면과 검사 일치).
+function attFootprint(bd, attDef, side, idx, rot){
+  const cells = shapeOf(attDef, rot||0);
+  const local = mountLocalCells(cells, side);
+  const lw = Math.max(...local.map(c=>c[0]))+1;
+  const lh = Math.max(...local.map(c=>c[1]))+1;
+  return local.map(([lx,ly])=>{
+    if(side==='top')    return (idx+lx)+','+(ly-lh);
+    if(side==='bottom') return (idx+lx)+','+(bd.bh+ly);
+    if(side==='front')  return (bd.bw+lx)+','+(idx+ly);
+    return (lx-lw)+','+(idx+ly); // back
+  });
 }
 
 // 부착물 footprint(a=레일 방향, d=깊이)를 화면 로컬 좌표로 변환
