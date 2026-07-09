@@ -1,0 +1,310 @@
+[
+  {
+    "type": "kill",
+    "enemy": "any",
+    "n": 15,
+    "reward": 150,
+    "title": "미니 대청소"
+  },
+  {
+    "type": "kill",
+    "enemy": "zduck",
+    "n": 10,
+    "reward": 130,
+    "title": "좀비미니 방역"
+  },
+  {
+    "type": "kill",
+    "enemy": "fastduck",
+    "n": 6,
+    "reward": 170,
+    "title": "과속 단속"
+  },
+  {
+    "type": "kill",
+    "enemy": "bigduck",
+    "n": 3,
+    "reward": 220,
+    "rewardItem": "sponge_stock",
+    "title": "대형 미니 포획"
+  },
+  {
+    "type": "kill",
+    "enemy": "golden",
+    "n": 1,
+    "reward": 400,
+    "rewardItem": "can_drum",
+    "title": "황금 사냥꾼"
+  },
+  {
+    "type": "kill",
+    "enemy": "any",
+    "n": 10,
+    "fetch": {
+      "item": "bandage",
+      "n": 2
+    },
+    "reward": 300,
+    "title": "전투 의무병"
+  },
+  {
+    "type": "kill",
+    "enemy": "spitter",
+    "n": 4,
+    "fetch": {
+      "item": "toad_oil",
+      "n": 1
+    },
+    "reward": 280,
+    "title": "가래 특효약"
+  },
+  {
+    "type": "kill",
+    "enemy": "bomber",
+    "n": 2,
+    "fetch": {
+      "item": "circuit",
+      "n": 1
+    },
+    "reward": 340,
+    "rewardItem": "pepper_brake",
+    "title": "폭발물 처리반"
+  },
+  {
+    "type": "extract",
+    "n": 1,
+    "fetch": {
+      "item": "golden_duck",
+      "n": 1
+    },
+    "reward": 700,
+    "rewardItem": "fishingrod_sniper",
+    "title": "황금 배달부"
+  },
+  {
+    "type": "fetch",
+    "item": "pretzel",
+    "n": 1,
+    "reward": 130,
+    "title": "출출한 사장님"
+  },
+  {
+    "type": "fetch",
+    "item": "dragon_bone",
+    "n": 1,
+    "reward": 600,
+    "rewardItem": "teddy_stock",
+    "title": "고생물학 의뢰"
+  },
+  {
+    "type": "fetch",
+    "item": "gold_tooth",
+    "n": 2,
+    "reward": 280,
+    "title": "치과 재료 수급"
+  },
+  {
+    "type": "fetch",
+    "item": "circuit",
+    "n": 2,
+    "reward": 200,
+    "title": "라디오 수리 부품"
+  },
+  {
+    "type": "fetch",
+    "item": "toad_oil",
+    "n": 1,
+    "reward": 100,
+    "title": "만병통치약 주문"
+  },
+  {
+    "type": "fetch",
+    "item": "radio",
+    "n": 1,
+    "reward": 220,
+    "rewardItem": "flashlight",
+    "title": "전파 수집가"
+  },
+  {
+    "type": "fetch",
+    "item": "mushroom_mag",
+    "n": 1,
+    "reward": 120,
+    "title": "버섯 애호가"
+  },
+  {
+    "type": "extract",
+    "n": 2,
+    "reward": 180,
+    "title": "생존 전문가"
+  },
+  {
+    "type": "kill",
+    "enemy": "any",
+    "n": 25,
+    "reward": 250,
+    "unlock": "gun2",
+    "title": "이도류 면허",
+    "blurb": "총기 슬롯 2를 해금한다. 작업대에서 두 번째 총을 조립할 수 있다."
+  },
+  {
+    "type": "extract",
+    "n": 1,
+    "fetch": {
+      "item": "circuit",
+      "n": 1
+    },
+    "reward": 200,
+    "unlock": "stash",
+    "rewardStash": 2,
+    "title": "사장님의 금고",
+    "blurb": "작업대 총 보관대 2칸을 개방한다."
+  },
+  {
+    "type": "kill",
+    "enemy": "any",
+    "n": 18,
+    "reward": 160,
+    "rewardStash": 1,
+    "title": "금고 확장 공사",
+    "blurb": "총 보관대 +1칸."
+  },
+  {
+    "type": "extract",
+    "n": 2,
+    "reward": 200,
+    "rewardStash": 1,
+    "title": "여분 총 창고",
+    "blurb": "총 보관대 +1칸."
+  },
+  {
+    "type": "fetch",
+    "item": "gold_tooth",
+    "n": 3,
+    "reward": 240,
+    "rewardStash": 1,
+    "title": "금고 자물쇠 교체",
+    "blurb": "총 보관대 +1칸."
+  },
+  {
+    "type": "kill",
+    "enemy": "golden",
+    "n": 1,
+    "fetch": {
+      "item": "circuit",
+      "n": 1
+    },
+    "reward": 300,
+    "rewardStash": 1,
+    "title": "프리미엄 금고",
+    "blurb": "총 보관대 +1칸 (최대 6칸)."
+  },
+  {
+    "type": "extract",
+    "n": 1,
+    "region": "factory",
+    "reward": 320,
+    "rewardItem": "pointer_laser",
+    "unlock": "exoticIntro",
+    "title": "수상한 총구 주문서",
+    "blurb": "폐공장에서 살아 나와라. 이상한 총구를 쥐여 주마."
+  },
+  {
+    "type": "kill",
+    "enemy": "kingduck",
+    "n": 1,
+    "reward": 800,
+    "rewardItem": "magic_pouch",
+    "title": "왕위 찬탈"
+  },
+  {
+    "type": "extract",
+    "n": 1,
+    "fetch": {
+      "item": "golden_duck",
+      "n": 1
+    },
+    "reward": 900,
+    "rewardItem": "rocket_stock",
+    "title": "습지의 황금"
+  },
+  {
+    "type": "kill",
+    "enemy": "golden",
+    "n": 2,
+    "reward": 550,
+    "rewardItem": "hawk_scope",
+    "title": "황금 습지 사냥"
+  },
+  {
+    "type": "kill",
+    "enemy": "sniper",
+    "n": 5,
+    "fetch": {
+      "item": "circuit",
+      "n": 1
+    },
+    "reward": 420,
+    "rewardItem": "panorama_scope",
+    "title": "습지 저격수 소탕"
+  },
+  {
+    "type": "fetch",
+    "item": "rust_bolt_jar",
+    "n": 2,
+    "reward": 180,
+    "title": "볼트 회수 지시",
+    "blurb": "폐공장에서 녹슨 볼트 병을 모아 와. 설비 보수에 쓴다."
+  },
+  {
+    "type": "extract",
+    "n": 1,
+    "region": "factory",
+    "fetch": {
+      "item": "factory_badge",
+      "n": 1
+    },
+    "reward": 260,
+    "rewardItem": "safety_goggles_scope",
+    "title": "출입증 회수",
+    "blurb": "공장 출입증 하나를 가지고 폐공장에서 탈출하라."
+  },
+  {
+    "type": "fetch",
+    "item": "blueprint_scrap",
+    "n": 1,
+    "reward": 220,
+    "title": "도면 수집",
+    "blurb": "도면 조각이 필요해. 공장 상자들을 뒤져 봐."
+  },
+  {
+    "type": "fetch",
+    "item": "swamp_pearl",
+    "n": 2,
+    "reward": 280,
+    "title": "습지 진주 납품",
+    "blurb": "황금 습지의 진주 두 알. 장신구 장인 주문이다."
+  },
+  {
+    "type": "extract",
+    "n": 1,
+    "region": "marsh",
+    "fetch": {
+      "item": "gold_flake_vial",
+      "n": 1
+    },
+    "reward": 340,
+    "rewardItem": "dew_lens_scope",
+    "title": "금가루 밀수(?)",
+    "blurb": "금가루 병을 들고 습지에서 살아 나와라. 묻지 마."
+  },
+  {
+    "type": "fetch",
+    "item": "frog_idol",
+    "n": 1,
+    "reward": 320,
+    "rewardItem": "lotus_tea",
+    "title": "우상 회수",
+    "blurb": "개구리 우상을 가져와. 보상으로 연꽃차도 주지."
+  }
+]

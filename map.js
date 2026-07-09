@@ -722,8 +722,14 @@ function buildRaid(){
   player.iframe = 2;
   player.stam = stamMax(); player.exhausted = false;
   player.extractDetectT = 0;
+  player.extractHintIntro = false;
   player.slowT = 0;
   player.poisonT = 0;
+  // 첫 맵(뒷동산): 시작 5초간 탈출구 방향 힌트
+  if(RG.id === 'hill'){
+    player.extractDetectT = 5;
+    player.extractHintIntro = true;
+  }
   for(const g of State.guns){ if(g.body) g.ammo = gunStats(g).ammo; }
   player.reloading = 0; player.aimT = 0; player.swapT = 0;
 }
@@ -732,6 +738,22 @@ function mkContainer(type, tx, ty){
   const ct = CONTAINER_TYPES[type];
   const hp = ct.hp||40;
   return { type, tx, ty, x:(tx+0.5)*TILE, y:(ty+0.5)*TILE, inv:null, opened:false, ct, hp, hpMax:hp };
+}
+// 지역 전용 루트 풀 (att/loot/food) — 없으면 공용 풀
+function pickRegionalPool(pool){
+  const reg = raid && raid.region;
+  const map = {
+    att:  { factory:'attFactory',  marsh:'attMarsh' },
+    loot: { factory:'lootFactory', marsh:'lootMarsh' },
+    food: { factory:'foodFactory', marsh:'foodMarsh' },
+  };
+  const regKey = map[pool] && reg && map[pool][reg];
+  const regPool = regKey && LOOT_POOLS[regKey];
+  if(regPool && regPool.length && Math.random()<0.55)
+    return pick(regPool);
+  const base = LOOT_POOLS[pool];
+  if(base && base.length) return pick(base);
+  return null;
 }
 function fillContainer(c){
   c.inv = new Inv(c.ct.w, c.ct.h);
@@ -748,8 +770,12 @@ function fillContainer(c){
       id = (exoCh>0 && LOOT_POOLS.exoticAtt && Math.random()<exoCh)
         ? pick(LOOT_POOLS.exoticAtt)
         : pick(LOOT_POOLS.rareAtt);
+    } else if(pool==='loot' && Math.random()<rareCh*1.2){
+      // 귀중품 희귀 롤
+      id = pick(LOOT_POOLS.rareLoot || LOOT_POOLS.loot);
     } else {
-      id = pick(LOOT_POOLS[pool]);
+      // 공장/습지: 지역 전용 풀(장착·귀중품·음식) 우선
+      id = pickRegionalPool(pool);
     }
     if(!ITEMS[id]) continue;
     const inst = mkInst(id);

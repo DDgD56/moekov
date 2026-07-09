@@ -165,11 +165,15 @@ function renderPanel(){
     let rows = '';
     for(const key in UPGRADES){
       const u = UPGRADES[key];
-      const cur = State.up[key], next = u.tiers[cur+1];
+      const cur = State.up[key]||0, next = u.tiers[cur+1];
       const afford = next && State.coins>=next.cost && matsOK(next.mats);
+      const curL = upgradeTierLabel(key, u.tiers[cur]);
+      const nextL = next ? upgradeTierLabel(key, next) : '';
+      const note = next && next.note ? ` <span class="up-note">[${next.note}]</span>` : '';
       rows += `<div class="up-row">
         <span class="up-emoji">${u.emoji}</span>
-        <span class="up-name">${u.name}<br><small>${u.desc(u.tiers[cur])}${next? ' → '+u.desc(next):''}</small>
+        <span class="up-name">${u.name} <small class="sub">Lv.${cur}/${u.tiers.length-1}</small><br>
+          <small>${curL}${next? ' → '+nextL:''}${note}</small>
           ${next ? matsHTML(next.mats) : ''}</span>
         ${next ? `<button class="btn" data-up="${key}" ${afford?'':'disabled'}>${next.cost}🪙</button>`
                : '<span class="up-max">MAX</span>'}
@@ -178,7 +182,7 @@ function renderPanel(){
     p.innerHTML = `
       <div class="panel-title">📌 업그레이드 <span class="sub">🪙 ${State.coins}</span></div>
       <div class="up-list">${rows}</div>
-      <div class="panel-hint">재료 아이템은 창고/가방에서 자동 차감됩니다 · <b>ESC</b> 닫기</div>`;
+      <div class="panel-hint">고티어 재료는 <b>폐공장·황금 습지</b> 루트 · 창고/가방에서 자동 차감 · <b>ESC</b> 닫기</div>`;
     p.querySelectorAll('[data-up]').forEach(btn=>{
       btn.addEventListener('click', ()=>buyUpgrade(btn.dataset.up));
     });
@@ -381,9 +385,17 @@ function renderPanel(){
   refreshQslotZones(); // 퀵슬롯은 패널 위에서도 드롭 가능
 }
 
+// 업그레이드 티어 표시 (JSON 테이블 — desc 함수 없음)
+function upgradeTierLabel(key, t){
+  if(!t) return '';
+  if(key==='pack' || key==='store') return `크기 ${t.w}×${t.h}`;
+  if(key==='hp') return `체력 ${t.v}`;
+  if(key==='shoes') return `이동 ×${Number(t.v).toFixed(2)}`;
+  return '';
+}
 function buyUpgrade(key){
   const u = UPGRADES[key];
-  const next = u.tiers[State.up[key]+1];
+  const next = u.tiers[(State.up[key]||0)+1];
   if(!next || State.coins<next.cost || !matsOK(next.mats)) return;
   for(const [id,n] of (next.mats||[])) consumeItem(id, n);
   State.coins -= next.cost;

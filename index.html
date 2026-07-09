@@ -79,7 +79,8 @@
 <script>
   var _t = Date.now();
   [
-    'sprite.js','data.js','icons.js','inventory.js','gun.js','music.js',
+    // data.tables.js = data/*.json 빌드 산출물 (소스: data/*.json, 재생성: node scripts/build-data-tables.js)
+    'sprite.js','data.tables.js','data.js','icons.js','inventory.js','gun.js','music.js',
     'core.js','map.js','combat.js','systems.js','ui.js',
     'render-entities.js','render-world.js','render.js','main.js'
   ].forEach(function(f){

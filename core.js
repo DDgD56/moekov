@@ -277,7 +277,8 @@ const player = {
   iframe:0, kills:0, coinsGained:0, lootMsgCd:0,
   stam:100, exhausted:false,
   bloom:0, kick:0, swapT:0, // 반동 블룸 / 킥백 / 무기 교체 딜레이
-  extractDetectT:0, // 휴대용 탐지기 남은 시간(초)
+  extractDetectT:0, // 휴대용 탐지기·입문 힌트 남은 시간(초)
+  extractHintIntro:false, // 뒷동산 시작 5초 탈출 방향 힌트
   slowT:0,          // 보스 가시/속박 등 이속 저하
   poisonT:0,        // 보스 독 지속 피해
 };

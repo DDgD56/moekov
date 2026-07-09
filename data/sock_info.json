@@ -1,0 +1,22 @@
+{
+  "muzzle": {
+    "name": "총구",
+    "color": "#e8853a"
+  },
+  "mag": {
+    "name": "탄창",
+    "color": "#6fbf5a"
+  },
+  "grip": {
+    "name": "그립",
+    "color": "#e0c04a"
+  },
+  "scope": {
+    "name": "스코프",
+    "color": "#5aa8e8"
+  },
+  "stock": {
+    "name": "개머리판",
+    "color": "#b07a52"
+  }
+}

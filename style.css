@@ -213,6 +213,7 @@ canvas#cv { display:block; position:fixed; inset:0; cursor:crosshair;
 .up-name { flex:1; font-weight:bold; font-size:15px; }
 .up-name small { color:#98866a; font-weight:normal; }
 .up-max { color:#8ae09a; font-weight:bold; }
+.up-note { color:#c9a84a; font-weight:bold; }
 .up-mats { display:inline-flex; gap:6px; margin-top:4px; }
 .up-mats span { font-size:12px; background:rgba(0,0,0,.3); border:1px solid #4a3f30;
   border-radius:8px; padding:1px 7px; font-weight:bold; }

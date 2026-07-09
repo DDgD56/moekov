@@ -167,6 +167,18 @@ function itemIconCanvas(def, hidden){
     } else if(has('silencer','소음기') || (def.sock==='muzzle' && has('소음'))){
       rect(2,6,11,4,C.darkMetal); rect(3,7,9,2,C.metal);
       for(let x=4;x<12;x+=2) px(x,8,ink);
+    } else if(has('pipe_wrench','파이프렌치','렌치')){
+      rect(2,7,10,3,C.metal); rect(10,4,4,9,C.darkMetal); rect(11,5,2,3,C.orange);
+    } else if(has('oil_filter','오일필터','오일')){
+      rect(5,2,6,12,C.darkMetal); rect(6,3,4,10,'#3a4a3a'); rect(6,2,4,2,C.orange);
+    } else if(has('weld_mask','용접면','용접')){
+      rect(3,4,10,9,C.darkMetal); rect(5,6,6,5,C.black); rect(6,7,4,3,C.red);
+    } else if(has('reed_silencer','갈대 소음') || (has('reed','갈대') && def.sock==='muzzle')){
+      rect(3,5,10,6,C.leaf); rect(4,6,8,4,'#6a9a40'); for(let x=5;x<12;x+=2) px(x,5,C.yellow);
+    } else if(has('mud_choke','진흙')){
+      rect(4,5,8,6,C.brown); rect(5,6,6,4,'#6a4a30'); px(7,7,C.darkMetal);
+    } else if(has('gold_nugget','금덩이')){
+      rect(5,5,6,6,C.gold); rect(6,6,4,4,'#f0d060'); px(7,7,C.white);
     } else if(def.sock==='muzzle'){
       rect(2,6,9,4,C.metal); rect(10,5,5,6,C.darkMetal);
     }
@@ -229,6 +241,16 @@ function itemIconCanvas(def, hidden){
     } else if(has('flypaper','파리지뢰','끈끈이 탄')){
       rect(2,4,12,9,C.yellow); rect(3,5,10,7,'#e8d060');
       px(5,7,ink); px(9,8,C.brown); px(7,10,ink);
+    } else if(has('gear_drum','톱니','기어')){
+      rect(3,3,10,10,C.metal); rect(5,5,6,6,C.darkMetal);
+      for(let i=0;i<8;i++){ const a=i/8*Math.PI*2; px(8+Math.cos(a)*5|0, 8+Math.sin(a)*5|0, C.gold); }
+    } else if(has('conveyor','컨베이어')){
+      rect(1,6,14,4,C.darkMetal); for(let x=2;x<14;x+=3) rect(x,7,2,2,C.yellow);
+    } else if(has('lotus','연꽃')){
+      rect(6,7,4,5,C.green); rect(3,5,4,4,C.pink); rect(9,5,4,4,C.pink);
+      rect(5,3,6,4,C.pink); px(7,6,C.yellow);
+    } else if(has('cattail','부들')){
+      rect(7,2,2,12,C.brown); rect(6,3,4,6,'#8a5a30'); rect(6,1,4,2,C.leaf);
     } else if(def.sock==='mag'){
       rect(5,3,6,11,C.darkMetal); rect(6,4,4,9,C.metal);
     }
@@ -245,9 +267,20 @@ function itemIconCanvas(def, hidden){
       rect(7,1,2,10,C.metal); rect(5,10,6,4,C.yellow); rect(6,2,4,2,C.darkMetal);
     } else if(has('umbrella','우산')){
       rect(3,4,10,4,C.red); rect(7,7,2,7,C.wood); rect(2,5,12,2,C.red);
+    } else if(has('workglove','작업장갑') || (has('glove','장갑') && has('work','작업'))){
+      rect(4,3,8,10,C.orange); rect(5,4,6,8,'#c07030');
+      rect(3,8,2,4,C.orange); rect(11,6,2,5,C.orange);
     } else if(has('glove','장갑') && !has('oven')){
       rect(4,3,8,10,C.skin); rect(5,4,6,8,'#e8b890');
       rect(3,8,2,4,C.skin); rect(11,6,2,5,C.skin);
+    } else if(has('clamp','클램프')){
+      rect(4,3,8,3,C.metal); rect(5,5,2,8,C.darkMetal); rect(9,5,2,8,C.darkMetal);
+      rect(4,12,8,2,C.metal);
+    } else if(has('vine','덩굴')){
+      rect(7,2,2,12,C.leaf); rect(4,4,3,2,C.green); rect(9,7,3,2,C.green);
+      rect(5,10,4,2,C.leaf);
+    } else if(has('shell_grip','조개') || (has('shell','조개') && def.sock==='grip')){
+      rect(3,5,10,7,C.pink); rect(4,6,8,5,'#e8c0c8'); px(7,8,C.white);
     } else if(has('oven_mitt','오븐장갑','오븐')){
       rect(3,3,10,11,C.red); rect(4,4,8,9,'#d05040');
       rect(2,8,3,5,C.red); rect(5,2,6,3,C.white);
@@ -323,6 +356,14 @@ function itemIconCanvas(def, hidden){
       rect(6,4,4,4,C.cyan); rect(7,5,2,2,C.white);
       rect(4,9,8,2,C.metal); rect(7,11,2,3,C.metal);
       px(4,4,C.green); px(11,4,C.green); px(4,11,C.green); px(11,11,C.green);
+    } else if(has('rivet','리벳')){
+      rect(4,4,8,8,C.metal); rect(6,6,4,4,C.darkMetal); px(5,5,C.gold); px(10,5,C.gold); px(5,10,C.gold); px(10,10,C.gold);
+    } else if(has('safety_goggles','안전고글','고글')){
+      rect(2,6,12,5,C.darkMetal); rect(3,7,4,3,C.cyan); rect(9,7,4,3,C.cyan); rect(7,8,2,1,C.metal);
+    } else if(has('mosquito_net','모기장')){
+      rect(3,3,10,10,C.white); for(let y=4;y<12;y+=2) for(let x=4;x<12;x+=2) px(x,y,C.darkMetal);
+    } else if(has('dew_lens','이슬')){
+      rect(5,4,6,8,C.cyan); rect(6,5,4,6,'#a0e0f0'); px(7,6,C.white); px(8,9,C.white);
     } else if(def.sock==='scope'){
       rect(2,6,12,4,C.darkMetal); rect(3,7,10,2,C.metal); rect(12,5,3,6,C.blue);
     }
@@ -360,6 +401,16 @@ function itemIconCanvas(def, hidden){
     } else if(has('copper','코일','구리')){
       rect(3,3,10,10,C.orange); rect(5,5,6,6,C.darkMetal);
       for(let i=0;i<3;i++) rect(4,4+i*3,8,1,'#e8a050');
+    } else if(has('rebar','철근')){
+      rect(2,7,12,2,C.darkMetal); rect(2,5,2,6,C.metal); rect(12,5,2,6,C.metal);
+      for(let x=4;x<12;x+=2) px(x,6,C.orange);
+    } else if(has('pallet','팔레트')){
+      rect(2,5,12,7,C.wood); for(let x=3;x<13;x+=3) rect(x,5,1,7,C.darkWood);
+      rect(2,5,12,2,C.yellow);
+    } else if(has('lily_pad','연잎')){
+      rect(3,4,10,9,C.leaf); rect(4,5,8,7,C.green); rect(7,7,3,2,'#2a5a20');
+    } else if(has('driftwood','유목')){
+      rect(2,6,12,4,C.wood); rect(3,7,10,2,'#a08050'); px(5,6,C.darkWood); px(11,8,C.darkWood);
     } else if(def.sock==='stock'){
       rect(2,5,12,6,C.wood); rect(1,6,4,5,C.darkWood);
     }
@@ -395,6 +446,30 @@ function itemIconCanvas(def, hidden){
       rect(4,3,8,10,C.darkMetal); rect(5,4,6,7,'#1a2830');
       rect(6,5,4,4,C.green); rect(7,6,2,2,'#b0ff60');
       rect(6,11,4,2,C.metal); px(7,2,C.red); rect(7,1,2,2,C.red);
+    } else if(has('energy_bar','식량바','비상 식량')){
+      rect(2,6,12,4,C.brown); rect(3,7,10,2,C.orange); px(5,7,C.yellow);
+    } else if(has('canned_stew','통조림 스튜','스튜')){
+      rect(4,3,8,11,C.metal); rect(5,4,6,9,C.orange); rect(5,4,6,2,C.red);
+    } else if(has('coffee','보온병','커피')){
+      rect(5,2,6,12,C.metal); rect(6,3,4,9,C.darkMetal); rect(6,2,4,2,C.orange);
+    } else if(has('vitamin','비타민')){
+      rect(5,4,6,8,C.white); rect(6,5,4,6,C.red); rect(7,6,2,2,C.yellow);
+    } else if(has('welding_crackers','크래커')){
+      rect(2,6,12,4,C.yellow); for(let x=3;x<13;x+=2) px(x,7,C.brown);
+    } else if(has('lunch_ticket','구내식당')){
+      rect(2,4,12,9,C.red); rect(3,5,10,7,C.white); rect(4,6,3,3,C.yellow); rect(9,7,3,2,C.green);
+    } else if(has('marsh_riceball','습지 주먹밥') || (has('주먹밥') && has('습지'))){
+      rect(4,4,8,9,C.white); rect(5,5,6,7,'#e0f0d8'); rect(4,10,8,3,C.leaf);
+    } else if(has('lotus_tea','연꽃차')){
+      rect(4,6,8,6,C.white); rect(5,4,6,3,C.pink); rect(6,7,4,3,'#d0e8c0');
+    } else if(has('dried_fish','말린 물고기','건어')){
+      rect(2,6,12,4,C.blue); rect(3,7,10,2,'#80b0d0'); px(12,6,C.white);
+    } else if(has('mud_honey','늪꿀')){
+      rect(5,4,6,9,C.gold); rect(6,5,4,7,'#e8c84a'); rect(6,3,4,2,C.brown);
+    } else if(has('reed_juice','갈대 주스')){
+      rect(5,2,6,12,C.green); rect(6,3,4,10,'#8ad060'); rect(6,2,4,2,C.leaf);
+    } else if(has('gold_berry','황금 열매')){
+      rect(5,5,6,6,C.gold); rect(6,6,4,4,'#f0e080'); rect(7,3,2,3,C.leaf); px(7,7,C.white);
     } else {
       rect(5,5,6,6,C.red); rect(6,6,4,4,C.pink);
     }
@@ -415,6 +490,34 @@ function itemIconCanvas(def, hidden){
     } else if(has('kettle','주전자')){
       rect(4,5,8,8,C.metal); rect(5,6,6,6,'#7a9aaa'); rect(11,6,3,3,C.darkMetal);
       rect(6,3,4,3,C.metal);
+    } else if(has('rust_bolt','볼트 병','녹슨 볼트')){
+      rect(5,3,6,11,C.glass||'#a0c0c8'); rect(6,4,4,8,C.orange); px(7,6,C.darkMetal); px(8,9,C.metal);
+    } else if(has('punch_card','천공카드')){
+      rect(2,5,12,6,C.white); for(let x=4;x<12;x+=2) px(x,7,ink);
+    } else if(has('safety_sign','안전 표지')){
+      rect(3,3,10,10,C.yellow); rect(7,5,2,5,ink); rect(7,11,2,1,ink);
+    } else if(has('factory_badge','출입증')){
+      rect(4,3,8,10,C.metal); rect(5,4,6,4,C.blue); rect(5,9,6,3,C.white);
+    } else if(has('grease_can','그리스')){
+      rect(5,3,6,11,C.darkMetal); rect(6,4,4,9,'#3a3a28'); rect(6,3,4,2,C.orange);
+    } else if(has('blueprint','도면')){
+      rect(2,4,12,9,C.blue); rect(3,5,10,7,'#d0e8f8'); for(let y=6;y<11;y+=2) rect(4,y,8,1,C.blue);
+    } else if(has('fuse_box','퓨즈')){
+      rect(3,3,10,10,C.darkMetal); rect(5,5,6,6,C.orange); px(7,7,C.yellow);
+    } else if(has('swamp_pearl','습지 진주')){
+      rect(5,5,6,6,C.white); rect(6,6,4,4,'#e8f0e8'); px(7,7,C.cyan);
+    } else if(has('gold_flake','금가루')){
+      rect(5,3,6,11,C.glass||'#a0c0c8'); rect(6,5,4,7,C.gold); px(7,7,C.yellow); px(8,9,C.white);
+    } else if(has('bog_amber','늪 호박','호박')){
+      rect(4,4,8,9,C.orange); rect(5,5,6,7,'#e09030'); px(7,8,ink);
+    } else if(has('reed_whistle','갈대 피리')){
+      rect(2,7,12,3,C.leaf); rect(3,6,2,5,C.brown); px(12,7,C.darkMetal);
+    } else if(has('frog_idol','개구리 우상')){
+      rect(4,5,8,8,C.green); rect(5,4,3,3,C.slime); rect(8,4,3,3,C.slime); px(6,7,ink); px(9,7,ink);
+    } else if(has('lily_coin','연꽃 주화')){
+      rect(4,4,8,8,C.gold); rect(5,5,6,6,'#e8c84a'); rect(6,6,4,4,C.pink);
+    } else if(has('moss_compass','이끼 나침반','나침반')){
+      rect(3,3,10,10,C.metal); rect(5,5,6,6,C.leaf); rect(7,4,2,5,C.red); px(7,10,ink);
     } else if(has('lightning','번개')){
       rect(8,1,3,5,C.yellow); rect(5,5,6,3,C.yellow); rect(5,7,3,6,C.yellow);
       rect(7,10,4,2,C.gold);

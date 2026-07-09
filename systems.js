@@ -74,6 +74,7 @@ function applyConsumable(inst){
     }
     const dur = d.effectDur||10;
     player.extractDetectT = Math.max(player.extractDetectT||0, dur);
+    player.extractHintIntro = false; // 소모 탐지기는 입문 라벨 아님
     sfx('open');
     toast(d.emoji+' '+d.name+' 가동! '+dur+'초간 탈출구 방향 표시');
     return true;
@@ -227,6 +228,7 @@ function returnToCave(){
   player.x = 11*TILE; player.y = 13.5*TILE;
   player.hp = maxHp();
   player.extractDetectT = 0;
+  player.extractHintIntro = false;
   closePanel();
   playMusic('cave');
   saveGame();
@@ -236,5 +238,9 @@ function startRaid(){
   buildRaid();
   scene = 'raid';
   playMusic('dayRaid');
-  toast('🚩 표시된 탈출 지점으로 이동해 탈출하세요. 밤이 되면... 조심하세요.');
+  if(player.extractHintIntro){
+    toast('🚪 5초간 탈출구 방향을 표시합니다. 표시된 지점으로 이동해 탈출하세요.');
+  } else {
+    toast('🚩 표시된 탈출 지점으로 이동해 탈출하세요. 밤이 되면... 조심하세요.');
+  }
 }

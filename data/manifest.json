@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "files": [
+    "shapes.json",
+    "sock_info.json",
+    "items.json",
+    "loot_pools.json",
+    "container_types.json",
+    "upgrades.json",
+    "regions.json",
+    "quests.json",
+    "npc_lines.json",
+    "enemies.json"
+  ],
+  "note": "Source of truth for web + Godot. Rebuild data.tables.js via: node scripts/build-data-tables.js"
+}

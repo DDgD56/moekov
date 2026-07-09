@@ -58,11 +58,19 @@ function update(dt){
   player.iframe -= dt;
   player.bloom = Math.max(0, player.bloom - dt*14);
   player.kick = Math.max(0, player.kick - dt*7);
-  // 휴대용 탐지기 타이머
+  // 탈출 방향 표시 타이머 (입문 힌트 / 휴대용 탐지기)
   if(player.extractDetectT > 0){
     const prev = player.extractDetectT;
+    const wasIntro = !!player.extractHintIntro;
     player.extractDetectT = Math.max(0, player.extractDetectT - dt);
-    if(prev>0 && player.extractDetectT<=0) toast('📡 탐지 종료');
+    if(prev>0 && player.extractDetectT<=0){
+      if(wasIntro){
+        player.extractHintIntro = false;
+        toast('탈출 방향 표시 종료 — 지도와 깃발을 기억해 두세요');
+      } else {
+        toast('📡 탐지 종료');
+      }
+    }
   }
   // 보스 디버프
   if(player.slowT > 0) player.slowT = Math.max(0, player.slowT - dt);

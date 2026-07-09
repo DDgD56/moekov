@@ -1,0 +1,371 @@
+{
+  "regions": {
+    "hill": {
+      "id": "hill",
+      "name": "뒷동산",
+      "emoji": "⛰️",
+      "stars": 1,
+      "color": "#6a8a4a",
+      "desc": "평화로운 초원. 미니가 약하고 낮이 길다. 입문자용. 밤엔 덤불 대장이 나타난다.",
+      "hpMul": 0.9,
+      "dmgMul": 0.95,
+      "spdMul": 0.95,
+      "dayLen": 190,
+      "coinMul": 1,
+      "rareBonus": 0,
+      "boss": true,
+      "bossId": "hillchief",
+      "pool": [
+        [
+          "zduck",
+          6
+        ],
+        [
+          "spitter",
+          1.2
+        ],
+        [
+          "gunner",
+          0.7
+        ],
+        [
+          "bigduck",
+          0.6
+        ],
+        [
+          "fastduck",
+          0.4
+        ]
+      ],
+      "nightPool": [
+        [
+          "zduck",
+          5
+        ],
+        [
+          "fastduck",
+          2.4
+        ],
+        [
+          "spitter",
+          1.4
+        ],
+        [
+          "gunner",
+          1
+        ],
+        [
+          "bomber",
+          0.7
+        ],
+        [
+          "bigduck",
+          0.6
+        ]
+      ],
+      "unlock": null,
+      "spawn": {
+        "roam": 48,
+        "dayCap": 26,
+        "dayEvery": 11,
+        "duskCap": 80,
+        "duskBurst": 4,
+        "nightCap": 160,
+        "nightBase": 6,
+        "nightMax": 18,
+        "nightGrow": 13,
+        "indoorMul": 1.1
+      },
+      "fire": {
+        "bulletSpd": 1,
+        "fireRate": 1.05,
+        "burstAdd": 0
+      },
+      "biome": "meadow",
+      "factoryCount": 2,
+      "houseCount": 22,
+      "bigHouses": 5,
+      "farmCount": 3,
+      "treeClusters": 50,
+      "treeSingles": 40,
+      "rockCount": 70,
+      "yardCount": 0,
+      "river": true,
+      "lakeIsland": true,
+      "ground": {
+        "base": "#3f5136",
+        "patchHi": "rgba(110,140,80,.10)",
+        "patchLo": "rgba(15,25,10,.10)",
+        "blade": "rgba(125,165,95,.45)",
+        "flower": true,
+        "outer": "#1d2618",
+        "forest1": "#243020",
+        "forest2": "#1f2a1b"
+      }
+    },
+    "factory": {
+      "id": "factory",
+      "name": "폐공장 지구",
+      "emoji": "🏭",
+      "stars": 2,
+      "color": "#8a7a5a",
+      "desc": "버려진 공장 단지. 총기 부품이 넘치지만 미니도 사납고 밤이 빠르다. 밤 보스: 황금 미니 킹.",
+      "hpMul": 1.6,
+      "dmgMul": 1.65,
+      "spdMul": 1.22,
+      "dayLen": 140,
+      "coinMul": 1.7,
+      "rareBonus": 0.035,
+      "boss": true,
+      "bossId": "kingduck",
+      "pool": [
+        [
+          "zduck",
+          3.5
+        ],
+        [
+          "gunner",
+          2.3
+        ],
+        [
+          "sniper",
+          1.5
+        ],
+        [
+          "spitter",
+          1.5
+        ],
+        [
+          "fastduck",
+          1.4
+        ],
+        [
+          "bigduck",
+          1.3
+        ],
+        [
+          "bomber",
+          1.1
+        ],
+        [
+          "golden",
+          0.25
+        ]
+      ],
+      "nightPool": [
+        [
+          "zduck",
+          3.5
+        ],
+        [
+          "fastduck",
+          3.2
+        ],
+        [
+          "gunner",
+          2.5
+        ],
+        [
+          "sniper",
+          1.7
+        ],
+        [
+          "spitter",
+          1.7
+        ],
+        [
+          "bomber",
+          1.8
+        ],
+        [
+          "bigduck",
+          1.4
+        ],
+        [
+          "golden",
+          0.32
+        ]
+      ],
+      "unlock": {
+        "extracts": {
+          "hill": 3
+        }
+      },
+      "unlockDesc": "뒷동산에서 3회 탈출",
+      "spawn": {
+        "roam": 90,
+        "dayCap": 50,
+        "dayEvery": 4.5,
+        "duskCap": 135,
+        "duskBurst": 7,
+        "nightCap": 260,
+        "nightBase": 11,
+        "nightMax": 28,
+        "nightGrow": 8,
+        "indoorMul": 1.9
+      },
+      "fire": {
+        "bulletSpd": 1.45,
+        "fireRate": 1.65,
+        "burstAdd": 3
+      },
+      "biome": "industrial",
+      "factoryCount": 5,
+      "houseCount": 8,
+      "bigHouses": 1,
+      "farmCount": 0,
+      "treeClusters": 5,
+      "treeSingles": 8,
+      "rockCount": 22,
+      "yardCount": 3,
+      "river": false,
+      "lakeIsland": false,
+      "canal": true,
+      "ground": {
+        "base": "#4c4a44",
+        "patchHi": "rgba(150,140,110,.10)",
+        "patchLo": "rgba(20,18,14,.18)",
+        "blade": "rgba(120,140,80,.28)",
+        "flower": false,
+        "crack": true,
+        "oilStain": true,
+        "outer": "#151513",
+        "forest1": "#22201a",
+        "forest2": "#1a1815"
+      }
+    },
+    "marsh": {
+      "id": "marsh",
+      "name": "황금 습지",
+      "emoji": "🪷",
+      "stars": 3,
+      "color": "#c9a84a",
+      "desc": "황금빛이 감도는 습지. 낮이 짧고 미니가 흉폭하다. 밤 보스: 황금 늪 여왕.",
+      "hpMul": 1.95,
+      "dmgMul": 1.9,
+      "spdMul": 1.32,
+      "dayLen": 115,
+      "coinMul": 2.4,
+      "rareBonus": 0.07,
+      "boss": true,
+      "bossId": "mirequeen",
+      "pool": [
+        [
+          "zduck",
+          2
+        ],
+        [
+          "gunner",
+          2.6
+        ],
+        [
+          "sniper",
+          2.2
+        ],
+        [
+          "spitter",
+          1.8
+        ],
+        [
+          "fastduck",
+          1.8
+        ],
+        [
+          "bigduck",
+          1.6
+        ],
+        [
+          "bomber",
+          1.5
+        ],
+        [
+          "golden",
+          0.55
+        ]
+      ],
+      "nightPool": [
+        [
+          "zduck",
+          2
+        ],
+        [
+          "fastduck",
+          3.5
+        ],
+        [
+          "gunner",
+          2.8
+        ],
+        [
+          "sniper",
+          2.4
+        ],
+        [
+          "spitter",
+          2
+        ],
+        [
+          "bomber",
+          2.2
+        ],
+        [
+          "bigduck",
+          1.7
+        ],
+        [
+          "golden",
+          0.7
+        ]
+      ],
+      "unlock": {
+        "boss": "factory"
+      },
+      "unlockDesc": "폐공장에서 황금 미니 킹 처치",
+      "spawn": {
+        "roam": 85,
+        "dayCap": 52,
+        "dayEvery": 4,
+        "duskCap": 140,
+        "duskBurst": 7,
+        "nightCap": 270,
+        "nightBase": 12,
+        "nightMax": 30,
+        "nightGrow": 7.5,
+        "indoorMul": 2
+      },
+      "fire": {
+        "bulletSpd": 1.55,
+        "fireRate": 1.8,
+        "burstAdd": 4
+      },
+      "biome": "swamp",
+      "factoryCount": 2,
+      "houseCount": 16,
+      "bigHouses": 3,
+      "farmCount": 2,
+      "treeClusters": 55,
+      "treeSingles": 40,
+      "rockCount": 38,
+      "yardCount": 0,
+      "river": true,
+      "lakeIsland": false,
+      "ponds": true,
+      "ground": {
+        "base": "#3a4a38",
+        "patchHi": "rgba(150,150,70,.12)",
+        "patchLo": "rgba(10,20,14,.16)",
+        "blade": "rgba(140,160,70,.40)",
+        "flower": true,
+        "reed": true,
+        "outer": "#121812",
+        "forest1": "#1c2a1c",
+        "forest2": "#162016"
+      }
+    }
+  },
+  "order": [
+    "hill",
+    "factory",
+    "marsh"
+  ]
+}

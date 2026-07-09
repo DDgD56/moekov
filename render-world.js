@@ -842,9 +842,13 @@ function drawExtractCompass(psx, psy){
   pBox(tipX-1, tipY-1, 3, 3, '#e8fff0');
   // 거리·남은 시간
   const distM = Math.round(dist(player.x, player.y, z.x, z.y)/TILE);
-  let label = '📡 '+distM+'m';
-  if(player.extractDetectT > 0) label += ' '+player.extractDetectT.toFixed(1)+'s';
-  else label += ' 모듈';
+  let label;
+  if(player.extractHintIntro && player.extractDetectT > 0)
+    label = '🚪 탈출 '+distM+'m '+player.extractDetectT.toFixed(1)+'s';
+  else if(player.extractDetectT > 0)
+    label = '📡 '+distM+'m '+player.extractDetectT.toFixed(1)+'s';
+  else
+    label = '📡 '+distM+'m 모듈';
   const tw = Math.min(100, label.length*5.5+10);
   pRect(psx-tw/2, psy+r+4, tw, 11, 'rgba(16,24,20,.85)');
   pBox(psx-tw/2, psy+r+4, tw, 11, `rgba(90,220,180,${0.55*pulse})`);
