@@ -82,10 +82,25 @@ function itemIconCanvas(def, hidden){
       rect(5,2,5,11,C.red); rect(6,3,3,9,'#a03a30');
       rect(7,0,2,3,C.metal); rect(9,1,5,2,C.darkMetal); // 호스
       rect(4,12,7,2,C.black);
-    } else if(has('fishing','낚싯','저격')){
+    } else if(has('fishing','낚싯','저격') && !has('lotus','연꽃')){
       rect(0,7,14,2,C.blue); rect(1,6,12,1,C.metal);
       rect(12,5,3,3,C.darkMetal); rect(0,5,3,6,C.wood);
       rect(13,3,1,3,C.leaf); // 찌
+    } else if(has('bramble','가시덤불','덤불 산탄')){
+      rect(1,6,11,4,C.green); rect(2,7,9,2,'#4a8a3a');
+      px(3,5,C.leaf); px(6,5,C.leaf); px(9,5,C.leaf);
+      px(4,10,C.leaf); px(8,10,C.leaf);
+      rect(11,5,4,6,C.darkMetal); rect(0,7,2,3,C.wood);
+    } else if(has('crown_smg','왕관 기관')){
+      rect(1,6,11,4,C.gold); rect(2,7,9,2,'#e0b83a');
+      rect(4,3,6,3,C.gold); // 왕관
+      px(5,2,C.red); px(7,1,C.red); px(9,2,C.red);
+      rect(11,5,4,6,C.darkMetal); rect(0,7,2,3,C.yellow);
+    } else if(has('lotus_lance','연꽃 장창','연꽃')){
+      rect(0,7,13,2,C.gold); rect(1,6,11,1,'#e0c04a');
+      rect(10,4,5,3,C.pink); rect(11,3,3,2,C.pink); // 연꽃
+      px(12,4,C.yellow);
+      rect(0,5,3,6,C.wood); rect(13,6,2,4,C.darkMetal);
     } else {
       rect(1,7,12,3,C.metal); rect(0,6,3,5,C.darkWood); rect(12,6,3,3,C.darkMetal);
     }

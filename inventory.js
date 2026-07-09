@@ -596,7 +596,8 @@ function tipHTML(def){
     kind = '귀중품 · 케이브 판매함에서 판매';
   }
   const rareTag = def.exotic ? ' <span class="tip-rare">★★ 엑조틱</span>'
-    : (def.rare ? ' <span class="tip-rare">★ 희귀</span>' : '');
+    : (def.bossBody ? ' <span class="tip-rare">👑 보스 전용</span>'
+    : (def.rare ? ' <span class="tip-rare">★ 희귀</span>' : ''));
   return `<div class="tip-name">${def.emoji} ${def.name}${rareTag}</div>
     <div class="tip-kind">${kind}</div>${extra}
     ${def.desc?`<div class="tip-desc">${def.desc}</div>`:''}

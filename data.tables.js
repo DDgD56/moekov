@@ -3486,6 +3486,177 @@ const ITEMS = {
     "value": 70,
     "heal": 52,
     "desc": "습지 깊은 곳의 반짝 열매. 한 입에 힘이 난다. 체력 +52"
+  },
+  "bramble_scatter": {
+    "id": "bramble_scatter",
+    "kind": "body",
+    "name": "가시덤불 산탄",
+    "emoji": "🌿",
+    "shape": "h3",
+    "value": 420,
+    "rare": true,
+    "bossBody": true,
+    "bw": 3,
+    "bh": 1,
+    "color": "#4a8a3a",
+    "rails": [
+      {
+        "side": "front",
+        "type": "muzzle",
+        "from": 0,
+        "len": 1
+      },
+      {
+        "side": "bottom",
+        "type": "grip",
+        "from": 0,
+        "len": 2
+      },
+      {
+        "side": "bottom",
+        "type": "mag",
+        "from": 1,
+        "len": 2
+      },
+      {
+        "side": "top",
+        "type": "scope",
+        "from": 0,
+        "len": 2
+      },
+      {
+        "side": "back",
+        "type": "stock",
+        "from": 0,
+        "len": 1
+      }
+    ],
+    "cls": "산탄총",
+    "base": {
+      "dmg": 5,
+      "rpm": 95,
+      "spread": 13,
+      "ammo": 5,
+      "reload": 1.7,
+      "noise": 310,
+      "pellets": 6,
+      "recoil": 12
+    },
+    "desc": "★ 덤불 대장 전용. 가시 덤불을 총몸에 엮었다. 가까이서 가시 비를 뿌린다."
+  },
+  "crown_smg": {
+    "id": "crown_smg",
+    "kind": "body",
+    "name": "왕관 기관단총",
+    "emoji": "👑",
+    "shape": "h4",
+    "value": 680,
+    "rare": true,
+    "bossBody": true,
+    "bw": 4,
+    "bh": 1,
+    "color": "#e0b83a",
+    "rails": [
+      {
+        "side": "front",
+        "type": "muzzle",
+        "from": 0,
+        "len": 1
+      },
+      {
+        "side": "bottom",
+        "type": "grip",
+        "from": 0,
+        "len": 3
+      },
+      {
+        "side": "bottom",
+        "type": "mag",
+        "from": 2,
+        "len": 2
+      },
+      {
+        "side": "top",
+        "type": "scope",
+        "from": 1,
+        "len": 2
+      },
+      {
+        "side": "back",
+        "type": "stock",
+        "from": 0,
+        "len": 1
+      }
+    ],
+    "cls": "기관단총",
+    "base": {
+      "dmg": 6,
+      "rpm": 780,
+      "spread": 8.5,
+      "ammo": 22,
+      "reload": 1.15,
+      "noise": 250,
+      "pellets": 1,
+      "recoil": 2
+    },
+    "desc": "★ 황금 미니 킹 전용. 왕관 장식이 달린 공장제 기관단총. 탄이 많고 다루기 쉽다."
+  },
+  "lotus_lance": {
+    "id": "lotus_lance",
+    "kind": "body",
+    "name": "연꽃 장창",
+    "emoji": "🪷",
+    "shape": "h5",
+    "value": 920,
+    "rare": true,
+    "bossBody": true,
+    "bw": 5,
+    "bh": 1,
+    "color": "#c9a030",
+    "rails": [
+      {
+        "side": "front",
+        "type": "muzzle",
+        "from": 0,
+        "len": 1
+      },
+      {
+        "side": "bottom",
+        "type": "grip",
+        "from": 1,
+        "len": 3
+      },
+      {
+        "side": "bottom",
+        "type": "mag",
+        "from": 3,
+        "len": 2
+      },
+      {
+        "side": "top",
+        "type": "scope",
+        "from": 1,
+        "len": 3
+      },
+      {
+        "side": "back",
+        "type": "stock",
+        "from": 0,
+        "len": 1
+      }
+    ],
+    "cls": "저격총",
+    "base": {
+      "dmg": 44,
+      "rpm": 42,
+      "spread": 1,
+      "ammo": 4,
+      "reload": 2.05,
+      "noise": 360,
+      "pellets": 1,
+      "recoil": 26
+    },
+    "desc": "★ 황금 늪 여왕 전용. 연꽃이 핀 기다란 장창. 한 발로 습지를 관통한다."
   }
 };
 
@@ -5146,7 +5317,8 @@ const ENEMY_TYPES = {
     "ranged": false,
     "boss": true,
     "bossStyle": "thorn",
-    "blurb": "가시 연사와 뿌리 속박. 돌진에 주의."
+    "blurb": "가시 연사와 뿌리 속박. 돌진에 주의.",
+    "rewardBody": "bramble_scatter"
   },
   "kingduck": {
     "name": "황금 미니 킹",
@@ -5160,7 +5332,8 @@ const ENEMY_TYPES = {
     "ranged": false,
     "boss": true,
     "bossStyle": "king",
-    "blurb": "돌진·방사탄·부하 소환. 왕관을 떨어뜨린다."
+    "blurb": "돌진·방사탄·부하 소환. 왕관을 떨어뜨린다.",
+    "rewardBody": "crown_smg"
   },
   "mirequeen": {
     "name": "황금 늪 여왕",
@@ -5174,6 +5347,7 @@ const ENEMY_TYPES = {
     "ranged": false,
     "boss": true,
     "bossStyle": "mire",
-    "blurb": "독 포자·도약 습격·독침 부하. 체력이 압도적."
+    "blurb": "독 포자·도약 습격·독침 부하. 체력이 압도적.",
+    "rewardBody": "lotus_lance"
   }
 };

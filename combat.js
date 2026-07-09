@@ -186,6 +186,7 @@ function spawnEnemy(typeId, x, y){
   const hp = Math.round(T.hp * hpMul * (phase()==='night' ? 1.6 : 1)); // 밤 스폰은 강화
   raid.enemies.push({
     id:typeId, t:T, x, y, hp, hpMax:hp, r:T.r,
+    region: (rg && rg.id) || (raid && raid.region) || 'hill', // 지역별 생김새
     spdMul: bossType ? 1 : rg.spdMul,   // 이동속도 지역 배율
     dmgMul: bossType ? 1 : rg.dmgMul,   // 공격력 지역 배율
     state:'wander', wt:rnd(0,2), wdir:rnd(0,Math.PI*2), moveT:0,
@@ -791,11 +792,17 @@ function killEnemy(e){
         toast('🔓 새 지역 해금: '+rg.emoji+' '+rg.name+'!', 3600);
     }
     const style = e.t.bossStyle || 'king';
+    // 보스 전용 총 몸통 (확정 드롭)
+    const bodyId = e.t.rewardBody;
+    if(bodyId && ITEMS[bodyId]){
+      raid.drops.push({kind:'item', x:e.x, y:e.y-8, inst:mkInst(bodyId), bob:rnd(0,6)});
+      toast('🔫 전용 총기 획득: '+ITEMS[bodyId].emoji+' '+ITEMS[bodyId].name+'!', 3600);
+    }
     // 공통 왕관 (킹·여왕), 덤불 대장은 희귀 부품 위주
     if(style!=='thorn')
-      raid.drops.push({kind:'item', x:e.x, y:e.y, inst:mkInst('crown'), bob:rnd(0,6)});
+      raid.drops.push({kind:'item', x:e.x+16, y:e.y, inst:mkInst('crown'), bob:rnd(0,6)});
     else
-      raid.drops.push({kind:'item', x:e.x, y:e.y, inst:mkInst(pick(LOOT_POOLS.rareAtt)), bob:rnd(0,6)});
+      raid.drops.push({kind:'item', x:e.x+16, y:e.y, inst:mkInst(pick(LOOT_POOLS.rareAtt)), bob:rnd(0,6)});
     // 스테이지 높을수록 엑조틱 확률↑
     const exoChance = style==='mire' ? 0.9 : (style==='king' ? 0.65 : 0.2);
     const attDrop = (LOOT_POOLS.exoticAtt && Math.random()<exoChance)

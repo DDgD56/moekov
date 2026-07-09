@@ -164,23 +164,69 @@ function drawGirl(sx, sy, r, pal, faceDir, hit, elite, opt){
 }
 
 // ---- 팔레트 정의 (색 최소화: 머리/피부/옷/눈/악세) ----
+// 기본 = 뒷동산(meadow). 공장·습지는 REGION_ENEMY_PALS 로 덮어씀.
 const GIRL_PALS = {
-  zduck:   { hair:'#7ea86a', skin:'#b8cf9a', acc:null },                          // 좀비: 창백한 초록빛
-  fastduck:{ hair:'#c9524a', skin:'#f0c4a8', acc:'#ff6a5a', accType:'ribbon' },   // 광전사: 붉은머리
-  bigduck: { hair:'#5a6a9a', skin:'#e8c4a4', acc:null },                          // 거구: 남색
-  spitter: { hair:'#9a5ab0', skin:'#f0c8b0', acc:'#d090e8', accType:'pin' },      // 마녀: 보라
-  sniper:  { hair:'#3a8a9a', skin:'#eac4a8', acc:'#5ad0e0', accType:'cap' },      // 저격: 청록+모자
-  gunner:  { hair:'#b09040', skin:'#eac4a8', acc:'#d0b050', accType:'cap' },      // 총잡이: 금발+모자
-  bomber:  { hair:'#c94a3a', skin:'#f0c0a0', acc:'#ff9040', accType:'ribbon' },   // 폭탄: 위험한 주황
-  golden:  { hair:'#f0d860', skin:'#f4d4b0', acc:'#ffe880', accType:'ribbon' },   // 황금
-  hillchief:{ hair:'#3a6a28', skin:'#c8d8a0', acc:'#6aba40', accType:'pin' },     // 덤불 대장
-  kingduck:{ hair:'#ffe070', skin:'#f4d4b0', acc:'#ffd24a', accType:'cap' },      // 황금 킹
-  mirequeen:{ hair:'#e0c850', skin:'#d8c090', acc:'#a070d0', accType:'ribbon' },  // 늪 여왕
+  zduck:   { hair:'#7ea86a', skin:'#b8cf9a', outfit:'#6a8a5a', acc:null },
+  fastduck:{ hair:'#c9524a', skin:'#f0c4a8', outfit:'#b05a5a', acc:'#ff6a5a', accType:'ribbon' },
+  bigduck: { hair:'#5a6a9a', skin:'#e8c4a4', outfit:'#5a6a8a', acc:null },
+  spitter: { hair:'#9a5ab0', skin:'#f0c8b0', outfit:'#8a5aa0', acc:'#d090e8', accType:'pin' },
+  sniper:  { hair:'#3a8a9a', skin:'#eac4a8', outfit:'#3a7a8a', acc:'#5ad0e0', accType:'cap' },
+  gunner:  { hair:'#b09040', skin:'#eac4a8', outfit:'#7a6a3a', acc:'#d0b050', accType:'cap' },
+  bomber:  { hair:'#c94a3a', skin:'#f0c0a0', outfit:'#b03a3a', acc:'#ff9040', accType:'ribbon' },
+  golden:  { hair:'#f0d860', skin:'#f4d4b0', outfit:'#d4a832', acc:'#ffe880', accType:'ribbon' },
+  hillchief:{ hair:'#3a6a28', skin:'#c8d8a0', outfit:'#4a8a3a', acc:'#6aba40', accType:'pin' },
+  kingduck:{ hair:'#ffe070', skin:'#f4d4b0', outfit:'#e0b83a', acc:'#ffd24a', accType:'cap' },
+  mirequeen:{ hair:'#e0c850', skin:'#d8c090', outfit:'#c9a030', acc:'#a070d0', accType:'ribbon' },
 };
+// 지역 바리에이션 (같은 타입 id, 다른 색·악세)
+// factory: 잿빛·안전모·기름때 / marsh: 이끼·진흙·황금 물기
+const REGION_ENEMY_PALS = {
+  factory: {
+    zduck:   { hair:'#6a7a68', skin:'#a0b0a0', outfit:'#5a5e58', acc:'#c9a040', accType:'cap', eye:'#4a3020' }, // 작업복 좀비
+    fastduck:{ hair:'#a04040', skin:'#d0b0a0', outfit:'#6a4848', acc:'#ff7040', accType:'ribbon', eye:'#5a2018' },
+    bigduck: { hair:'#4a5568', skin:'#c8b8a8', outfit:'#4a5058', acc:'#8a9098', accType:'cap', eye:'#2a2830' }, // 철판 거구
+    spitter: { hair:'#7a6a8a', skin:'#d0c0b0', outfit:'#5a4a62', acc:'#b080e0', accType:'pin', eye:'#3a2040' }, // 폐액 독
+    sniper:  { hair:'#3a5a62', skin:'#c8b8a8', outfit:'#3a4848', acc:'#70c0c8', accType:'cap', eye:'#1a3040' }, // 경비 저격
+    gunner:  { hair:'#8a7a50', skin:'#d0b8a0', outfit:'#5a5840', acc:'#c0a040', accType:'cap', eye:'#3a3020' }, // 공장 경비
+    bomber:  { hair:'#a84838', skin:'#d0a898', outfit:'#6a3838', acc:'#ff8030', accType:'ribbon', eye:'#4a1810' }, // 유폭 작업자
+    golden:  { hair:'#d0c070', skin:'#e0d0b0', outfit:'#a89850', acc:'#e8d060', accType:'cap', eye:'#4a4020' }, // 도금 부품
+  },
+  marsh: {
+    zduck:   { hair:'#4a6a38', skin:'#90a870', outfit:'#3a5040', acc:'#6aba50', accType:'pin', eye:'#2a4020' }, // 이끼 좀비
+    fastduck:{ hair:'#8a4038', skin:'#c8b090', outfit:'#5a4038', acc:'#c07040', accType:'ribbon', eye:'#3a2818' }, // 진흙 광란
+    bigduck: { hair:'#3a5a48', skin:'#b8c0a0', outfit:'#2a4840', acc:'#80a060', accType:'pin', eye:'#1a3028' }, // 늪 거구
+    spitter: { hair:'#6a4890', skin:'#c8d0a8', outfit:'#4a3860', acc:'#90e070', accType:'pin', eye:'#302050' }, // 독개구리빛
+    sniper:  { hair:'#2a6a5a', skin:'#c0c8a8', outfit:'#2a4840', acc:'#50d0a0', accType:'cap', eye:'#103828' }, // 습지 엽사
+    gunner:  { hair:'#8a7a30', skin:'#d0c8a0', outfit:'#5a5830', acc:'#d0c050', accType:'cap', eye:'#3a3818' }, // 황금빛 총잡
+    bomber:  { hair:'#a05030', skin:'#c8b090', outfit:'#6a4030', acc:'#e09040', accType:'ribbon', eye:'#402018' }, // 늪가스 폭탄
+    golden:  { hair:'#f0e070', skin:'#e8d8b0', outfit:'#c9a84a', acc:'#ffe890', accType:'ribbon', eye:'#5a4820' }, // 습지 황금
+  },
+};
+// hex 미세 시프트 (개체마다 살짝 다르게)
+function palShift(hex, d){
+  if(!hex || hex[0]!=='#' || hex.length<7) return hex;
+  const n = parseInt(hex.slice(1), 16);
+  let r=(n>>16)&255, g=(n>>8)&255, b=n&255;
+  r = Math.max(0, Math.min(255, r+d));
+  g = Math.max(0, Math.min(255, g+d));
+  b = Math.max(0, Math.min(255, b+Math.round(d*0.6)));
+  return '#'+((1<<24)|(r<<16)|(g<<8)|b).toString(16).slice(1);
+}
 function enemyPal(e){
-  const g = GIRL_PALS[e.id] || GIRL_PALS.zduck;
-  return { hair:g.hair, skin:g.skin, outfit:e.t.color,
-           acc:g.acc, accType:g.accType, eye:'#3a2632' };
+  const base = GIRL_PALS[e.id] || GIRL_PALS.zduck;
+  const reg = e.region || (raid && raid.region) || 'hill';
+  const over = (REGION_ENEMY_PALS[reg] && REGION_ENEMY_PALS[reg][e.id]) || null;
+  const g = over ? Object.assign({}, base, over) : base;
+  // seed 기반 개체 바리에이션 (같은 지역·타입도 조금씩 다름)
+  const s = ((e.seed||0) * 17 | 0) % 11 - 5; // -5..+5
+  const hair = palShift(g.hair, s);
+  const skin = palShift(g.skin, Math.round(s*0.5));
+  const outfit = palShift(g.outfit || (e.t && e.t.color) || '#6a8a5a', Math.round(s*0.7));
+  return {
+    hair, skin, outfit,
+    acc: g.acc, accType: g.accType,
+    eye: g.eye || '#3a2632',
+  };
 }
 const PLAYER_PAL = {
   hair:'#e0a850', skin:'#f6dcbe', outfit:'#5a86b0',

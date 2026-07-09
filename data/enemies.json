@@ -101,7 +101,8 @@
     "ranged": false,
     "boss": true,
     "bossStyle": "thorn",
-    "blurb": "가시 연사와 뿌리 속박. 돌진에 주의."
+    "blurb": "가시 연사와 뿌리 속박. 돌진에 주의.",
+    "rewardBody": "bramble_scatter"
   },
   "kingduck": {
     "name": "황금 미니 킹",
@@ -115,7 +116,8 @@
     "ranged": false,
     "boss": true,
     "bossStyle": "king",
-    "blurb": "돌진·방사탄·부하 소환. 왕관을 떨어뜨린다."
+    "blurb": "돌진·방사탄·부하 소환. 왕관을 떨어뜨린다.",
+    "rewardBody": "crown_smg"
   },
   "mirequeen": {
     "name": "황금 늪 여왕",
@@ -129,6 +131,7 @@
     "ranged": false,
     "boss": true,
     "bossStyle": "mire",
-    "blurb": "독 포자·도약 습격·독침 부하. 체력이 압도적."
+    "blurb": "독 포자·도약 습격·독침 부하. 체력이 압도적.",
+    "rewardBody": "lotus_lance"
   }
 }
