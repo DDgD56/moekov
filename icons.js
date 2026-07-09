@@ -194,6 +194,17 @@ function itemIconCanvas(def, hidden){
       rect(4,5,8,6,C.brown); rect(5,6,6,4,'#6a4a30'); px(7,7,C.darkMetal);
     } else if(has('gold_nugget','금덩이')){
       rect(5,5,6,6,C.gold); rect(6,6,4,4,'#f0d060'); px(7,7,C.white);
+    } else if(has('dryice','드라이아이스','냉동')){
+      rect(3,5,8,6,C.cyan); rect(4,6,6,4,'#a0e8ff'); rect(10,6,4,4,C.metal);
+      px(5,7,C.white); px(8,8,C.white);
+    } else if(has('icicle','고드름')){
+      rect(2,7,8,3,C.metal); rect(9,4,5,9,C.cyan); rect(10,5,3,7,'#c8f0ff');
+      px(11,3,C.white);
+    } else if(has('pneumatic','공압')){
+      rect(2,6,8,4,C.metal); rect(9,4,5,8,C.darkMetal); rect(11,5,3,3,C.cyan);
+      px(12,6,C.white); px(13,8,C.white);
+    } else if(has('sledge','해머헤드','해머')){
+      rect(2,7,7,3,C.metal); rect(8,4,6,9,C.darkMetal); rect(9,5,4,7,'#6a7080');
     } else if(def.sock==='muzzle'){
       rect(2,6,9,4,C.metal); rect(10,5,5,6,C.darkMetal);
     }

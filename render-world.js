@@ -601,8 +601,39 @@ function renderRaidWorld(){
     // 상태이상 아이콘
     if(e.burn>0) pRect(sx-10, sy-e.r-16, 4, 4, '#ff8a3a');
     if(e.poison>0) pRect(sx-4, sy-e.r-16, 4, 4, '#7ad060');
-    if(e.slow>0) pRect(sx+2, sy-e.r-16, 4, 4, '#e8b0d8');
+    if(e.chill>0) pRect(sx+2, sy-e.r-16, 4, 4, '#8ad8ff');
+    else if(e.slow>0) pRect(sx+2, sy-e.r-16, 4, 4, '#e8b0d8');
     if(e.stun>0) pRect(sx+8, sy-e.r-16, 4, 4, '#a8d0ff');
+
+    // 냉기 중: 파란 기운
+    if(e.chill>0){
+      const t = performance.now()/1000;
+      const flick = 0.5 + 0.5*Math.sin(t*10 + (e.seed||0));
+      pOval(sx, sy+e.r*0.3, e.r*0.9, Math.max(2, e.r*0.2),
+        `rgba(120,200,255,${0.18+0.12*flick})`);
+      for(let i=0;i<3;i++){
+        const a = t*4 + i*2.1 + (e.seed||0);
+        pBlob(sx+Math.cos(a)*e.r*0.6, sy-e.r*0.2+Math.sin(a)*3, 2,
+          i%2?'#c8f0ff':'#70c8f0');
+      }
+    }
+
+    // 화상 중: 발밑 불빛 + 몸 주변 불꽃 (도트)
+    if(e.burn>0){
+      const t = performance.now()/1000;
+      const flick = 0.55 + 0.45*Math.sin(t*14 + (e.seed||0)*3);
+      pOval(sx, sy+e.r*0.35, e.r*(0.85+0.15*flick), Math.max(2, e.r*0.22),
+        `rgba(255,90,20,${0.22+0.18*flick})`);
+      for(let i=0;i<5;i++){
+        const a = t*6 + i*1.25 + (e.seed||0);
+        const fr = e.r*(0.55 + 0.2*Math.sin(a*2));
+        const fx = sx + Math.cos(a)*fr*0.85;
+        const fy = sy - e.r*0.15 - Math.abs(Math.sin(a*1.7))*e.r*0.55 - i;
+        const fs = 2 + (i%2) + Math.round(flick);
+        pBlob(fx, fy, fs, i%2 ? '#ffd24a' : '#ff6a20');
+        pRect(fx-1, fy-fs-1, 2, fs, 'rgba(255,200,80,.7)');
+      }
+    }
 
     const faceAng = e.state==='chase' ? Math.atan2(player.y-e.y, player.x-e.x) : e.wdir;
     const eFace = Math.cos(faceAng) >= 0 ? 1 : -1;
@@ -652,7 +683,14 @@ function renderRaidWorld(){
     if(b.mode==='laser'){
       for(let i=1;i<=4;i++) pRect(sx-b.vx*0.003*i-1, sy-b.vy*0.003*i-1, 2, 2, 'rgba(120,240,255,.55)');
     } else if(b.mode==='flame'){
-      pBlob(sx, sy, rr+2, 'rgba(255,140,60,.35)');
+      const ff = 0.6 + 0.4*Math.sin(performance.now()/50 + b.x);
+      pBlob(sx, sy, rr+2, `rgba(255,140,60,${0.35*ff})`);
+      pBlob(sx - b.vx*0.004, sy - b.vy*0.004, Math.max(1,rr), 'rgba(255,210,80,.45)');
+      pRect(sx-1, sy-rr-2, 2, rr, 'rgba(255,180,60,.5)');
+    } else if(b.mode==='ice'){
+      pBlob(sx, sy, rr+1, 'rgba(140,220,255,.4)');
+      pRect(sx-2, sy-1, 4, 2, '#e8f8ff');
+      pRect(sx-1, sy-3, 2, 2, '#a0e0ff');
     } else if(b.mode==='glue'){
       pOval(sx, sy, rr+1, Math.max(1, rr-1), 'rgba(230,160,200,.4)');
     } else if(b.mode==='shock'){
@@ -671,7 +709,18 @@ function renderRaidWorld(){
     const [sx,sy] = worldToScreen(p.x,p.y);
     ctx.globalAlpha = Math.min(1,p.t*3);
     const pr = Math.max(1, Math.round(p.r||2));
-    pRect(sx-pr/2, sy-pr/2, pr, pr, p.c);
+    if(p.flame){
+      // 불꽃: 둥근 핵 + 위쪽 가느다란 심지
+      pBlob(sx, sy, pr, p.c);
+      pRect(sx-1, sy-pr-1, 2, pr+1, p.c);
+      ctx.globalAlpha = Math.min(0.5, p.t*2);
+      pBlob(sx, sy-1, Math.max(1, pr-1), '#ffe9a0');
+    } else if(p.ice){
+      pBlob(sx, sy, pr, p.c);
+      pRect(sx-pr, sy, pr*2+1, 1, '#e8f8ff');
+    } else {
+      pRect(sx-pr/2, sy-pr/2, pr, pr, p.c);
+    }
     ctx.globalAlpha = 1;
   }
 

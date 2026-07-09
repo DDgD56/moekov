@@ -74,7 +74,7 @@ function mountLocalCells(cells, side){
 }
 
 // 발사 모드 우선순위 (여러 개 달면 높은 쪽이 이김)
-const FIRE_PRI = { laser:5, shock:4, flame:3, glue:2, dart:1 };
+const FIRE_PRI = { laser:5, shock:4, flame:3, ice:2.5, glue:2, dart:1 };
 
 // ---- 총 스탯 집계 ----
 function gunStats(gun){
@@ -82,7 +82,7 @@ function gunStats(gun){
     return { name:'맨손', cls:'', dmg:2, rpm:120, spread:10, ammo:0, reload:1, noise:100,
              pellets:1, recoil:5, zoom:1, light:0, aim:1,
              fire:null, pierce:0, burn:0, poison:0, slow:0, stun:0, chain:0,
-             rangeMul:1, bulletSpd:1, ammoCost:1, extractDetect:false };
+             rangeMul:1, bulletSpd:1, ammoCost:1, extractDetect:false, knock:1 };
   }
   const b = gun.body.def;
   const s = { name:b.name, cls:b.cls||'', dmg:b.base.dmg, rpm:b.base.rpm, spread:b.base.spread,
@@ -90,7 +90,7 @@ function gunStats(gun){
               pellets:b.base.pellets||1, recoil:b.base.recoil!=null?b.base.recoil:6,
               zoom:1, light:0, aim:1,
               fire:null, pierce:0, burn:0, poison:0, slow:0, stun:0, chain:0,
-              rangeMul:1, bulletSpd:1, ammoCost:1, extractDetect:false };
+              rangeMul:1, bulletSpd:1, ammoCost:1, extractDetect:false, knock:1 };
   for(const m of gun.atts){
     const mod = m.inst.def.mods||{};
     if(mod.dmg) s.dmg += mod.dmg;
@@ -117,8 +117,9 @@ function gunStats(gun){
     if(mod.bulletSpd) s.bulletSpd *= mod.bulletSpd;
     if(mod.ammoCost) s.ammoCost = Math.max(s.ammoCost, mod.ammoCost|0);
     if(mod.extractDetect) s.extractDetect = true;
+    if(mod.knock) s.knock = Math.max(s.knock||1, mod.knock);
   }
-  // fire 없이 stun/slow만 있는 파츠(배터리·양말 등) → 보조 모드 추론
+  // fire 없이 stun/slow만 있는 파츠 → 보조 모드 추론 (ice 명시 없을 때만 glue)
   if(!s.fire){
     if(s.stun>0 && s.chain>0) s.fire = 'shock';
     else if(s.slow>0 && s.burn<=0 && s.poison<=0) s.fire = 'glue';
@@ -140,13 +141,20 @@ function gunStats(gun){
   } else if(s.fire==='flame'){
     s.pellets = Math.max(3, s.pellets);
     s.rangeMul = Math.min(s.rangeMul, 0.45);
+    // 화염탄은 항상 화상 DOT (파츠 burn이 없으면 기본 1.8초)
+    if(!(s.burn>0)) s.burn = 1.8;
   } else if(s.fire==='dart'){
     s.pellets = 1;
   } else if(s.fire==='glue'){
     s.bulletSpd = Math.min(s.bulletSpd, 0.65);
+  } else if(s.fire==='ice'){
+    s.pellets = Math.max(1, s.pellets);
+    if(!(s.slow>0)) s.slow = 2.2;
+    s.bulletSpd = Math.min(s.bulletSpd, 0.9);
   } else if(s.fire==='shock'){
     s.pellets = Math.max(1, s.pellets);
   }
+  if(!(s.knock>0)) s.knock = 1;
   return s;
 }
 
@@ -470,7 +478,8 @@ function benchHighlight(d){
 function statsHTML(gun){
   const s = gunStats(gun);
   const fireName = s.fire==='laser'?'🔴 레이저':s.fire==='flame'?'🔥 화염'
-    :s.fire==='dart'?'🦟 독다트':s.fire==='glue'?'🫧 끈끈이':s.fire==='shock'?'⚡ 감전':null;
+    :s.fire==='dart'?'🦟 독다트':s.fire==='glue'?'🫧 끈끈이':s.fire==='ice'?'🧊 냉기'
+    :s.fire==='shock'?'⚡ 감전':null;
   const rows = [
     ['공격력', s.dmg + (s.pellets>1? ' ×'+s.pellets+'발':'')],
     ['연사속도', Math.round(s.rpm)+' rpm'],
@@ -489,6 +498,7 @@ function statsHTML(gun){
   if(s.slow>0) rows.push(['둔화', s.slow.toFixed(1)+'초']);
   if(s.stun>0) rows.push(['기절', s.stun.toFixed(2)+'초']);
   if(s.chain>0) rows.push(['체인', s.chain+'명']);
+  if(s.knock>1) rows.push(['넉백', '×'+s.knock.toFixed(1)]);
   if(s.rangeMul!==1) rows.push(['사거리', '×'+s.rangeMul.toFixed(2)]);
   if(s.light>0) rows.push(['라이트','+'+Math.round(s.light*100)+'%']);
   if(s.extractDetect) rows.push(['탐지','📡 탈출구 방향']);

@@ -78,7 +78,11 @@
     "mosquito_net_scope",
     "dew_lens_scope",
     "lily_pad_stock",
-    "driftwood_stock"
+    "driftwood_stock",
+    "dryice_nozzle",
+    "icicle_muzzle",
+    "pneumatic_muzzle",
+    "sledge_muzzle"
   ],
   "rareAtt": [
     "library_silencer",
@@ -113,7 +117,11 @@
     "taser_prong",
     "battery_pack",
     "copper_coil_stock",
-    "static_sock_grip"
+    "static_sock_grip",
+    "dryice_nozzle",
+    "icicle_muzzle",
+    "pneumatic_muzzle",
+    "sledge_muzzle"
   ],
   "loot": [
     "gold_tooth",
@@ -205,7 +213,9 @@
     "rivet_scope",
     "safety_goggles_scope",
     "rebar_stock",
-    "pallet_stock"
+    "pallet_stock",
+    "pneumatic_muzzle",
+    "sledge_muzzle"
   ],
   "attMarsh": [
     "reed_silencer",
@@ -218,7 +228,9 @@
     "mosquito_net_scope",
     "dew_lens_scope",
     "lily_pad_stock",
-    "driftwood_stock"
+    "driftwood_stock",
+    "dryice_nozzle",
+    "icicle_muzzle"
   ],
   "lootFactory": [
     "rust_bolt_jar",

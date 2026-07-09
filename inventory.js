@@ -545,7 +545,7 @@ function ensureTip(){
   }
   return tipEl;
 }
-const FIRE_TIP = { laser:'🔴 레이저', flame:'🔥 화염', dart:'🦟 독다트', glue:'🫧 끈끈이', shock:'⚡ 감전' };
+const FIRE_TIP = { laser:'🔴 레이저', flame:'🔥 화염', dart:'🦟 독다트', glue:'🫧 끈끈이', ice:'🧊 냉기', shock:'⚡ 감전' };
 const TIP_MODS = {
   dmg: v=>`공격력 ${v>0?'+':''}${v}`,
   ammo: v=>`장탄 ${v>0?'+':''}${v}`,
@@ -565,6 +565,7 @@ const TIP_MODS = {
   slow: v=>`둔화 ${v}초`,
   stun: v=>`기절 ${v}초`,
   chain: v=>`체인 ${v}명`,
+  knock: v=>`넉백 ×${v}`,
   rangeMul: v=>`사거리 ×${v}`,
   bulletSpd: v=>`탄속 ×${v}`,
   ammoCost: v=>`탄 소모 ${v}/발`,

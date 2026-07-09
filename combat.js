@@ -217,11 +217,38 @@ function updateEnemies(dt){
     e.hitT -= dt; e.atkCd -= dt;
     if(e.stun>0) e.stun -= dt;
     if(e.slow>0) e.slow -= dt;
-    // 화상 / 독 지속 피해 (엑조틱 파츠) — 루프 중 splice 방지
+    if(e.chill>0){
+      e.chill -= dt;
+      if(Math.random()<0.22){
+        raid.parts.push({
+          x:e.x+rnd(-e.r*0.6,e.r*0.6), y:e.y-rnd(0,e.r*0.8),
+          vx:rnd(-15,15), vy:rnd(-40,-8), t:rnd(0.25,0.45),
+          c:Math.random()<0.5?'#a8e8ff':'#e0f6ff', r:rnd(1.5,3), ice:1,
+        });
+      }
+    }
+    // 화상 / 독 지속 피해 — 루프 중 splice 방지
     if(e.burn>0){
       e.burn -= dt;
-      e.hp -= 14*dt;
-      if(Math.random()<0.12) raid.parts.push({x:e.x,y:e.y,vx:rnd(-30,30),vy:rnd(-50,-10),t:0.25,c:'#ff8a3a',r:2.5});
+      const dps = e.burnDps>0 ? e.burnDps : 16;
+      e.hp -= dps*dt;
+      // 불꽃 파티클 (자주)
+      if(Math.random()<0.4){
+        const fc = Math.random()<0.35 ? '#ffd24a' : (Math.random()<0.5 ? '#ff8a3a' : '#ff5020');
+        raid.parts.push({
+          x:e.x+rnd(-e.r*0.7, e.r*0.7), y:e.y-rnd(0, e.r*0.9),
+          vx:rnd(-28,28), vy:rnd(-85,-25), t:rnd(0.22,0.48), c:fc, r:rnd(2,4.5), flame:1,
+        });
+      }
+      // 주기적 화상 데미지 숫자
+      e.burnTick = (e.burnTick||0) + dt;
+      if(e.burnTick >= 0.45){
+        const shown = Math.max(1, Math.round(dps * e.burnTick));
+        e.burnTick = 0;
+        raid.dnums.push({x:e.x+rnd(-6,6), y:e.y-e.r-4, txt:shown, t:0.55, c:'#ff8a3a'});
+      }
+    } else {
+      e.burnDps = 0; e.burnTick = 0;
     }
     if(e.poison>0){
       e.poison -= dt;
@@ -565,10 +592,12 @@ function updateShooting(dt){
     : mode==='flame' ? '#ff8a3a'
     : mode==='dart' ? '#9ae07a'
     : mode==='glue' ? '#e8b0d8'
+    : mode==='ice' ? '#8ad8ff'
     : mode==='shock' ? '#a8d0ff'
-    : '#ffe9a0';
+    : (st.knock>1.4 ? '#e8f0ff' : '#ffe9a0');
   const rad = mode==='laser' ? 2.2 : mode==='flame' ? 4.5 : mode==='dart' ? 3.2
-    : mode==='glue' ? 4.0 : mode==='shock' ? 3.0 : 2.5;
+    : mode==='glue' ? 4.0 : mode==='ice' ? 3.4 : mode==='shock' ? 3.0
+    : (st.knock>1.4 ? 3.2 : 2.5);
   for(let p=0;p<st.pellets;p++){
     let a;
     if(st.pellets>1){ // 산탄/화염/끈끈: 부채꼴로 고르게 방사
@@ -577,13 +606,28 @@ function updateShooting(dt){
     } else {
       a = player.ang + (Math.random()-0.5)*spreadDeg*Math.PI/180;
     }
+    // 화상 DPS: 화염 모드·burn 초 길수록 강함
+    const burnDur = st.burn||0;
+    const burnDps = burnDur>0
+      ? (mode==='flame' ? 14 + burnDur*6 : 10 + burnDur*4)
+      : 0;
     world.bullets.push({
       x:mx0, y:my0, vx:Math.cos(a)*spd, vy:Math.sin(a)*spd,
       dmg:st.dmg, life, pierce:st.pierce|0, mode,
-      burn:st.burn||0, poison:st.poison||0, slow:st.slow||0, stun:st.stun||0,
-      chain:st.chain|0, c:col, r:rad,
+      burn:burnDur, burnDps, poison:st.poison||0, slow:st.slow||0, stun:st.stun||0,
+      chain:st.chain|0, knock:st.knock||1, c:col, r:rad,
       hitSet: new Set(), // 관통 시 같은 적 중복 히트 방지
     });
+  }
+  // 화염 총구 불티
+  if(mode==='flame' && !inCave){
+    for(let i=0;i<5;i++){
+      const fa = player.ang + (Math.random()-0.5)*0.5;
+      raid.parts.push({
+        x:mx0, y:my0, vx:Math.cos(fa)*rnd(40,120), vy:Math.sin(fa)*rnd(40,120),
+        t:rnd(0.12,0.28), c:Math.random()<0.5?'#ff8a3a':'#ffd24a', r:rnd(2,4), flame:1,
+      });
+    }
   }
   // 반동: 탄퍼짐 블룸 + 킥백 연출 + 뒤로 밀려남
   player.bloom = Math.min(24, player.bloom + rec*0.4);
@@ -594,7 +638,9 @@ function updateShooting(dt){
   else if(mode==='flame') sfx('honk');
   else if(mode==='dart') sfx('spit');
   else if(mode==='glue') sfx('drop');
+  else if(mode==='ice') sfx('silenced');
   else if(mode==='shock') sfx('click');
+  else if(st.knock>1.8) sfx('honk');
   else if(st.noise>450) sfx('honk');
   else if(st.noise<120) sfx('silenced');
   else sfx('shoot');
@@ -625,16 +671,60 @@ function applyBulletHit(e, b){
   if(b.hitSet && b.hitSet.has(e)) return false;
   if(b.hitSet) b.hitSet.add(e);
   e.hp -= b.dmg; e.hitT = 0.1; e.state='chase';
-  if(b.burn) e.burn = Math.max(e.burn||0, b.burn);
+  // 화염: burn 초·DPS 적용 (모드만 있어도 최소 화상)
+  let burnT = b.burn||0;
+  if(b.mode==='flame' && burnT<=0) burnT = 1.5;
+  if(burnT>0){
+    e.burn = Math.max(e.burn||0, burnT);
+    const dps = b.burnDps || (b.mode==='flame' ? 18 : 12);
+    e.burnDps = Math.max(e.burnDps||0, dps);
+    if(raid){
+      for(let i=0;i<7;i++){
+        const fc = i%3===0 ? '#ffd24a' : (i%3===1 ? '#ff8a3a' : '#ff5020');
+        raid.parts.push({
+          x:e.x+rnd(-8,8), y:e.y-rnd(0,e.r),
+          vx:rnd(-50,50), vy:rnd(-90,-20), t:rnd(0.2,0.4), c:fc, r:rnd(2,5), flame:1,
+        });
+      }
+    }
+  }
   if(b.poison) e.poison = Math.max(e.poison||0, b.poison);
-  if(b.slow) e.slow = Math.max(e.slow||0, b.slow);
+  let slowT = b.slow||0;
+  if(b.mode==='ice' && slowT<=0) slowT = 2.0;
+  if(slowT>0) e.slow = Math.max(e.slow||0, slowT);
+  if(b.mode==='ice'){
+    e.chill = Math.max(e.chill||0, slowT||2);
+    if(raid){
+      for(let i=0;i<6;i++)
+        raid.parts.push({
+          x:e.x+rnd(-10,10), y:e.y-rnd(0,e.r),
+          vx:rnd(-40,40), vy:rnd(-60,-10), t:rnd(0.2,0.4),
+          c:i%2?'#8ad8ff':'#e8f8ff', r:rnd(1.5,3.5), ice:1,
+        });
+    }
+  }
   if(b.stun) e.stun = Math.max(e.stun||0, b.stun);
   const spd = Math.hypot(b.vx,b.vy)||760;
-  const kb = 60/Math.max(1,e.r/12) * (b.mode==='glue' ? 0.35 : 1);
-  e.x += b.vx/spd*kb*0.1; e.y += b.vy/spd*kb*0.1;
+  // 넉백: 기본 약함, knock 총구·공압 계열은 강하게 (끈끈이는 덜 밀림)
+  const knockMul = (b.knock||1) * (b.mode==='glue' ? 0.35 : 1);
+  const push = (14 * knockMul) / Math.max(0.7, e.r/14);
+  const pdx = (b.vx/spd)*push, pdy = (b.vy/spd)*push;
+  e.x += pdx; e.y += pdy;
+  if(raid && typeof solidPx==='function' && solidPx(e.x, e.y)){
+    e.x -= pdx*0.7; e.y -= pdy*0.7;
+  }
+  if(raid && knockMul>=2){
+    for(let i=0;i<4;i++)
+      raid.parts.push({
+        x:e.x, y:e.y, vx:pdx*rnd(0.3,0.8)+rnd(-20,20), vy:pdy*rnd(0.3,0.8)+rnd(-20,20),
+        t:0.2, c:'#d0e0f0', r:rnd(2,4),
+      });
+  }
   const col = b.mode==='laser' ? '#7af0ff' : b.mode==='flame' ? '#ff9a50'
     : b.mode==='dart' ? '#9ae07a' : b.mode==='glue' ? '#e8b0d8'
-    : b.mode==='shock' ? '#a8d0ff' : '#ffd76a';
+    : b.mode==='ice' ? '#8ad8ff'
+    : b.mode==='shock' ? '#a8d0ff'
+    : (knockMul>=2 ? '#c8d8f0' : '#ffd76a');
   if(raid) raid.dnums.push({x:e.x,y:e.y-e.r,txt:Math.round(b.dmg),t:0.7,c:col});
   // 감전 체인: 근처 적에게 약한 데미지+짧은 스턴
   if(b.chain>0 && raid){

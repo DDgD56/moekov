@@ -3657,6 +3657,92 @@ const ITEMS = {
       "recoil": 26
     },
     "desc": "★ 황금 늪 여왕 전용. 연꽃이 핀 기다란 장창. 한 발로 습지를 관통한다."
+  },
+  "dryice_nozzle": {
+    "id": "dryice_nozzle",
+    "kind": "att",
+    "sock": "muzzle",
+    "name": "드라이아이스 노즐",
+    "emoji": "🧊",
+    "shape": "v2",
+    "value": 380,
+    "exotic": true,
+    "rare": true,
+    "mods": {
+      "fire": "ice",
+      "dmg": 3,
+      "slow": 2.8,
+      "bulletSpd": 0.8,
+      "rangeMul": 0.9,
+      "spread": -1,
+      "rpmMul": 0.9,
+      "noiseMul": 0.9,
+      "recoilMul": 0.95
+    },
+    "desc": "★★ 총구. 탄이 차갑게 식어 적을 둔화시킨다. 얼음 이펙트."
+  },
+  "icicle_muzzle": {
+    "id": "icicle_muzzle",
+    "kind": "att",
+    "sock": "muzzle",
+    "name": "고드름 총구",
+    "emoji": "❄️",
+    "shape": "h3",
+    "value": 420,
+    "exotic": true,
+    "rare": true,
+    "mods": {
+      "fire": "ice",
+      "dmg": 5,
+      "slow": 2.2,
+      "bulletSpd": 0.95,
+      "pierce": 0,
+      "spread": -2,
+      "rpmMul": 0.75,
+      "noiseMul": 0.85,
+      "aim": 0.1
+    },
+    "desc": "★★ 총구. 고드름처럼 날카로운 냉기탄. 둔화는 조금 짧지만 타격이 아프다."
+  },
+  "pneumatic_muzzle": {
+    "id": "pneumatic_muzzle",
+    "kind": "att",
+    "sock": "muzzle",
+    "name": "공압 총구",
+    "emoji": "💨",
+    "shape": "T",
+    "value": 360,
+    "exotic": true,
+    "rare": true,
+    "mods": {
+      "knock": 3.8,
+      "dmg": 2,
+      "noiseMul": 1.55,
+      "recoilMul": 1.35,
+      "rpmMul": 0.85,
+      "spread": 2
+    },
+    "desc": "★★ 총구. 압축 공기로 탄을 밀어낸다. 맞은 적이 크게 밀려난다."
+  },
+  "sledge_muzzle": {
+    "id": "sledge_muzzle",
+    "kind": "att",
+    "sock": "muzzle",
+    "name": "해머헤드 총구",
+    "emoji": "🔨",
+    "shape": "sq2",
+    "value": 400,
+    "exotic": true,
+    "rare": true,
+    "mods": {
+      "knock": 2.8,
+      "dmg": 6,
+      "rpmMul": 0.65,
+      "recoilMul": 1.5,
+      "noiseMul": 1.4,
+      "spread": 1
+    },
+    "desc": "★★ 총구. 망치처럼 묵직한 충격. 넉백과 화력을 동시에."
   }
 };
 
@@ -3740,7 +3826,11 @@ const LOOT_POOLS = {
     "mosquito_net_scope",
     "dew_lens_scope",
     "lily_pad_stock",
-    "driftwood_stock"
+    "driftwood_stock",
+    "dryice_nozzle",
+    "icicle_muzzle",
+    "pneumatic_muzzle",
+    "sledge_muzzle"
   ],
   "rareAtt": [
     "library_silencer",
@@ -3775,7 +3865,11 @@ const LOOT_POOLS = {
     "taser_prong",
     "battery_pack",
     "copper_coil_stock",
-    "static_sock_grip"
+    "static_sock_grip",
+    "dryice_nozzle",
+    "icicle_muzzle",
+    "pneumatic_muzzle",
+    "sledge_muzzle"
   ],
   "loot": [
     "gold_tooth",
@@ -3867,7 +3961,9 @@ const LOOT_POOLS = {
     "rivet_scope",
     "safety_goggles_scope",
     "rebar_stock",
-    "pallet_stock"
+    "pallet_stock",
+    "pneumatic_muzzle",
+    "sledge_muzzle"
   ],
   "attMarsh": [
     "reed_silencer",
@@ -3880,7 +3976,9 @@ const LOOT_POOLS = {
     "mosquito_net_scope",
     "dew_lens_scope",
     "lily_pad_stock",
-    "driftwood_stock"
+    "driftwood_stock",
+    "dryice_nozzle",
+    "icicle_muzzle"
   ],
   "lootFactory": [
     "rust_bolt_jar",
