@@ -919,8 +919,14 @@ function killEnemy(e){
   } else {
     if(Math.random()<0.45) raid.drops.push({kind:'coin', x:e.x, y:e.y, v:rndi(3,12)});
     if(Math.random()<0.09){
-      const id = pick(Math.random()<0.6 ? LOOT_POOLS.food : LOOT_POOLS.att);
-      raid.drops.push({kind:'item', x:e.x, y:e.y, inst:mkInst(id), bob:rnd(0,6)});
+      // 일반 몹: 공용 food/att 만 (엑조틱·타지역 전용은 풀에서 제외)
+      const pool = Math.random()<0.6 ? LOOT_POOLS.food : LOOT_POOLS.att;
+      const list = (pool||[]).filter(id=>{
+        const d = ITEMS[id];
+        return d && !d.exotic;
+      });
+      const id = list.length ? pick(list) : pick(pool);
+      if(id && ITEMS[id]) raid.drops.push({kind:'item', x:e.x, y:e.y, inst:mkInst(id), bob:rnd(0,6)});
     }
   }
 }

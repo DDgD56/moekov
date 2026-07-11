@@ -757,6 +757,7 @@ function mkContainer(type, tx, ty){
   return { type, tx, ty, x:(tx+0.5)*TILE, y:(ty+0.5)*TILE, inv:null, opened:false, ct, hp, hpMax:hp };
 }
 // 지역 전용 루트 풀 (att/loot/food) — 없으면 공용 풀
+// 공용 풀에는 지역 전용·엑조틱을 넣지 않는다 (뒷동산에서 공장/습지 템 섞임 방지)
 function pickRegionalPool(pool){
   const reg = raid && raid.region;
   const map = {
@@ -766,11 +767,23 @@ function pickRegionalPool(pool){
   };
   const regKey = map[pool] && reg && map[pool][reg];
   const regPool = regKey && LOOT_POOLS[regKey];
+  // 지역 맵: 전용 풀 우선 (지역 엑조틱 총구 포함 허용)
   if(regPool && regPool.length && Math.random()<0.55)
     return pick(regPool);
+  // 공용 폴백: 엑조틱·지역 전용은 풀 데이터에서 제외되어 있어야 함 + 안전망
   const base = LOOT_POOLS[pool];
-  if(base && base.length) return pick(base);
+  if(base && base.length) return pickFiltered(base, pool==='att');
   return null;
+}
+// 일반 롤에서 엑조틱 플래그 아이템 제외 (풀 오염 시 안전망). allowExotic=false 기본
+function pickFiltered(list, stripExotic){
+  if(!list || !list.length) return null;
+  if(!stripExotic) return pick(list);
+  const ok = list.filter(id=>{
+    const d = ITEMS[id];
+    return d && !d.exotic;
+  });
+  return (ok.length ? pick(ok) : pick(list));
 }
 function fillContainer(c){
   c.inv = new Inv(c.ct.w, c.ct.h);
@@ -783,15 +796,16 @@ function fillContainer(c){
     let id;
     if(pool==='att' && Math.random()<rareCh){
       // 엑조틱: 폐공장(★2) 약 28%, 습지(★3) 약 55% 로 희귀 대신 등장
+      // 뒷동산(★1)은 엑조틱 상자 드롭 없음
       const exoCh = stars>=3 ? 0.55 : (stars>=2 ? 0.28 : 0);
       id = (exoCh>0 && LOOT_POOLS.exoticAtt && Math.random()<exoCh)
         ? pick(LOOT_POOLS.exoticAtt)
-        : pick(LOOT_POOLS.rareAtt);
+        : pickFiltered(LOOT_POOLS.rareAtt, true);
     } else if(pool==='loot' && Math.random()<rareCh*1.2){
-      // 귀중품 희귀 롤
+      // 귀중품 희귀 롤 (공용 rareLoot만 — 지역 전용 귀중품은 일반 loot 지역풀)
       id = pick(LOOT_POOLS.rareLoot || LOOT_POOLS.loot);
     } else {
-      // 공장/습지: 지역 전용 풀(장착·귀중품·음식) 우선
+      // 공장/습지: 지역 전용 풀(장착·귀중품·음식) 우선, 뒷동산은 공용만
       id = pickRegionalPool(pool);
     }
     if(!ITEMS[id]) continue;
