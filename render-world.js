@@ -847,6 +847,7 @@ function renderRaidUI(){
     ctx.fillText('EXTRACT', psx, psy-57);
   }
   drawExtractCompass(psx, psy);
+  drawCorpseCompass(psx, psy);
 }
 
 // 탈출구 방향 표시 — 휴대용 탐지기(일시) 또는 탐지모듈 장착 총
@@ -906,6 +907,49 @@ function drawExtractCompass(psx, psy){
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(label, psx, psy+r+9.5);
+}
+
+// 시체 방향 표시 — 출격 직후 30초 (escape 탐지기와 별도 링)
+function findRaidCorpse(){
+  if(!raid || !raid.containers) return null;
+  for(const c of raid.containers) if(c.type==='corpse') return c;
+  return null;
+}
+function drawCorpseCompass(psx, psy){
+  if(!player.corpseDetectT || player.corpseDetectT<=0 || !raid || raid.over) return;
+  const c = findRaidCorpse();
+  if(!c) return;
+  const ang = Math.atan2(c.y - player.y, c.x - player.x);
+  const pulse = 0.65 + 0.35*Math.sin(performance.now()/160);
+  const r = 52;
+  const ax = psx + Math.cos(ang)*r;
+  const ay = psy + Math.sin(ang)*r;
+  pBox(psx-r-2, psy-r-2, r*2+4, r*2+4, `rgba(200,120,120,${0.22*pulse})`);
+  const ca = Math.cos(ang), sa = Math.sin(ang);
+  const tipX = ax + ca*8, tipY = ay + sa*8;
+  const bx = ax - ca*6, by = ay - sa*6;
+  const px1 = bx - sa*7, py1 = by + ca*7;
+  const px2 = bx + sa*7, py2 = by - ca*7;
+  ctx.fillStyle = `rgba(230,140,140,${0.92*pulse})`;
+  ctx.beginPath();
+  ctx.moveTo(tipX, tipY);
+  ctx.lineTo(px1, py1);
+  ctx.lineTo(px2, py2);
+  ctx.closePath();
+  ctx.fill();
+  pBox(tipX-1, tipY-1, 3, 3, '#ffe8e8');
+  const distM = Math.round(dist(player.x, player.y, c.x, c.y)/TILE);
+  const label = '💀 시체 '+distM+'m '+player.corpseDetectT.toFixed(1)+'s';
+  const tw = Math.min(120, label.length*5.5+10);
+  // 탈출 나침반 라벨 아래에 배치
+  const ly = psy + r + 4;
+  pRect(psx-tw/2, ly, tw, 11, 'rgba(28,16,16,.88)');
+  pBox(psx-tw/2, ly, tw, 11, `rgba(200,100,100,${0.55*pulse})`);
+  ctx.font = 'bold 9px monospace';
+  ctx.fillStyle = '#f0b0b0';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(label, psx, ly+5.5);
 }
 
 // 지붕 — 각진 타일

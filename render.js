@@ -72,6 +72,14 @@ function update(dt){
       }
     }
   }
+  // 시체 방향 표시 타이머 (출격 직후 30초)
+  if(player.corpseDetectT > 0){
+    const prevC = player.corpseDetectT;
+    player.corpseDetectT = Math.max(0, player.corpseDetectT - dt);
+    if(prevC>0 && player.corpseDetectT<=0){
+      toast('💀 시체 방향 표시 종료 — 위치를 기억해 두세요');
+    }
+  }
   // 보스 디버프
   if(player.slowT > 0) player.slowT = Math.max(0, player.slowT - dt);
   if(player.poisonT > 0 && scene==='raid' && raid && !raid.over){

@@ -29,7 +29,7 @@ Godot 이식 시 권장 경로: `user://moekov_save.json` (동일 JSON 스키마
 | `questOffers` | array\|null | 창구에 제안 중인 일반 의뢰 목록 |
 | `questsDone` | number | 완료한 퀘스트 수 (보상 스케일·오퍼 조건) |
 | `qslots` | array | 퀵슬롯 3칸 `[{d:itemId}\|null, …]` |
-| `deathCache` | object\|null | 사망 시체 회수 `{ items:[{d,r}], x, y }` |
+| `deathCache` | object\|null | 사망 시체 회수 `{ items:[{d,r}], x, y, region }` — 같은 지역 다음 출격 1회만 배치. 다른 지역 출격 시 소멸 |
 | `region` | string | 마지막 선택 지역 id (`hill`/`factory`/`marsh`) |
 | `regionExtracts` | object | 지역별 탈출 횟수 `{ [regionId]: number }` |
 | `regionBoss` | object | 지역별 보스 처치 `{ [regionId]: true }` |
@@ -82,7 +82,7 @@ Godot 이식 시 권장 경로: `user://moekov_save.json` (동일 JSON 스키마
 |------|------|
 | `scene` | `'cave'` \| `'raid'` |
 | `raid` | 맵·적·탄·시간·보스 인스턴스 등 전체 레이드 객체 |
-| `player.*` 전투 필드 | `x,y,hp,ang,reloading,stam,iframe,kills,coinsGained,bloom,kick,swapT,extractDetectT,slowT,poisonT` 등 |
+| `player.*` 전투 필드 | `x,y,hp,ang,reloading,stam,iframe,kills,coinsGained,bloom,kick,swapT,extractDetectT,corpseDetectT,slowT,poisonT` 등 |
 | `panel` | 열린 UI 패널 |
 | `cam` / `shake` | 카메라·스크린 흔들림 |
 | `benchIdx` / `benchFilter` | 작업대 UI 전용 (세션) |
@@ -116,6 +116,7 @@ HP·탄약은 출격 시 `maxHp()` / `gunStats().ammo`로 리셋.
 | stash 뒤 칸에만 총 | 해당 인덱스까지 `stashSlots` 상향 (꺼내기 가능) |
 | `exoticIntroDone` 없음 | `regionExtracts.factory` 있으면 완료로 간주 |
 | `stashUnlocked` 없음 + stash에 총 | 해금으로 간주 (구세이브) |
+| `deathCache.region` 없음 | `State.region`(마지막 선택 지역)으로 추정 |
 
 **더 이상 사용하지 않음:** `stashBaseDone` (저장 안 함). 로드 시에만 레거시 키로 참조.
 

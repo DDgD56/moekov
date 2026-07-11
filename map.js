@@ -555,34 +555,43 @@ function buildRaid(){
     }
   }
 
-  // 💀 지난 사망 지점의 장비 잔해 (이번 출격 1회 한정 — 이후 소멸)
+  // 💀 지난 사망 지점의 장비 잔해 (같은 지역 다음 출격 1회 한정 — 다른 지역이면 소멸)
+  let corpsePlaced = null;
+  let corpseLostOtherRegion = false;
   if(State.deathCache && State.deathCache.items.length){
     const dc = State.deathCache;
-    const tx0 = clamp(Math.floor(dc.x/TILE), 2, w-3);
-    const ty0 = clamp(Math.floor(dc.y/TILE), 2, h-3);
-    let best = null, bestD = 1e9;
-    for(let ry2=-18; ry2<=18; ry2++) for(let rx2=-18; rx2<=18; rx2++){
-      const x = tx0+rx2, y = ty0+ry2;
-      if(x<2||y<2||x>=w-2||y>=h-2) continue;
-      const v = t[y*w+x];
-      if(v!==0 && v!==2 && v!==7) continue;
-      const d2 = rx2*rx2 + ry2*ry2;
-      if(d2 < bestD){ bestD = d2; best = {x, y}; }
-    }
-    if(best){
-      const c = mkContainer('corpse', best.x, best.y);
-      c.inv = new Inv(CONTAINER_TYPES.corpse.w, CONTAINER_TYPES.corpse.h);
-      for(const it of dc.items){
-        if(!ITEMS[it.d]) continue;
-        const inst = mkInst(it.d);
-        inst.rot = it.r||0;
-        c.inv.autoPlace(inst); // 내 물건이라 조사(hidden) 없음
+    const sameRegion = !dc.region || dc.region === RG.id;
+    if(sameRegion){
+      const tx0 = clamp(Math.floor(dc.x/TILE), 2, w-3);
+      const ty0 = clamp(Math.floor(dc.y/TILE), 2, h-3);
+      let best = null, bestD = 1e9;
+      for(let ry2=-18; ry2<=18; ry2++) for(let rx2=-18; rx2<=18; rx2++){
+        const x = tx0+rx2, y = ty0+ry2;
+        if(x<2||y<2||x>=w-2||y>=h-2) continue;
+        const v = t[y*w+x];
+        if(v!==0 && v!==2 && v!==7) continue;
+        const d2 = rx2*rx2 + ry2*ry2;
+        if(d2 < bestD){ bestD = d2; best = {x, y}; }
       }
-      c.opened = true;
-      containers.push(c);
+      if(best){
+        const c = mkContainer('corpse', best.x, best.y);
+        c.inv = new Inv(CONTAINER_TYPES.corpse.w, CONTAINER_TYPES.corpse.h);
+        for(const it of dc.items){
+          if(!ITEMS[it.d]) continue;
+          const inst = mkInst(it.d);
+          inst.rot = it.r||0;
+          c.inv.autoPlace(inst); // 내 물건이라 조사(hidden) 없음
+        }
+        c.opened = true;
+        containers.push(c);
+        corpsePlaced = c;
+      }
+    } else {
+      // 다른 지역 출격 → 시체 영구 소멸
+      corpseLostOtherRegion = true;
     }
+    State.deathCache = null; // 이번 판에 안 찾으면 소멸 (다른 지역도 동일)
   }
-  State.deathCache = null; // 이번 판에 안 찾으면 소멸
 
   // ── 연결성 검사: 스폰에서 도달 못 하는 격리 공간 제거 ──
   // 걸을 수 있는 타일: 풀0·바닥2·다리7 (벽1·바위4·물5·차량6·맵밖8 은 못 지나감)
@@ -659,9 +668,10 @@ function buildRaid(){
       const best = pickBest(true,true) || pickBest(true,false) || pickBest(false,true) || pickBest(false,false);
       if(best){ z.x=best.x; z.y=best.y; }
     }
-    // 격리된 상자 제거 (접근 불가라 무의미) — 단 내 시체(corpse)는 유지 시도
+    // 격리된 상자 제거 (접근 불가라 무의미) — 내 시체(corpse)는 유지
     for(let ci=containers.length-1; ci>=0; ci--){
       const c=containers[ci];
+      if(c.type==='corpse') continue;
       const cx=clamp(Math.floor(c.x/TILE),0,w-1), cy=clamp(Math.floor(c.y/TILE),0,h-1);
       // 상자 자신 칸 또는 인접 칸이 도달 가능하면 OK
       let ok=false;
@@ -723,8 +733,15 @@ function buildRaid(){
   player.stam = stamMax(); player.exhausted = false;
   player.extractDetectT = 0;
   player.extractHintIntro = false;
+  player.corpseDetectT = 0;
   player.slowT = 0;
   player.poisonT = 0;
+  // 시체가 배치됐으면 30초간 방향 표시
+  if(corpsePlaced){
+    player.corpseDetectT = 30;
+  }
+  // startRaid 토스트용 플래그 (다른 지역 출격으로 시체 소멸)
+  raid._corpseLostOtherRegion = corpseLostOtherRegion;
   // 첫 맵(뒷동산): 시작 5초간 탈출구 방향 힌트
   if(RG.id === 'hill'){
     player.extractDetectT = 5;

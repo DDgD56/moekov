@@ -209,7 +209,13 @@ function onDeath(){
   State.qslots = [null,null,null];
   State.activeGun = 0;
   State.deathCache = cacheItems.length
-    ? {items:cacheItems, x:Math.round(player.x), y:Math.round(player.y)} : null;
+    ? {
+        items: cacheItems,
+        x: Math.round(player.x),
+        y: Math.round(player.y),
+        region: (raid && raid.region) || State.region || 'hill',
+      }
+    : null;
   renderQslots();
   // 몸통이 하나도 없으면 창구에서 무료 지급받도록 안내 (자동 지급 X)
   const needBody = !hasAnyBody();
@@ -229,6 +235,7 @@ function returnToCave(){
   player.hp = maxHp();
   player.extractDetectT = 0;
   player.extractHintIntro = false;
+  player.corpseDetectT = 0;
   closePanel();
   playMusic('cave');
   saveGame();
@@ -238,7 +245,11 @@ function startRaid(){
   buildRaid();
   scene = 'raid';
   playMusic('dayRaid');
-  if(player.extractHintIntro){
+  if(raid && raid._corpseLostOtherRegion){
+    toast('💀 다른 지역 출격으로 시체가 사라졌다...');
+  } else if(player.corpseDetectT > 0){
+    toast('💀 30초간 시체 위치를 표시합니다. 같은 지역에서만 회수할 수 있습니다.');
+  } else if(player.extractHintIntro){
     toast('🚪 5초간 탈출구 방향을 표시합니다. 표시된 지점으로 이동해 탈출하세요.');
   } else {
     toast('🚩 표시된 탈출 지점으로 이동해 탈출하세요. 밤이 되면... 조심하세요.');

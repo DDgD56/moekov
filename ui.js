@@ -274,6 +274,9 @@ function renderPanel(){
   }
   else if(t==='deploy'){
     p.classList.add('wide');
+    const dc = State.deathCache;
+    const hasCorpse = !!(dc && dc.items && dc.items.length);
+    const corpseRegion = hasCorpse ? (dc.region || State.region) : null;
     const cards = REGION_ORDER.map(id=>{
       const rg = REGIONS[id];
       const unlocked = regionUnlocked(id);
@@ -281,20 +284,28 @@ function renderPanel(){
       const ext = State.regionExtracts[id]||0;
       const bossClear = State.regionBoss[id];
       const sel = State.region===id ? ' sel' : '';
-      return `<div class="region-card${unlocked?'':' locked'}${sel}" data-region="${id}">
+      const corpseHere = hasCorpse && corpseRegion===id;
+      return `<div class="region-card${unlocked?'':' locked'}${sel}${corpseHere?' has-corpse':''}" data-region="${id}">
         <div class="rg-emoji">${rg.emoji}</div>
         <div class="rg-info">
-          <div class="rg-name">${rg.name} <span class="rg-stars">${stars}</span></div>
+          <div class="rg-name">${rg.name} <span class="rg-stars">${stars}</span>${corpseHere?' <span class="rg-corpse">💀 시체</span>':''}</div>
           <div class="rg-desc">${rg.desc}</div>
           <div class="rg-stat">🪙 보상 ×${rg.coinMul} · ☀️ 낮 ${rg.dayLen}초${rg.boss?` · 👑 ${(ENEMY_TYPES[rg.bossId]||{}).name||'보스'}`:''} · 탈출 ${ext}회${bossClear?' · 👑✔':''}</div>
+          ${corpseHere ? '<div class="rg-corpse-hint">💀 지난 사망 시체가 이 지역에 있습니다 (출격 시 30초 표시)</div>' : ''}
           ${unlocked ? '' : `<div class="rg-lock">🔒 ${rg.unlockDesc||'잠김'}</div>`}
         </div>
       </div>`;
     }).join('');
+    const corpseWarn = hasCorpse
+      ? (corpseRegion===State.region
+        ? `<p class="deploy-corpse ok">💀 시체가 <b>${REGIONS[corpseRegion]?REGIONS[corpseRegion].name:corpseRegion}</b>에 있습니다. 출격 시 30초간 위치를 표시합니다.</p>`
+        : `<p class="deploy-corpse warn">⚠ 시체는 <b>${REGIONS[corpseRegion]?REGIONS[corpseRegion].emoji+' '+REGIONS[corpseRegion].name:corpseRegion}</b>에 있습니다. <b>다른 지역 출격 시 시체가 사라집니다.</b></p>`)
+      : '';
     p.innerHTML = `
       <div class="panel-title">🚪 출격 — 지역 선택</div>
       <div class="region-list">${cards}</div>
-      <p class="deploy-tips">🚩 탈출구를 직접 찾아 3초 대기 · 💀 죽으면 가방·장착 총·주운 코인 상실(창고는 안전)</p>
+      ${corpseWarn}
+      <p class="deploy-tips">🚩 탈출구를 직접 찾아 3초 대기 · 💀 죽으면 가방·장착 총 상실(같은 지역 다음 출격에서 회수, 다른 지역 가면 소멸)</p>
       <button class="btn big" id="go" ${regionUnlocked(State.region)?'':'disabled'}>${REGIONS[State.region].emoji} ${REGIONS[State.region].name} 출격! 🚀</button>
       <div class="panel-hint">지역을 클릭해 선택 · <b>ESC</b> 닫기</div>`;
     p.querySelectorAll('.region-card').forEach(c=>{
@@ -306,6 +317,10 @@ function renderPanel(){
     });
     p.querySelector('#go').addEventListener('click', ()=>{
       if(!regionUnlocked(State.region)) return;
+      if(hasCorpse && corpseRegion && corpseRegion!==State.region){
+        const nm = REGIONS[corpseRegion] ? REGIONS[corpseRegion].name : corpseRegion;
+        if(!confirm('시체가 '+nm+'에 있습니다. 다른 지역 출격 시 시체가 사라집니다. 계속할까요?')) return;
+      }
       startRaid();
     });
   }
@@ -334,8 +349,8 @@ function renderPanel(){
       <div class="deploy-body">
         <p>총과 가방을 모두 그 자리에 떨어뜨렸다:</p>
         <p class="lost-list">${lost.length? lost.join(', ') : '(없음)'}</p>
-        <p>💀 <b>다음 출격</b>에서 쓰러진 자리를 찾아가면 회수할 수 있다.<br>
-        <small>단 한 번뿐 — 그 판에 못 찾으면 영영 사라진다. 창고는 무사하다.</small></p>
+        <p>💀 <b>같은 지역</b> 다음 출격에서 쓰러진 자리를 찾아가면 회수할 수 있다.<br>
+        <small>출격 직후 30초간 시체 방향을 표시한다. 단 한 번뿐 — 그 판에 못 찾거나 <b>다른 지역</b>으로 가면 영영 사라진다. 창고는 무사하다.</small></p>
         ${panel.data.needBody ? '<p>🔫 총기 몸통이 하나도 없다. <b>퀘스트 창구</b>에 들러라 (❗ 표시).</p>' : ''}
         <button class="btn big" id="home">케이브로 돌아가기 🏠</button>
       </div>`;

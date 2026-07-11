@@ -150,7 +150,7 @@ const State = {
   exoQuest: null,        // 엑조틱 퀘스트 슬롯 (부품 수집가) — 일반과 동시 진행
   questOffers: null, questsDone: 0,
   qslots: [null, null, null], // 음식 퀵슬롯 (3·4·5키)
-  deathCache: null, // 사망 시 떨어뜨린 장비 {items:[{d,r}], x, y} — 다음 출격 1회 한정 회수
+  deathCache: null, // 사망 시 떨어뜨린 장비 {items:[{d,r}], x, y, region} — 같은 지역 다음 출격 1회 한정 회수
   region: 'hill',            // 마지막 선택 지역
   regionExtracts: {},        // 지역별 탈출 횟수 {hill:3, ...}
   regionBoss: {},            // 지역별 보스 처치 여부 {factory:true}
@@ -239,10 +239,14 @@ function loadGame(){
     State.stashUnlocked = State.stashSlots > 0;
     State.qslots = (d.qslots||[null,null,null]).map(s=> s && ITEMS[s.d] ? mkInst(s.d) : null);
     while(State.qslots.length<3) State.qslots.push(null);
-    State.deathCache = d.deathCache||null;
     State.region = d.region || 'hill';
     State.regionExtracts = d.regionExtracts || {};
     State.regionBoss = d.regionBoss || {};
+    State.deathCache = d.deathCache||null;
+    // 구세이브: deathCache에 region 없으면 마지막 선택 지역으로 추정
+    if(State.deathCache && State.deathCache.items && State.deathCache.items.length && !State.deathCache.region){
+      State.deathCache.region = State.region;
+    }
     // 엑조틱 입문: 이미 레이저 포인터를 갖고 있거나 공장 탈출 이력이 많으면 완료로 간주
     State.exoticIntroDone = d.exoticIntroDone!==undefined
       ? !!d.exoticIntroDone
@@ -279,6 +283,7 @@ const player = {
   bloom:0, kick:0, swapT:0, // 반동 블룸 / 킥백 / 무기 교체 딜레이
   extractDetectT:0, // 휴대용 탐지기·입문 힌트 남은 시간(초)
   extractHintIntro:false, // 뒷동산 시작 5초 탈출 방향 힌트
+  corpseDetectT:0,  // 시체 방향 표시 남은 시간(초) — 출격 직후 30초
   slowT:0,          // 보스 가시/속박 등 이속 저하
   poisonT:0,        // 보스 독 지속 피해
 };

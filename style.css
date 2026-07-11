@@ -292,6 +292,14 @@ canvas#cv { image-rendering:pixelated; image-rendering:crisp-edges; }
 .rg-stat { font-size:12px; color:#98a888; }
 .rg-lock { font-size:13px; color:#e0a05a; font-weight:bold; margin-top:4px; }
 .rg-unlocked { color:#8ae09a; font-size:16px; }
+.rg-corpse { color:#e08080; font-size:13px; margin-left:6px; font-weight:bold; }
+.rg-corpse-hint { font-size:12px; color:#e0a0a0; margin-top:4px; font-weight:bold; }
+.region-card.has-corpse { border-color:#a06060; }
+.region-card.has-corpse.sel { border-color:#e88888; background:rgba(60,28,28,.4); }
+.deploy-corpse { font-size:13px; line-height:1.7; margin:6px 0 2px; padding:8px 12px;
+  border-radius:8px; border:1px solid #6a4040; background:rgba(40,18,18,.45); }
+.deploy-corpse.ok { color:#e0b0b0; border-color:#6a5050; }
+.deploy-corpse.warn { color:#f0c080; border-color:#a07040; background:rgba(50,32,12,.5); }
 
 /* 작업대 하단: 통계 + 보관대 가로 배치 */
 .bench-bottom { display:flex; gap:16px; align-items:flex-start; justify-content:center; flex-wrap:wrap; }
