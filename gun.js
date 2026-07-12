@@ -82,7 +82,8 @@ function gunStats(gun){
     return { name:'맨손', cls:'', dmg:2, rpm:120, spread:10, ammo:0, reload:1, noise:100,
              pellets:1, recoil:5, zoom:1, light:0, aim:1,
              fire:null, pierce:0, burn:0, poison:0, slow:0, stun:0, chain:0,
-             rangeMul:1, bulletSpd:1, ammoCost:1, extractDetect:false, knock:1 };
+             rangeMul:1, bulletSpd:1, ammoCost:1, extractDetect:false, knock:1,
+             ricochet:0, lifesteal:0, boom:0, magnet:1 };
   }
   const b = gun.body.def;
   const s = { name:b.name, cls:b.cls||'', dmg:b.base.dmg, rpm:b.base.rpm, spread:b.base.spread,
@@ -90,7 +91,8 @@ function gunStats(gun){
               pellets:b.base.pellets||1, recoil:b.base.recoil!=null?b.base.recoil:6,
               zoom:1, light:0, aim:1,
               fire:null, pierce:0, burn:0, poison:0, slow:0, stun:0, chain:0,
-              rangeMul:1, bulletSpd:1, ammoCost:1, extractDetect:false, knock:1 };
+              rangeMul:1, bulletSpd:1, ammoCost:1, extractDetect:false, knock:1,
+              ricochet:0, lifesteal:0, boom:0, magnet:1 };
   for(const m of gun.atts){
     const mod = m.inst.def.mods||{};
     if(mod.dmg) s.dmg += mod.dmg;
@@ -118,6 +120,11 @@ function gunStats(gun){
     if(mod.ammoCost) s.ammoCost = Math.max(s.ammoCost, mod.ammoCost|0);
     if(mod.extractDetect) s.extractDetect = true;
     if(mod.knock) s.knock = Math.max(s.knock||1, mod.knock);
+    // ★★★ 유물 기믹
+    if(mod.ricochet) s.ricochet = Math.max(s.ricochet, mod.ricochet|0);
+    if(mod.lifesteal) s.lifesteal += mod.lifesteal;
+    if(mod.boom) s.boom = Math.max(s.boom, mod.boom);
+    if(mod.magnet) s.magnet = Math.max(s.magnet, mod.magnet);
   }
   // fire 없이 stun/slow만 있는 파츠 → 보조 모드 추론 (ice 명시 없을 때만 glue)
   if(!s.fire){

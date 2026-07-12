@@ -214,6 +214,7 @@ function buildShapeEl(cells, def, cs, hidden){
     el.classList.add('unknown');
   } else {
     if(def.exotic){ el.classList.add('epic'); }
+    if(def.relic){ el.classList.add('relic'); } // ★★★ 유물: 보라 글로우
     else if(def.rare){ el.classList.add('epic'); }
     else if(def.value>=150){ el.classList.add('rare'); }
     attachTip(el, def);
@@ -570,6 +571,11 @@ const TIP_MODS = {
   bulletSpd: v=>`탄속 ×${v}`,
   ammoCost: v=>`탄 소모 ${v}/발`,
   extractDetect: ()=>`📡 탈출구 방향 표시`,
+  // ★★★ 유물 기믹
+  ricochet: v=>`🪃 도탄 ${v}회 (벽에 튕김)`,
+  lifesteal: v=>`🩸 흡혈 ${v} (처치 시 회복)`,
+  boom: v=>`💥 작렬 (명중 시 반경 ${v} 폭발)`,
+  magnet: v=>`🧲 코인 자석 ×${v}`,
 };
 function tipHTML(def){
   let kind = '', extra = '';
@@ -596,9 +602,10 @@ function tipHTML(def){
   } else {
     kind = '귀중품 · 케이브 판매함에서 판매';
   }
-  const rareTag = def.exotic ? ' <span class="tip-rare">★★ 엑조틱</span>'
+  const rareTag = def.relic ? ' <span class="tip-relic">★★★ 유물</span>'
+    : (def.exotic ? ' <span class="tip-rare">★★ 엑조틱</span>'
     : (def.bossBody ? ' <span class="tip-rare">👑 보스 전용</span>'
-    : (def.rare ? ' <span class="tip-rare">★ 희귀</span>' : ''));
+    : (def.rare ? ' <span class="tip-rare">★ 희귀</span>' : '')));
   return `<div class="tip-name">${def.emoji} ${def.name}${rareTag}</div>
     <div class="tip-kind">${kind}</div>${extra}
     ${def.desc?`<div class="tip-desc">${def.desc}</div>`:''}

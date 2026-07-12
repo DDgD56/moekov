@@ -616,6 +616,7 @@ function updateShooting(dt){
       dmg:st.dmg, life, pierce:st.pierce|0, mode,
       burn:burnDur, burnDps, poison:st.poison||0, slow:st.slow||0, stun:st.stun||0,
       chain:st.chain|0, knock:st.knock||1, c:col, r:rad,
+      ricochet:st.ricochet|0, lifesteal:st.lifesteal||0, boom:st.boom||0, // ★★★ 유물 기믹
       hitSet: new Set(), // 관통 시 같은 적 중복 히트 방지
     });
   }
@@ -741,15 +742,58 @@ function applyBulletHit(e, b){
       if(++chained >= b.chain) break;
     }
   }
+  // ★★★ 작렬: 명중 지점이 터져 주변 적을 휩쓴다 (플레이어 무해)
+  if(b.boom>0 && raid){
+    const bd2 = Math.max(4, Math.round(b.dmg*0.6));
+    for(const o of raid.enemies){
+      if(o===e || o.hp<=0) continue;
+      const d2 = dist(b.x,b.y,o.x,o.y);
+      if(d2 > b.boom) continue;
+      o.hp -= bd2; o.hitT = 0.12; o.state='chase';
+      raid.dnums.push({x:o.x,y:o.y-o.r,txt:bd2,t:0.55,c:'#ffb84a'});
+      if(o.hp<=0) killEnemy(o);
+    }
+    for(let i=0;i<12;i++){
+      const a2 = i/12*Math.PI*2;
+      raid.parts.push({x:b.x, y:b.y, vx:Math.cos(a2)*rnd(60,160), vy:Math.sin(a2)*rnd(60,160),
+        t:rnd(0.15,0.35), c:i%2?'#ffb84a':'#ff7a3a', r:rnd(2,5), flame:1});
+    }
+    shake = Math.min(14, shake+3);
+    sfx('break');
+  }
   sfx('hit');
-  if(e.hp<=0) killEnemy(e);
+  const killed = e.hp<=0;
+  if(killed) killEnemy(e);
+  // ★★★ 흡혈: 직접 처치 시 체력 회복
+  if(killed && b.lifesteal>0 && raid){
+    const heal = Math.min(maxHp()-player.hp, b.lifesteal);
+    if(heal>0){
+      player.hp += heal;
+      raid.dnums.push({x:player.x, y:player.y-20, txt:'+'+Math.round(heal), t:0.7, c:'#7ae08a'});
+      raid.parts.push({x:player.x, y:player.y-10, vx:rnd(-20,20), vy:rnd(-60,-30), t:0.4, c:'#e05a6a', r:3});
+    }
+  }
   return true;
 }
 
 function updateBullets(dt){
   for(let i=raid.bullets.length-1;i>=0;i--){
     const b = raid.bullets[i];
+    const ox = b.x, oy = b.y;
     b.x += b.vx*dt; b.y += b.vy*dt; b.life -= dt;
+    // ★★★ 도탄: 벽에 박히는 대신 튕김 (축별 반사)
+    if(b.ricochet>0 && b.life>0 && shotSolidPx(b.x,b.y)){
+      const hitX = shotSolidPx(ox + b.vx*dt, oy); // 가로로 막혔나
+      const hitY = shotSolidPx(ox, oy + b.vy*dt); // 세로로 막혔나
+      if(hitX) b.vx = -b.vx;
+      if(hitY) b.vy = -b.vy;
+      if(!hitX && !hitY){ b.vx = -b.vx; b.vy = -b.vy; } // 모서리 정통
+      b.x = ox; b.y = oy;
+      b.ricochet--;
+      if(b.hitSet) b.hitSet = new Set(); // 튕긴 탄은 같은 적을 다시 맞출 수 있음
+      raid.parts.push({x:ox, y:oy, vx:rnd(-70,70), vy:rnd(-70,70), t:0.18, c:'#ffe9a0', r:2.5});
+      sfx('drop');
+    }
     // 화염: 벽은 막히지만 약하게 통과 연출 (수명으로 끝)
     let dead = b.life<=0 || shotSolidPx(b.x,b.y);
     if(!dead){
@@ -893,14 +937,17 @@ function killEnemy(e){
       raid.drops.push({kind:'item', x:e.x+16, y:e.y, inst:mkInst('crown'), bob:rnd(0,6)});
     else
       raid.drops.push({kind:'item', x:e.x+16, y:e.y, inst:mkInst(pick(LOOT_POOLS.rareAtt)), bob:rnd(0,6)});
-    // 스테이지 높을수록 엑조틱 확률↑
+    // 스테이지 높을수록 엑조틱 확률↑, 유물(★★★)은 킹 15%·습지 35% + 습지 확정 1개
     const exoChance = style==='mire' ? 0.9 : (style==='king' ? 0.65 : 0.2);
-    const attDrop = (LOOT_POOLS.exoticAtt && Math.random()<exoChance)
-      ? pick(LOOT_POOLS.exoticAtt) : pick(LOOT_POOLS.rareAtt);
+    const relicChance = style==='mire' ? 0.35 : (style==='king' ? 0.15 : 0);
+    const attDrop = (LOOT_POOLS.relicAtt && Math.random()<relicChance)
+      ? pick(LOOT_POOLS.relicAtt)
+      : (LOOT_POOLS.exoticAtt && Math.random()<exoChance)
+        ? pick(LOOT_POOLS.exoticAtt) : pick(LOOT_POOLS.rareAtt);
     raid.drops.push({kind:'item', x:e.x-20, y:e.y+10, inst:mkInst(attDrop), bob:rnd(0,6)});
     raid.drops.push({kind:'item', x:e.x+20, y:e.y+10, inst:mkInst(pick(LOOT_POOLS.rareAtt)), bob:rnd(0,6)});
-    if(style==='mire')
-      raid.drops.push({kind:'item', x:e.x, y:e.y+18, inst:mkInst(pick(LOOT_POOLS.exoticAtt||LOOT_POOLS.rareAtt)), bob:rnd(0,6)});
+    if(style==='mire') // 습지 보스: 유물 확정 드랍
+      raid.drops.push({kind:'item', x:e.x, y:e.y+18, inst:mkInst(pick(LOOT_POOLS.relicAtt||LOOT_POOLS.exoticAtt||LOOT_POOLS.rareAtt)), bob:rnd(0,6)});
     const coins = style==='mire' ? rndi(220,340) : (style==='king' ? rndi(150,250) : rndi(80,140));
     raid.drops.push({kind:'coin', x:e.x, y:e.y-14, v:coins});
     for(let p=0;p<20;p++)
@@ -933,11 +980,13 @@ function killEnemy(e){
 
 function updateDrops(dt){
   player.lootMsgCd -= dt;
+  // ★★★ 자석: 유물 탄창이 코인 흡수 반경을 키운다
+  const magR = 80 * (gunStats(curGun()).magnet || 1);
   for(let i=raid.drops.length-1;i>=0;i--){
     const d = raid.drops[i];
     const dp = dist(d.x,d.y,player.x,player.y);
     if(d.kind==='coin'){
-      if(dp<80){ d.x = lerp(d.x,player.x,dt*8); d.y = lerp(d.y,player.y,dt*8); }
+      if(dp<magR){ d.x = lerp(d.x,player.x,dt*8); d.y = lerp(d.y,player.y,dt*8); }
       if(dp<18){ player.coinsGained += Math.round(d.v * (raid.coinMul||1)); sfx('coin'); raid.drops.splice(i,1); }
     } else {
       if(dp<24){

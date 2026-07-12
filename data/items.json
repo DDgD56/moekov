@@ -2871,5 +2871,163 @@
       "spread": 1
     },
     "desc": "★★ 총구. 망치처럼 묵직한 충격. 넉백과 화력을 동시에."
+  },
+  "dino_spine": {
+    "id": "dino_spine",
+    "kind": "att",
+    "rare": true,
+    "exotic": true,
+    "relic": true,
+    "sock": "muzzle",
+    "name": "공룡 등뼈 총열",
+    "emoji": "🦴",
+    "shape": "worm",
+    "value": 880,
+    "mods": {
+      "ricochet": 2,
+      "dmg": 12,
+      "pierce": 1,
+      "bulletSpd": 1.25,
+      "rpmMul": 0.7,
+      "noiseMul": 1.6
+    },
+    "desc": "★★★ 태고의 유물. 탄이 벽을 2번 튕긴다. 등뼈처럼 굽이치는 9칸."
+  },
+  "bat_fang": {
+    "id": "bat_fang",
+    "kind": "att",
+    "rare": true,
+    "exotic": true,
+    "relic": true,
+    "sock": "muzzle",
+    "name": "박쥐 송곳니 총구",
+    "emoji": "🦇",
+    "shape": "tentacle",
+    "value": 800,
+    "mods": {
+      "lifesteal": 3,
+      "dmg": 8,
+      "noiseMul": 0.7,
+      "rpmMul": 0.9
+    },
+    "desc": "★★★ 처치할 때마다 피를 3 마신다. 아래로 뻗는 촉수 7칸."
+  },
+  "firework_cluster": {
+    "id": "firework_cluster",
+    "kind": "att",
+    "rare": true,
+    "exotic": true,
+    "relic": true,
+    "sock": "muzzle",
+    "name": "폭죽 클러스터 노즐",
+    "emoji": "🎆",
+    "shape": "crab",
+    "value": 840,
+    "mods": {
+      "boom": 70,
+      "dmg": 6,
+      "spread": 5,
+      "rpmMul": 0.55,
+      "recoilMul": 1.5,
+      "noiseMul": 2.6
+    },
+    "desc": "★★★ 명중한 탄이 작렬해 주변을 휩쓴다. 집게 벌린 게 모양 8칸."
+  },
+  "blackhole_drum": {
+    "id": "blackhole_drum",
+    "kind": "att",
+    "rare": true,
+    "exotic": true,
+    "relic": true,
+    "sock": "mag",
+    "name": "블랙홀 드럼",
+    "emoji": "🕳️",
+    "shape": "ringBig",
+    "value": 920,
+    "mods": {
+      "ammo": 55,
+      "reload": 2.6,
+      "magnet": 2,
+      "dmg": -1
+    },
+    "desc": "★★★ 무한에 가까운 55발. 코인도 빨아들인다. 속이 뚫린 왕도넛 10칸."
+  },
+  "scrap_centipede": {
+    "id": "scrap_centipede",
+    "kind": "att",
+    "rare": true,
+    "exotic": true,
+    "relic": true,
+    "sock": "mag",
+    "name": "고철 지네 탄띠",
+    "emoji": "🧲",
+    "shape": "zigzag8",
+    "value": 760,
+    "mods": {
+      "ammo": 26,
+      "magnet": 3,
+      "reload": 1.0,
+      "rpmMul": 1.05
+    },
+    "desc": "★★★ 자성 고철 지네. 코인 흡수 반경 3배. 지그재그 8칸."
+  },
+  "abyss_eye": {
+    "id": "abyss_eye",
+    "kind": "att",
+    "rare": true,
+    "exotic": true,
+    "relic": true,
+    "sock": "scope",
+    "name": "심연의 눈알",
+    "emoji": "👁️",
+    "shape": "xdiag",
+    "value": 820,
+    "mods": {
+      "zoom": 3.2,
+      "spread": -5,
+      "aim": 0.25,
+      "light": 0.3,
+      "reload": 0.5
+    },
+    "desc": "★★★ 모든 걸 꿰뚫어 본다. 대각선으로만 이어진 X자 5칸 — 걸치기 까다로움."
+  },
+  "kraken_grip": {
+    "id": "kraken_grip",
+    "kind": "att",
+    "rare": true,
+    "exotic": true,
+    "relic": true,
+    "sock": "grip",
+    "name": "크라켄 촉수 그립",
+    "emoji": "🐙",
+    "shape": "twinTent",
+    "value": 860,
+    "mods": {
+      "aim": 0.45,
+      "recoilMul": 0.5,
+      "slow": 0.8,
+      "spread": -2
+    },
+    "desc": "★★★ 촉수가 총을 휘감아 반동을 잡고, 맞은 적을 살짝 옭아맨다. 쌍촉수 8칸."
+  },
+  "sunken_crown": {
+    "id": "sunken_crown",
+    "kind": "att",
+    "rare": true,
+    "exotic": true,
+    "relic": true,
+    "sock": "stock",
+    "name": "가라앉은 왕관",
+    "emoji": "👑",
+    "shape": "crown",
+    "value": 900,
+    "mods": {
+      "recoilMul": 0.35,
+      "aim": 0.35,
+      "dmg": 4,
+      "lifesteal": 1,
+      "rpmMul": 0.92
+    },
+    "desc": "★★★ 옛 왕의 위엄. 어깨에 대면 총이 순종한다. 뾰족뾰족 왕관 8칸."
   }
 }

@@ -796,11 +796,17 @@ function fillContainer(c){
     let id;
     if(pool==='att' && Math.random()<rareCh){
       // 엑조틱: 폐공장(★2) 약 28%, 습지(★3) 약 55% 로 희귀 대신 등장
-      // 뒷동산(★1)은 엑조틱 상자 드롭 없음
+      // 유물(★★★): 엑조틱 자리를 습지 30%·폐공장 6% 로 대체 — 뒤로 갈수록 기괴하고 강한 파츠
+      // 뒷동산(★1)은 엑조틱·유물 상자 드롭 없음
       const exoCh = stars>=3 ? 0.55 : (stars>=2 ? 0.28 : 0);
-      id = (exoCh>0 && LOOT_POOLS.exoticAtt && Math.random()<exoCh)
-        ? pick(LOOT_POOLS.exoticAtt)
-        : pickFiltered(LOOT_POOLS.rareAtt, true);
+      const relCh = stars>=3 ? 0.30 : (stars>=2 ? 0.06 : 0);
+      if(exoCh>0 && LOOT_POOLS.exoticAtt && Math.random()<exoCh){
+        id = (relCh>0 && LOOT_POOLS.relicAtt && Math.random()<relCh)
+          ? pick(LOOT_POOLS.relicAtt)
+          : pick(LOOT_POOLS.exoticAtt);
+      } else {
+        id = pickFiltered(LOOT_POOLS.rareAtt, true);
+      }
     } else if(pool==='loot' && Math.random()<rareCh*1.2){
       // 귀중품 희귀 롤 (공용 rareLoot만 — 지역 전용 귀중품은 일반 loot 지역풀)
       id = pick(LOOT_POOLS.rareLoot || LOOT_POOLS.loot);

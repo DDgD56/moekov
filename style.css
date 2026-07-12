@@ -141,8 +141,16 @@ canvas#cv { display:block; position:fixed; inset:0; cursor:crosshair;
   animation:epicPulse 1.8s ease-in-out infinite; }
 .item.epic .item-emoji { text-shadow:0 0 8px rgba(255,210,80,.9), 0 2px 3px rgba(0,0,0,.5); }
 @keyframes epicPulse { 50% { filter:drop-shadow(0 0 3px rgba(255,200,60,.45)); } }
+/* ★★★ 유물: 보라빛 맥동 (엑조틱 금색보다 한 급 위) */
+.item.relic svg { filter:drop-shadow(0 0 9px rgba(200,120,255,.95));
+  animation:relicPulse 1.4s ease-in-out infinite; }
+.item.relic .item-emoji { text-shadow:0 0 10px rgba(210,140,255,.95), 0 2px 3px rgba(0,0,0,.5); }
+@keyframes relicPulse { 50% { filter:drop-shadow(0 0 4px rgba(200,120,255,.5)); } }
 .tip-rare { color:#ffcf4a; font-size:11px; background:rgba(120,90,20,.4);
   border:1px solid #a8842a; border-radius:8px; padding:1px 7px; margin-left:4px;
+  vertical-align:2px; }
+.tip-relic { color:#e0b0ff; font-size:11px; background:rgba(90,40,130,.45);
+  border:1px solid #9a5ad0; border-radius:8px; padding:1px 7px; margin-left:4px;
   vertical-align:2px; }
 .item:hover svg { filter:brightness(1.35); }
 .item.rare:hover svg { filter:brightness(1.35) drop-shadow(0 0 5px rgba(230,190,80,.55)); }

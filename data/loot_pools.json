@@ -206,5 +206,15 @@
     "mud_honey",
     "reed_juice",
     "gold_berry"
+  ],
+  "relicAtt": [
+    "dino_spine",
+    "bat_fang",
+    "firework_cluster",
+    "blackhole_drum",
+    "scrap_centipede",
+    "abyss_eye",
+    "kraken_grip",
+    "sunken_crown"
   ]
 }
