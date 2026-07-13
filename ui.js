@@ -262,21 +262,10 @@ function renderPanel(){
           <div class="q-btns"><button class="btn" data-q="${i}">수락</button></div>
         </div>`).join('');
     }
-    if(State.exoQuest){
-      body += `<div class="quest-card" style="opacity:.9">
-        <div class="q-title">🔧 엑조틱 진행 중</div>
-        <div class="q-desc">${State.exoQuest.def.title} — 보고는 <b>부품 수집가</b>에서</div>
-      </div>`;
-    } else if(!State.exoticIntroDone){
-      body += `<div class="quest-card" style="opacity:.85">
-        <div class="q-title">🔧 부품 수집가</div>
-        <div class="q-desc">작업대 옆 NPC. ★★ 엑조틱 입문은 그쪽에서 — <b>일반 의뢰와 동시</b> 가능${regionUnlocked('factory')?'':'. (폐공장 해금 후)'}</div>
-      </div>`;
-    }
     p.innerHTML = `
       <div class="panel-title">📜 퀘스트 창구 <span class="sub">완료 ${State.questsDone||0}건</span></div>
       <div class="quest-body">${body}</div>
-      <div class="panel-hint">일반 1 + 엑조틱 1 동시 진행 · <b>ESC</b> 닫기</div>`;
+      <div class="panel-hint"><b>ESC</b> 닫기</div>`;
     if(q){
       const qd = p.querySelector('#qdone');
       if(qd) qd.addEventListener('click', ()=>completeQuest('main'));
@@ -613,13 +602,6 @@ function renderExoticPanel(p){
         <div class="q-btns"><button class="btn" id="exo-accept">수락</button></div>
       </div>`;
   }
-  if(State.quest){
-    body += `<div class="quest-card" style="opacity:.85">
-      <div class="q-title">📜 창구 의뢰도 진행 중</div>
-      <div class="q-desc">${State.quest.def.title} — 일반 보고는 <b>퀘스트 창구</b></div>
-    </div>`;
-  }
-
   p.innerHTML = `
     <div class="panel-title">🔧 부품 수집가 <span class="sub">엑조틱</span></div>
     <div class="quest-body">${body}</div>
@@ -630,7 +612,7 @@ function renderExoticPanel(p){
     if(State.exoQuest){ toast('이미 엑조틱 의뢰를 진행 중입니다'); return; }
     State.exoQuest = { def: {...exoQ}, prog: 0 };
     sfx('open');
-    toast('🔧 의뢰 수락: '+exoQ.title+(State.quest?' (일반 의뢰와 동시)':''));
+    toast('🔧 의뢰 수락: '+exoQ.title);
     saveGame(); refreshPanel();
   });
   const qd = p.querySelector('#qdone');
@@ -645,7 +627,7 @@ function acceptQuest(i){
   State.quest = { def: State.questOffers[i], prog: 0 };
   State.questOffers = null;
   sfx('open');
-  toast('📜 의뢰 수락: '+State.quest.def.title+(State.exoQuest?' (엑조틱과 동시)':''));
+  toast('📜 의뢰 수락: '+State.quest.def.title);
   saveGame(); refreshPanel();
 }
 // slot: 'main' | 'exo'
