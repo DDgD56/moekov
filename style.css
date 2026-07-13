@@ -332,3 +332,11 @@ canvas#cv { image-rendering:pixelated; image-rendering:crisp-edges; }
 .stash-slot.locked .ss-empty { color:#6a5f50; }
 .stash-count { font-size:11px; font-weight:normal; color:#98a888; margin-left:6px; }
 .stash-count.locked { color:#b08a5a; }
+
+/* 🗑 바닥에 버리기 존 (레이드 패널) */
+.discard-zone { margin-top:8px; padding:9px 10px; text-align:center;
+  font-size:12px; font-weight:bold; color:#a8907a;
+  border:2px dashed #5a4636; border-radius:9px; background:rgba(40,26,18,.35);
+  transition:all .12s; }
+.discard-zone.hot { color:#ffb87a; border-color:#c07a4a; background:rgba(90,45,25,.5);
+  box-shadow:0 0 10px rgba(220,120,60,.35) inset; }

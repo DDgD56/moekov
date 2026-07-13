@@ -37,20 +37,25 @@ function renderPanel(){
 
   if(t==='loot'){
     const c = panel.data;
-    p.classList.add('wide');
+    benchIdx = State.activeGun; // 전투 중엔 들고 있는 총을 바로 정비
+    p.classList.add('xwide');
     p.innerHTML = `
       <div class="panel-title">${c.ct.emoji} ${c.ct.name}</div>
-      <div class="panel-cols">
-        <div class="col"><div class="col-label">${c.ct.name} <button class="btn mini" id="takeall">📥 모두 담기</button></div><div id="ga"></div></div>
+      <div class="panel-cols bench-cols">
+        <div class="col"><div class="col-label">${c.ct.name} <button class="btn mini" id="takeall">📥 모두 담기</button></div><div id="ga"></div>
+          <div class="discard-zone" id="dz">🗑 여기로 드래그 → 바닥에 버리기</div></div>
         <div class="col"><div class="col-label">🎒 내 가방</div><div id="gb"></div></div>
+        <div class="col bench-col"><div class="col-label">🔫 들고 있는 총 — 실시간 정비</div><div id="bench"></div></div>
       </div>
-      <div class="panel-hint">드래그 이동 · <b>R</b> 회전 · <b>더블클릭</b> 빠른 이동 · <b>WASD/ESC</b> 닫기<br>
+      <div class="panel-hint">드래그 이동 · <b>R</b> 회전 · <b>더블클릭</b> 빠른 이동 · 부품을 총에 드래그하면 <b>즉시 장착</b> · <b>WASD/ESC</b> 닫기<br>
       <span class="warn">🔍 창을 열어둔 동안 2초마다 하나씩 식별 · ⚠️ 그동안에도 적은 다가온다!</span></div>`;
     renderGrid(p.querySelector('#ga'), c.inv, { rerender:refreshPanel, quickTarget:State.backpack, onDbl:inst=>{ quickTransfer(inst,c.inv,State.backpack); refreshPanel(); } });
     renderGrid(p.querySelector('#gb'), State.backpack, { rerender:refreshPanel, quickTarget:c.inv, onDbl:inst=>{
       if(inst.def.kind==='food') eatItem(inst);
       else { quickTransfer(inst,State.backpack,c.inv); refreshPanel(); }
     }});
+    renderBench(p.querySelector('#bench'));
+    dropZones.push({el:p.querySelector('#dz'), kind:'discard'});
     p.querySelector('#takeall').addEventListener('click', ()=>{
       let left = 0, searching = 0;
       for(const it of c.inv.items.slice()){
@@ -65,17 +70,38 @@ function renderPanel(){
     });
   }
   else if(t==='bag'){
-    p.innerHTML = `
-      <div class="panel-title">🎒 내 가방 <span class="sub">(가치 ${State.backpack.totalValue()}🪙)</span></div>
-      <div class="panel-cols">
-        <div class="col"><div id="gb"></div></div>
-        <div class="col stats-col" id="gs"></div>
-      </div>
-      <div class="panel-hint"><b>더블클릭</b> 음식 사용 · <b>R</b> 회전 · <b>Tab/ESC</b> 닫기</div>`;
-    renderGrid(p.querySelector('#gb'), State.backpack, { rerender:refreshPanel, onDbl:inst=>{
-      if(inst.def.kind==='food' && scene==='raid') eatItem(inst);
-    }});
-    p.querySelector('#gs').innerHTML = statsHTML(curGun());
+    if(scene==='raid'){
+      // 전투 중 Tab: 가방 + 들고 있는 총 정비 + 버리기
+      benchIdx = State.activeGun;
+      p.classList.add('xwide');
+      p.innerHTML = `
+        <div class="panel-title">🎒 내 가방 <span class="sub">(가치 ${State.backpack.totalValue()}🪙)</span></div>
+        <div class="panel-cols bench-cols">
+          <div class="col"><div id="gb"></div>
+            <div class="discard-zone" id="dz">🗑 여기로 드래그 → 바닥에 버리기</div></div>
+          <div class="col bench-col"><div class="col-label">🔫 들고 있는 총 — 실시간 정비</div><div id="bench"></div></div>
+          <div class="col stats-col" id="gs"></div>
+        </div>
+        <div class="panel-hint"><b>더블클릭</b> 음식 사용 · <b>R</b> 회전 · 부품 드래그로 <b>즉시 장착/해체</b> · <b>Tab/ESC</b> 닫기</div>`;
+      renderGrid(p.querySelector('#gb'), State.backpack, { rerender:refreshPanel, onDbl:inst=>{
+        if(inst.def.kind==='food') eatItem(inst);
+      }});
+      renderBench(p.querySelector('#bench'));
+      dropZones.push({el:p.querySelector('#dz'), kind:'discard'});
+      p.querySelector('#gs').innerHTML = statsHTML(editGun());
+    } else {
+      p.innerHTML = `
+        <div class="panel-title">🎒 내 가방 <span class="sub">(가치 ${State.backpack.totalValue()}🪙)</span></div>
+        <div class="panel-cols">
+          <div class="col"><div id="gb"></div></div>
+          <div class="col stats-col" id="gs"></div>
+        </div>
+        <div class="panel-hint"><b>더블클릭</b> 음식 사용 · <b>R</b> 회전 · <b>Tab/ESC</b> 닫기</div>`;
+      renderGrid(p.querySelector('#gb'), State.backpack, { rerender:refreshPanel, onDbl:inst=>{
+        if(inst.def.kind==='food' && scene==='raid') eatItem(inst);
+      }});
+      p.querySelector('#gs').innerHTML = statsHTML(curGun());
+    }
   }
   else if(t==='storage'){
     p.classList.add('wide');

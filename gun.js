@@ -338,9 +338,11 @@ function renderBench(rootEl){
   const bodyToStore = ()=>{
     if(gun.atts.length>0){ toast('부착물을 먼저 떼어내세요!'); return; }
     const b = gun.body;
-    if(State.storage.autoPlace(b)){ gun.body=null; if(typeof sfx==='function') sfx('drop'); refreshPanel(); }
+    // 레이드 중엔 가방만 (홈 창고로 순간이동 금지)
+    const inRaid = (typeof scene!=='undefined' && scene==='raid');
+    if(!inRaid && State.storage.autoPlace(b)){ gun.body=null; if(typeof sfx==='function') sfx('drop'); refreshPanel(); }
     else if(State.backpack.autoPlace(b)){ gun.body=null; if(typeof sfx==='function') sfx('drop'); refreshPanel(); }
-    else toast('창고·가방에 공간이 부족합니다!');
+    else toast(inRaid ? '가방에 공간이 부족합니다!' : '창고·가방에 공간이 부족합니다!');
   };
   bodyEl.addEventListener('mousedown', e=>{
     if(e.button!==0) return;
@@ -402,9 +404,11 @@ function renderBench(rootEl){
       const i = editGun().atts.findIndex(x=>x.inst.uid===m.inst.uid);
       if(i<0) return;
       m.inst.rot = 0;
-      if(State.storage.autoPlace(m.inst)){ editGun().atts.splice(i,1); if(typeof sfx==='function') sfx('drop'); refreshPanel(); }
+      // 레이드 중엔 가방만 (홈 창고로 순간이동 금지)
+      const inRaid = (typeof scene!=='undefined' && scene==='raid');
+      if(!inRaid && State.storage.autoPlace(m.inst)){ editGun().atts.splice(i,1); if(typeof sfx==='function') sfx('drop'); refreshPanel(); }
       else if(State.backpack.autoPlace(m.inst)){ editGun().atts.splice(i,1); if(typeof sfx==='function') sfx('drop'); refreshPanel(); }
-      else toast('창고·가방에 공간이 부족합니다!');
+      else toast(inRaid ? '가방에 공간이 부족합니다!' : '창고·가방에 공간이 부족합니다!');
     };
     el.addEventListener('mousedown', e=>{
       if(e.button!==0) return;

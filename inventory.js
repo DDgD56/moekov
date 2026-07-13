@@ -359,6 +359,16 @@ function moveDragGhost(mx, my){
       snapped = false;
       break;
     }
+    if(z.kind==='discard'){
+      if(mx<r.left||mx>r.right||my<r.top||my>r.bottom) continue;
+      const ok = (typeof scene!=='undefined' && scene==='raid' && typeof raid!=='undefined' && !!raid);
+      d.cand = {kind:'discard', zone:z, ok};
+      d.ghost.classList.toggle('ok', ok);
+      d.ghost.classList.toggle('bad', !ok);
+      z.el.classList.add('hot');
+      snapped = false;
+      break;
+    }
     if(z.kind==='qslot'){
       if(mx<r.left||mx>r.right||my<r.top||my>r.bottom) continue;
       const ok = d.inst.def.kind==='food' && (!State.qslots[z.i] || d.src.kind==='qslot');
@@ -407,7 +417,7 @@ function moveDragGhost(mx, my){
       }
     }
   }
-  for(const z of dropZones){ if((z.kind==='sell'||z.kind==='qslot') && (!d.cand || d.cand.zone!==z)) z.el.classList.remove('hot'); }
+  for(const z of dropZones){ if((z.kind==='sell'||z.kind==='qslot'||z.kind==='discard') && (!d.cand || d.cand.zone!==z)) z.el.classList.remove('hot'); }
   if(!snapped){
     ensureFreeGhost(d);
     d.ghost.style.left = (mx - d.cs*0.5)+'px';
@@ -432,6 +442,15 @@ function finishDrag(){
       toast('판매: '+d.inst.def.name+' +'+d.inst.def.value+'🪙');
       if(typeof sfx==='function') sfx('coin');
       saveGame();
+    } else if(c.kind==='discard'){
+      // 🗑 바닥에 버리기: 발밑에 떨어뜨림 (잠깐 뒤부터 다시 주울 수 있음)
+      removeFromSource(d);
+      d.inst.rot = d.rot||0;
+      const da = Math.random()*Math.PI*2;
+      raid.drops.push({kind:'item', x:player.x+Math.cos(da)*28, y:player.y+Math.sin(da)*28,
+        inst:d.inst, bob:rnd(0,6), pickCd:1.5});
+      toast('🗑 버림: '+d.inst.def.emoji+' '+d.inst.def.name);
+      if(typeof sfx==='function') sfx('drop');
     } else if(c.kind==='qslot'){
       const cur = State.qslots[c.i];
       removeFromSource(d);
@@ -453,7 +472,12 @@ function finishDrag(){
           removeFromSource(d);
           eg.body = d.inst;
           if(oldBody && !srcInv.autoPlace(oldBody)){
-            if(!State.storage.autoPlace(oldBody) && !State.backpack.autoPlace(oldBody)){
+            // 레이드 중엔 홈 창고로 못 보냄 (가방만) — 케이브에선 창고→가방 순
+            const inRaid = (typeof scene!=='undefined' && scene==='raid');
+            const placed = inRaid
+              ? State.backpack.autoPlace(oldBody)
+              : (State.storage.autoPlace(oldBody) || State.backpack.autoPlace(oldBody));
+            if(!placed){
               // 자리가 정 없으면 되돌리기
               eg.body = oldBody;
               srcInv.autoPlace(d.inst);
@@ -488,7 +512,7 @@ function removeFromSource(d){
 
 function cancelDrag(){
   if(Drag.active){ Drag.active.ghost.remove(); Drag.active=null; }
-  for(const z of dropZones){ if(z.kind==='sell') z.el.classList.remove('hot'); }
+  for(const z of dropZones){ if(z.kind==='sell'||z.kind==='discard') z.el.classList.remove('hot'); }
   benchHighlight(null);
 }
 
