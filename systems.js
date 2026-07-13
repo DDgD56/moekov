@@ -205,6 +205,11 @@ function onDeath(){
     for(const m of g.atts) cacheItems.push({d:m.inst.def.id, r:0});
     g.body = null; g.atts = []; g.ammo = 0;
   }
+  // 착용 장비도 그 자리에 떨어뜨림
+  for(const slot of ['head','body']){
+    const gEq = State.gear[slot];
+    if(gEq){ cacheItems.push({d:gEq.def.id, r:0}); lost.push(gEq.def.emoji+' '+gEq.def.name); State.gear[slot] = null; }
+  }
   State.backpack.items = [];
   State.qslots = [null,null,null];
   State.activeGun = 0;

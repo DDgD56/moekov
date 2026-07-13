@@ -88,6 +88,7 @@ function itemColor(def){
   if(def.kind==='att') return SOCK_INFO[def.sock].color;
   if(def.kind==='body') return def.color || '#c96a5a'; // 몸통은 고유색으로 구분
   if(def.kind==='food') return '#d488a8';
+  if(def.kind==='gear') return '#7a9ab0'; // 장비: 강철빛
   return def.value>=150 ? '#d4a832' : '#9a7fc4'; // loot
 }
 
@@ -268,6 +269,7 @@ function renderGrid(rootEl, inv, opts={}){
     el.addEventListener('dblclick', e=>{
       e.preventDefault(); e.stopPropagation();
       if(it.inst.hidden) return;
+      if(it.inst.def.kind==='gear'){ equipGear(it.inst, inv); return; } // 장비: 어디서든 더블클릭 착용
       if(opts.onDbl) opts.onDbl(it.inst);
     });
     rootEl.appendChild(el);
@@ -615,6 +617,9 @@ function tipHTML(def){
     const rails = def.rails.map(r=>`${SOCK_INFO[r.type].name}${r.len}`).join(' · ');
     extra = `<div class="tip-mods">공격력 ${b.dmg}${(b.pellets||1)>1?'×'+b.pellets:''} · ${b.rpm}rpm · 장탄 ${b.ammo} · 탄퍼짐 ${b.spread}° · 반동 ${b.recoil!=null?b.recoil:6} · 소음 ${b.noise}</div>
       <div class="tip-mods">소켓: ${rails}</div>`;
+  } else if(def.kind==='gear'){
+    kind = `장비 · <b>${def.slot==='head'?'🪖 머리':'🦺 몸통'}</b> · 더블클릭 착용`;
+    extra = `<div class="tip-mods">🛡 방어 ${def.armor||0} (받는 피해 -${def.armor||0}, 최소 25%는 관통)</div>`;
   } else if(def.kind==='food'){
     if(def.effect==='extractDetect'){
       kind = '소모품 · 더블클릭/퀵슬롯 사용';
@@ -656,4 +661,36 @@ function attachTip(el, def){
     if(!Drag.active && tipEl && tipEl.classList.contains('show')) positionTip(e.clientX, e.clientY);
   });
   el.addEventListener('mouseleave', hideTip);
+}
+
+// ---- 착용 장비 (헬멧/방탄복) ----
+// 어느 인벤토리에서든 더블클릭 → 해당 슬롯에 착용. 이미 있으면 서로 교체.
+function equipGear(inst, fromInv){
+  const slot = inst.def.slot; // 'head' | 'body'
+  if(!slot) return;
+  const prev = State.gear[slot];
+  fromInv.remove(inst);
+  if(prev && !fromInv.autoPlace(prev)){
+    // 벗은 장비 놓을 자리가 없으면 원복
+    fromInv.autoPlace(inst);
+    toast('벗은 장비를 놓을 공간이 없습니다!');
+    return;
+  }
+  State.gear[slot] = inst;
+  toast('착용: '+inst.def.emoji+' '+inst.def.name+' (방어 +'+(inst.def.armor||0)+')');
+  if(typeof sfx==='function') sfx('mount');
+  if(typeof scene==='undefined' || scene!=='raid') saveGame();
+  refreshPanel();
+  updateHud();
+}
+// 장비 해제 → 지정 인벤토리로
+function unequipGear(slot, toInv){
+  const cur = State.gear[slot];
+  if(!cur) return;
+  if(!toInv.autoPlace(cur)){ toast('공간이 부족합니다!'); return; }
+  State.gear[slot] = null;
+  if(typeof sfx==='function') sfx('drop');
+  if(typeof scene==='undefined' || scene!=='raid') saveGame();
+  refreshPanel();
+  updateHud();
 }

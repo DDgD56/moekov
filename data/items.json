@@ -3029,5 +3029,49 @@
       "rpmMul": 0.92
     },
     "desc": "★★★ 옛 왕의 위엄. 어깨에 대면 총이 순종한다. 뾰족뾰족 왕관 8칸."
+  },
+  "pot_helmet": {
+    "id": "pot_helmet",
+    "kind": "gear",
+    "slot": "head",
+    "name": "양철 냄비 헬멧",
+    "emoji": "🍳",
+    "shape": "sq2",
+    "value": 130,
+    "armor": 2,
+    "desc": "머리에 뒤집어쓴 양철 냄비. 없는 것보단 훨씬 낫다. 방어 2."
+  },
+  "hard_hat": {
+    "id": "hard_hat",
+    "kind": "gear",
+    "slot": "head",
+    "name": "공사장 안전모",
+    "emoji": "⛑️",
+    "shape": "sq2",
+    "value": 340,
+    "armor": 4,
+    "desc": "현장 검증 완료. 낙하물도 총알도 일단 튕겨본다. 방어 4."
+  },
+  "board_vest": {
+    "id": "board_vest",
+    "kind": "gear",
+    "slot": "body",
+    "name": "도마 방탄복",
+    "emoji": "🪵",
+    "shape": "v3",
+    "value": 190,
+    "armor": 3,
+    "desc": "가슴에 도마를 끈으로 동여맸다. 칼자국이 믿음직. 방어 3."
+  },
+  "tire_vest": {
+    "id": "tire_vest",
+    "kind": "gear",
+    "slot": "body",
+    "name": "타이어 방탄복",
+    "emoji": "🛞",
+    "shape": "donut",
+    "value": 460,
+    "armor": 6,
+    "desc": "몸통에 타이어를 꼈다. 두껍고 튼튼하고 조금 웃기다. 방어 6."
   }
 }

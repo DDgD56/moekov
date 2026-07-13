@@ -99,6 +99,7 @@ window.addEventListener('keydown', e=>{
     return;
   }
   if(k==='q'){ if(scene==='raid') quickHeal(); return; }
+  if(k===' '){ e.preventDefault(); tryRoll(); return; }
   if(k==='1'||k==='2'){ switchGun(+k-1); return; }
   if(k==='3'||k==='4'||k==='5'){ eatSlot(+k-3); return; }
   if(k==='h'){ if(!panel) openPanel('help'); return; }
@@ -138,7 +139,7 @@ function toast(msg, dur=2200){
 // ---------------- 영구 상태 & 세이브 ----------------
 const State = {
   coins: 0,
-  up: { pack:0, hp:0, shoes:0, store:0 },
+  up: { pack:0, hp:0, shoes:0, store:0, roll:0 },
   storage: null, backpack: null,
   guns: [ {body:null, atts:[], ammo:0}, {body:null, atts:[], ammo:0} ],
   activeGun: 0,
@@ -150,6 +151,7 @@ const State = {
   exoQuest: null,        // 엑조틱 퀘스트 슬롯 (부품 수집가) — 일반과 동시 진행
   questOffers: null, questsDone: 0,
   qslots: [null, null, null], // 음식 퀵슬롯 (3·4·5키)
+  gear: { head:null, body:null }, // 착용 장비 (헬멧/방탄복 — 더블클릭 착용)
   deathCache: null, // 사망 시 떨어뜨린 장비 {items:[{d,r}], x, y, region} — 같은 지역 다음 출격 1회 한정 회수
   region: 'hill',            // 마지막 선택 지역
   regionExtracts: {},        // 지역별 탈출 횟수 {hill:3, ...}
@@ -176,6 +178,15 @@ function switchGun(i){
 }
 
 function upTier(key){ return UPGRADES[key].tiers[State.up[key]]; }
+// 착용 장비 총 방어력
+function gearArmor(){
+  let a = 0;
+  if(State.gear.head) a += State.gear.head.def.armor||0;
+  if(State.gear.body) a += State.gear.body.def.armor||0;
+  return a;
+}
+function rollMax(){ return upTier('roll').n; }
+function rollCd(){ return upTier('roll').cd; }
 function maxHp(){ return upTier('hp').v; }
 function moveSpd(){ return 175 * upTier('shoes').v; }
 
@@ -190,6 +201,7 @@ function saveGame(){
       quest: State.quest, exoQuest: State.exoQuest,
       questOffers: State.questOffers, questsDone: State.questsDone||0,
       qslots: State.qslots.map(i=>i?{d:i.def.id}:null),
+      gear: { head: State.gear.head?State.gear.head.def.id:null, body: State.gear.body?State.gear.body.def.id:null },
       deathCache: State.deathCache,
       region: State.region, regionExtracts: State.regionExtracts, regionBoss: State.regionBoss,
       stash: State.stash.map(serializeStash),
@@ -238,6 +250,9 @@ function loadGame(){
     }
     State.stashUnlocked = State.stashSlots > 0;
     State.qslots = (d.qslots||[null,null,null]).map(s=> s && ITEMS[s.d] ? mkInst(s.d) : null);
+    const gd = d.gear||{};
+    State.gear = { head: gd.head&&ITEMS[gd.head]?mkInst(gd.head):null, body: gd.body&&ITEMS[gd.body]?mkInst(gd.body):null };
+    for(const k in UPGRADES) if(State.up[k]==null) State.up[k]=0; // 구세이브에 없는 업그레이드 키 채움
     while(State.qslots.length<3) State.qslots.push(null);
     State.region = d.region || 'hill';
     State.regionExtracts = d.regionExtracts || {};
@@ -262,6 +277,8 @@ function newGame(){
   State.guns = [ {body: mkInst('potato_pistol'), atts:[], ammo:0}, {body:null, atts:[], ammo:0} ];
   State.activeGun = 0; State.gun2 = false;
   State.exoticIntroDone = false;
+  State.gear = { head:null, body:null };
+  player.rollCharges = 1; player.rollTimer = 0; player.rollT = 0;
   State.backpack.autoPlace(mkInst('bandage'));
   State.backpack.autoPlace(mkInst('bandage'));
   State.backpack.autoPlace(mkInst('mushroom_mag'));
@@ -278,6 +295,7 @@ function newGame(){
 const player = {
   x:0, y:0, r:13, hp:50, ang:0,
   ammo:0, reloading:0, reloadTotal:0, shellLoading:false, shellT:0, fireCd:0, flash:0, aimT:0,
+  rollT:0, rollDir:{x:1,y:0}, rollCharges:1, rollTimer:0,
   iframe:0, kills:0, coinsGained:0, lootMsgCd:0,
   stam:100, exhausted:false,
   bloom:0, kick:0, swapT:0, // 반동 블룸 / 킥백 / 무기 교체 딜레이
@@ -294,3 +312,20 @@ let scene = 'cave'; // 'cave' | 'raid'
 let raid = null;    // 레이드 상태
 let caveMap = null;
 
+
+// 🤸 Space 구르기: 이동 방향(없으면 조준 방향)으로 일정 거리 회피
+function tryRoll(){
+  if(panel || Drag.active) return;
+  if(scene!=='raid' && scene!=='cave') return;
+  if(scene==='raid' && (!raid || raid.over)) return;
+  if(player.rollT > 0 || (player.rollCharges|0) < 1) return;
+  let dx = (keys.d?1:0) - (keys.a?1:0);
+  let dy = (keys.s?1:0) - (keys.w?1:0);
+  if(!dx && !dy){ dx = Math.cos(player.ang); dy = Math.sin(player.ang); }
+  const l = Math.hypot(dx,dy);
+  player.rollDir = { x:dx/l, y:dy/l };
+  player.rollT = 0.26;              // 560px/s × 0.26s ≈ 146px
+  player.rollCharges--;
+  player.iframe = Math.max(player.iframe||0, 0.3); // 구르는 동안 짧은 무적
+  if(typeof tone==='function') tone(260, .16, 'sine', .1, 140);
+}

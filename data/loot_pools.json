@@ -56,7 +56,9 @@
     "frame_scope",
     "crutch_stock",
     "boomerang_stock",
-    "eel_stock"
+    "eel_stock",
+    "pot_helmet",
+    "board_vest"
   ],
   "rareAtt": [
     "library_silencer",
@@ -156,7 +158,9 @@
     "rebar_stock",
     "pallet_stock",
     "pneumatic_muzzle",
-    "sledge_muzzle"
+    "sledge_muzzle",
+    "hard_hat",
+    "tire_vest"
   ],
   "attMarsh": [
     "reed_silencer",

@@ -536,6 +536,10 @@ function noiseEvent(x,y,r){
 
 function hurtPlayer(dmg){
   if(player.iframe>0 || raid.over) return;
+  // 착용 장비 방어력: 고정 감산, 단 최소 25%는 뚫고 들어옴
+  const ar = (typeof gearArmor==='function') ? gearArmor() : 0;
+  if(ar>0) dmg = Math.max(Math.round(dmg*0.25), dmg-ar);
+  dmg = Math.max(1, Math.round(dmg));
   player.hp -= dmg;
   player.iframe = 0.6;
   shake = Math.min(14, shake+7);

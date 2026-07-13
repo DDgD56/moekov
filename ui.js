@@ -77,7 +77,7 @@ function renderPanel(){
       p.innerHTML = `
         <div class="panel-title">🎒 내 가방 <span class="sub">(가치 ${State.backpack.totalValue()}🪙)</span></div>
         <div class="panel-cols bench-cols">
-          <div class="col"><div id="gb"></div>
+          <div class="col"><div class="gear-row" id="gearRow"></div><div id="gb"></div>
             <div class="discard-zone" id="dz">🗑 여기로 드래그 → 바닥에 버리기</div></div>
           <div class="col bench-col"><div class="col-label">🔫 들고 있는 총 — 실시간 정비</div><div id="bench"></div></div>
           <div class="col stats-col" id="gs"></div>
@@ -86,6 +86,7 @@ function renderPanel(){
       renderGrid(p.querySelector('#gb'), State.backpack, { rerender:refreshPanel, onDbl:inst=>{
         if(inst.def.kind==='food') eatItem(inst);
       }});
+      renderGearRow(p.querySelector('#gearRow'));
       renderBench(p.querySelector('#bench'));
       dropZones.push({el:p.querySelector('#dz'), kind:'discard'});
       p.querySelector('#gs').innerHTML = statsHTML(editGun());
@@ -93,13 +94,14 @@ function renderPanel(){
       p.innerHTML = `
         <div class="panel-title">🎒 내 가방 <span class="sub">(가치 ${State.backpack.totalValue()}🪙)</span></div>
         <div class="panel-cols">
-          <div class="col"><div id="gb"></div></div>
+          <div class="col"><div class="gear-row" id="gearRow"></div><div id="gb"></div></div>
           <div class="col stats-col" id="gs"></div>
         </div>
-        <div class="panel-hint"><b>더블클릭</b> 음식 사용 · <b>R</b> 회전 · <b>Tab/ESC</b> 닫기</div>`;
+        <div class="panel-hint"><b>더블클릭</b> 음식 사용 / 장비 착용 · <b>R</b> 회전 · <b>Tab/ESC</b> 닫기</div>`;
       renderGrid(p.querySelector('#gb'), State.backpack, { rerender:refreshPanel, onDbl:inst=>{
         if(inst.def.kind==='food' && scene==='raid') eatItem(inst);
       }});
+      renderGearRow(p.querySelector('#gearRow'));
       p.querySelector('#gs').innerHTML = statsHTML(curGun());
     }
   }
@@ -427,11 +429,28 @@ function renderPanel(){
 }
 
 // 업그레이드 티어 표시 (JSON 테이블 — desc 함수 없음)
+// 착용 장비 줄 (가방 패널): 슬롯 클릭 → 가방으로 해제
+function renderGearRow(rootEl){
+  if(!rootEl) return;
+  const slots = [['head','🪖 머리'],['body','🦺 몸통']];
+  rootEl.innerHTML = slots.map(([s,label])=>{
+    const g = State.gear[s];
+    return `<div class="gear-slot ${g?'filled':''}" data-slot="${s}" title="${g?'클릭하면 벗어서 가방으로':'비어있음 — 장비를 더블클릭해 착용'}">
+      <span class="gs-label">${label}</span>
+      <span class="gs-item">${g ? g.def.emoji+' '+g.def.name+' <b>🛡'+(g.def.armor||0)+'</b>' : '<span class="gs-none">없음</span>'}</span>
+    </div>`;
+  }).join('') + `<div class="gear-total">🛡 총 방어 ${gearArmor()}</div>`;
+  rootEl.querySelectorAll('.gear-slot.filled').forEach(el=>{
+    el.addEventListener('click', ()=> unequipGear(el.dataset.slot, State.backpack));
+  });
+}
+
 function upgradeTierLabel(key, t){
   if(!t) return '';
   if(key==='pack' || key==='store') return `크기 ${t.w}×${t.h}`;
   if(key==='hp') return `체력 ${t.v}`;
   if(key==='shoes') return `이동 ×${Number(t.v).toFixed(2)}`;
+  if(key==='roll') return `구르기 ${t.n}회 · 쿨 ${t.cd}초`;
   return '';
 }
 function buyUpgrade(key){

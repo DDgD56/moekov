@@ -27,7 +27,16 @@ function update(dt){
     player.stam = Math.min(stamMax(), player.stam + ((vx||vy)?13:22)*dt);
     if(player.exhausted && player.stam>=stamMax()*0.35) player.exhausted=false;
   }
-  if(vx||vy){
+  // 🤸 구르기: 이동 입력을 무시하고 일정 거리를 빠르게 굴러감 (짧은 무적)
+  if(player.rollT > 0){
+    player.rollT -= dt;
+    const solidFn = scene==='cave' ? caveSolidPx : solidPx;
+    moveCircle(player, player.rollDir.x*560*dt, player.rollDir.y*560*dt, solidFn);
+    // 구름 먼지
+    const pl = (scene==='raid' && raid) ? raid.parts : (caveMap ? caveMap.parts : null);
+    if(pl && Math.random()<dt*30)
+      pl.push({x:player.x-player.rollDir.x*10, y:player.y+8, vx:rnd(-25,25), vy:rnd(-40,-10), t:0.3, c:'#b8a888', r:rnd(2,3.5)});
+  } else if(vx||vy){
     const l = Math.hypot(vx,vy);
     // 조준할수록 크게 느려짐 (완전 조준 시 25% 속도) — 뿌리박고 정밀사격, 대신 회피 불가
     const aimSlow = 1 - 0.75*player.aimT;
@@ -36,6 +45,11 @@ function update(dt){
     const solidFn = scene==='cave' ? caveSolidPx : solidPx;
     moveCircle(player, vx/l*spd*dt, vy/l*spd*dt, solidFn);
   }
+  // 구르기 충전 (한 번에 한 칸씩, 업그레이드로 쿨 단축·2회까지)
+  if(player.rollCharges < rollMax()){
+    player.rollTimer += dt;
+    if(player.rollTimer >= rollCd()){ player.rollCharges++; player.rollTimer = 0; }
+  } else player.rollTimer = 0;
 
   // 조준
   if(!panel){
@@ -180,6 +194,26 @@ function updateHud(){
   document.getElementById('hptext').textContent = Math.ceil(player.hp)+' / '+maxHp();
   document.getElementById('stamfill').style.width = (player.stam/stamMax()*100)+'%';
   document.getElementById('stambar').classList.toggle('exhausted', !!player.exhausted);
+  // 🤸 구르기 충전 픽 (Space)
+  {
+    const rp = document.getElementById('rollpips');
+    if(rp){
+      const max = rollMax(), cur = player.rollCharges|0;
+      let s = '🤸 ' + '●'.repeat(cur) + '○'.repeat(Math.max(0, max-cur));
+      if(cur < max) s += ' ' + Math.max(0, rollCd()-player.rollTimer).toFixed(1) + 's';
+      rp.textContent = s;
+    }
+  }
+  // 🛡 착용 장비
+  {
+    const gl = document.getElementById('gearline');
+    if(gl){
+      const ar = gearArmor();
+      gl.textContent = ar>0
+        ? '🛡 '+ar+'  '+(State.gear.head?State.gear.head.def.emoji:'')+(State.gear.body?State.gear.body.def.emoji:'')
+        : '';
+    }
+  }
   const coins = State.coins + (scene==='raid'? player.coinsGained : 0);
   document.getElementById('coins').textContent = '🪙 '+coins + (scene==='raid'&&player.coinsGained? ' (+'+player.coinsGained+')':'');
   // 보스 HP바 — 실제로 조우(근접 목격 또는 피해)한 뒤에만 표시

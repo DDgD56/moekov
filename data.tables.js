@@ -4169,6 +4169,50 @@ const ITEMS = {
       "rpmMul": 0.92
     },
     "desc": "★★★ 옛 왕의 위엄. 어깨에 대면 총이 순종한다. 뾰족뾰족 왕관 8칸."
+  },
+  "pot_helmet": {
+    "id": "pot_helmet",
+    "kind": "gear",
+    "slot": "head",
+    "name": "양철 냄비 헬멧",
+    "emoji": "🍳",
+    "shape": "sq2",
+    "value": 130,
+    "armor": 2,
+    "desc": "머리에 뒤집어쓴 양철 냄비. 없는 것보단 훨씬 낫다. 방어 2."
+  },
+  "hard_hat": {
+    "id": "hard_hat",
+    "kind": "gear",
+    "slot": "head",
+    "name": "공사장 안전모",
+    "emoji": "⛑️",
+    "shape": "sq2",
+    "value": 340,
+    "armor": 4,
+    "desc": "현장 검증 완료. 낙하물도 총알도 일단 튕겨본다. 방어 4."
+  },
+  "board_vest": {
+    "id": "board_vest",
+    "kind": "gear",
+    "slot": "body",
+    "name": "도마 방탄복",
+    "emoji": "🪵",
+    "shape": "v3",
+    "value": 190,
+    "armor": 3,
+    "desc": "가슴에 도마를 끈으로 동여맸다. 칼자국이 믿음직. 방어 3."
+  },
+  "tire_vest": {
+    "id": "tire_vest",
+    "kind": "gear",
+    "slot": "body",
+    "name": "타이어 방탄복",
+    "emoji": "🛞",
+    "shape": "donut",
+    "value": 460,
+    "armor": 6,
+    "desc": "몸통에 타이어를 꼈다. 두껍고 튼튼하고 조금 웃기다. 방어 6."
   }
 };
 
@@ -4230,7 +4274,9 @@ const LOOT_POOLS = {
     "frame_scope",
     "crutch_stock",
     "boomerang_stock",
-    "eel_stock"
+    "eel_stock",
+    "pot_helmet",
+    "board_vest"
   ],
   "rareAtt": [
     "library_silencer",
@@ -4330,7 +4376,9 @@ const LOOT_POOLS = {
     "rebar_stock",
     "pallet_stock",
     "pneumatic_muzzle",
-    "sledge_muzzle"
+    "sledge_muzzle",
+    "hard_hat",
+    "tire_vest"
   ],
   "attMarsh": [
     "reed_silencer",
@@ -4961,6 +5009,58 @@ const UPGRADES = {
           ]
         ],
         "note": "황금 습지"
+      }
+    ]
+  },
+  "roll": {
+    "name": "긴급 회피",
+    "emoji": "🤸",
+    "tiers": [
+      {
+        "n": 1,
+        "cd": 10,
+        "cost": 0
+      },
+      {
+        "n": 1,
+        "cd": 6,
+        "cost": 300,
+        "mats": [
+          [
+            "toad_oil",
+            1
+          ]
+        ]
+      },
+      {
+        "n": 2,
+        "cd": 4.5,
+        "cost": 800,
+        "mats": [
+          [
+            "circuit",
+            2
+          ],
+          [
+            "bronze_kettle",
+            1
+          ]
+        ]
+      },
+      {
+        "n": 2,
+        "cd": 3,
+        "cost": 1600,
+        "mats": [
+          [
+            "radio",
+            1
+          ],
+          [
+            "gold_tooth",
+            1
+          ]
+        ]
       }
     ]
   }

@@ -76,6 +76,7 @@ function buildRaid(){
   const decor = []; // 실내 장식물 (공장 기계·랙·컨베이어 등)
 
   // 강: 맵 한가운데를 가로지름 + 다리 3개 (지역에 강이 있을 때만)
+  let riverEnds = []; // 강이 실제로 새겨진 양 끝 (강 끝 탈출구 후보)
   if(RG.river){
     const vert = Math.random()<0.5;
     let c = Math.floor((vert?w:h)/2) + rndi(-4,4);
@@ -86,14 +87,22 @@ function buildRaid(){
       const b = rndi(Math.floor(axisLen*0.2), Math.floor(axisLen*0.8));
       if(bridges.every(o=>Math.abs(o-b)>14)) bridges.push(b);
     }
+    let firstCarve = null, lastCarve = null;
     for(let i=0;i<axisLen;i++){
       c = clamp(c + rndi(-1,1), 6, (vert?w:h)-7);
       const isBridge = bridges.some(b=>Math.abs(b-i)<=1);
+      let carved = false;
       for(let k=-rw2;k<=rw2;k++){
         const x = vert? c+k : i, y = vert? i : c+k;
-        if(t[y*w+x]===0) t[y*w+x] = isBridge ? 7 : 5; // 지형 안쪽만 강으로
+        if(t[y*w+x]===0){ t[y*w+x] = isBridge ? 7 : 5; carved = true; } // 지형 안쪽만 강으로
+      }
+      if(carved){
+        const cx = vert? c : i, cy = vert? i : c;
+        if(!firstCarve) firstCarve = {x:cx, y:cy};
+        lastCarve = {x:cx, y:cy};
       }
     }
+    if(firstCarve) riverEnds = [firstCarve, lastCarve];
   }
 
   // 🏭 콘크리트 배수로: 강 대신 맵을 가로지르는 직선 도랑 + 건널목(다리) — 산업 지역용
@@ -518,6 +527,23 @@ function buildRaid(){
     }
   }
   const extracts = [ex1||ctr, ex2||ctr];
+  // 🏞️ 강 끝 탈출구: 강이 있는 지역은 스폰에서 먼 쪽 강 끝 근처 땅에 하나 더
+  if(riverEnds.length){
+    const end = riverEnds.reduce((a,b)=>
+      dist(a.x*TILE,a.y*TILE,spawn.x,spawn.y) >= dist(b.x*TILE,b.y*TILE,spawn.x,spawn.y) ? a : b);
+    // 강 끝 주변에서 걸을 수 있는 풀밭 탐색 (가까운 곳부터)
+    let spot = null;
+    outer:
+    for(let rr=2; rr<=8 && !spot; rr++){
+      for(let dy=-rr; dy<=rr; dy++) for(let dx=-rr; dx<=rr; dx++){
+        if(Math.max(Math.abs(dx),Math.abs(dy))!==rr) continue;
+        const nx=end.x+dx, ny=end.y+dy;
+        if(nx<3||ny<3||nx>=w-3||ny>=h-3) continue;
+        if(t[ny*w+nx]===0){ spot={x:(nx+.5)*TILE, y:(ny+.5)*TILE}; break outer; }
+      }
+    }
+    if(spot) extracts.push({x:spot.x, y:spot.y, river:true}); // 격리되면 아래 연결성 검사에서 재배치
+  }
 
   // 스폰 주변 정리 (물/다리 포함)
   const clear = (px,py)=>{
@@ -648,17 +674,19 @@ function buildRaid(){
     // 탈출구가 ①격리 ②안전 주머니 ③스폰에 너무 가까움 중 하나면 재배치.
     for(let zi=0; zi<extracts.length; zi++){
       const z = extracts[zi];
-      const other = extracts[1-zi]; // 나머지 탈출구
+      const others = extracts.filter((_,oi)=>oi!==zi); // 나머지 탈출구들 (3개 이상 대응)
       const zx=clamp(Math.floor(z.x/TILE),0,w-1), zy=clamp(Math.floor(z.y/TILE),0,h-1);
       const isolated = !reach[zy*w+zx];
-      const cramped = openness(z.x,z.y) < MIN_OPEN;
+      // 강 끝 탈출구는 물가라 개방도가 낮게 나옴 → 기준 완화 (물은 몹만 못 건너는 지형)
+      const needOpen = z.river ? 0.3 : MIN_OPEN;
+      const cramped = openness(z.x,z.y) < needOpen;
       const tooClose = dist(z.x,z.y,spawn.x,spawn.y) < minExit;
       if(!isolated && !cramped && !tooClose) continue;
       // 우선순위별로 후보를 완화: (거리+개방) → (개방만) → (거리만) → (아무 도달지점)
       const pickBest = (needOpen, needDist)=>{
         let best=null, bd=-1;
         for(const s of reachSpots){
-          if(other && dist(s.x,s.y,other.x,other.y) < minExit*0.6) continue; // 두 탈출구 분리
+          if(others.some(o=>dist(s.x,s.y,o.x,o.y) < minExit*0.6)) continue; // 탈출구끼리 분리
           if(needDist && s.d < minExit) continue;
           if(needOpen && openness(s.x,s.y) < MIN_OPEN) continue;
           if(s.d>bd){ bd=s.d; best=s; }

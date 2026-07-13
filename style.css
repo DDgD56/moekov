@@ -340,3 +340,20 @@ canvas#cv { image-rendering:pixelated; image-rendering:crisp-edges; }
   transition:all .12s; }
 .discard-zone.hot { color:#ffb87a; border-color:#c07a4a; background:rgba(90,45,25,.5);
   box-shadow:0 0 10px rgba(220,120,60,.35) inset; }
+
+/* 착용 장비 (가방 패널) */
+.gear-row { display:flex; gap:6px; align-items:center; margin-bottom:7px; flex-wrap:wrap; }
+.gear-slot { display:flex; gap:6px; align-items:center; padding:5px 9px;
+  border:2px solid #3d4a56; border-radius:2px; background:rgba(20,28,36,.5);
+  font-size:12px; color:#8a9ab0; }
+.gear-slot.filled { border-color:#7a9ab0; color:#d8e4f0; cursor:pointer; }
+.gear-slot.filled:hover { background:rgba(50,70,90,.55); border-color:#a8c8e0; }
+.gear-slot .gs-label { font-weight:bold; font-size:11px; opacity:.8; }
+.gear-slot .gs-none { opacity:.5; }
+.gear-total { font-size:12px; font-weight:bold; color:#a8c8e0; margin-left:2px; }
+
+/* HUD: 구르기 픽 + 장비 */
+#rollpips { margin-top:5px; font-size:12px; font-weight:bold; color:#c9d8a0;
+  text-shadow:1px 1px 0 #000; }
+#gearline { margin-top:2px; font-size:12px; font-weight:bold; color:#a8c8e0;
+  text-shadow:1px 1px 0 #000; }

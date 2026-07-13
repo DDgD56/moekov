@@ -3,27 +3,90 @@
     "name": "배낭 확장",
     "emoji": "🎒",
     "tiers": [
-      { "w": 6, "h": 4, "cost": 0 },
       {
-        "w": 7, "h": 4, "cost": 250,
-        "mats": [["circuit", 1]]
+        "w": 6,
+        "h": 4,
+        "cost": 0
       },
       {
-        "w": 7, "h": 5, "cost": 600,
-        "mats": [["circuit", 2], ["bronze_kettle", 1]]
+        "w": 7,
+        "h": 4,
+        "cost": 250,
+        "mats": [
+          [
+            "circuit",
+            1
+          ]
+        ]
       },
       {
-        "w": 8, "h": 6, "cost": 1200,
-        "mats": [["radio", 1], ["gold_tooth", 2]]
+        "w": 7,
+        "h": 5,
+        "cost": 600,
+        "mats": [
+          [
+            "circuit",
+            2
+          ],
+          [
+            "bronze_kettle",
+            1
+          ]
+        ]
       },
       {
-        "w": 9, "h": 7, "cost": 2200,
-        "mats": [["factory_badge", 1], ["blueprint_scrap", 1], ["rust_bolt_jar", 2]],
+        "w": 8,
+        "h": 6,
+        "cost": 1200,
+        "mats": [
+          [
+            "radio",
+            1
+          ],
+          [
+            "gold_tooth",
+            2
+          ]
+        ]
+      },
+      {
+        "w": 9,
+        "h": 7,
+        "cost": 2200,
+        "mats": [
+          [
+            "factory_badge",
+            1
+          ],
+          [
+            "blueprint_scrap",
+            1
+          ],
+          [
+            "rust_bolt_jar",
+            2
+          ]
+        ],
         "note": "폐공장"
       },
       {
-        "w": 10, "h": 8, "cost": 4000,
-        "mats": [["frog_idol", 1], ["gold_flake_vial", 1], ["swamp_pearl", 2]],
+        "w": 10,
+        "h": 8,
+        "cost": 4000,
+        "mats": [
+          [
+            "frog_idol",
+            1
+          ],
+          [
+            "gold_flake_vial",
+            1
+          ],
+          [
+            "swamp_pearl",
+            2
+          ]
+        ],
         "note": "황금 습지"
       }
     ]
@@ -32,27 +95,84 @@
     "name": "미니 체력",
     "emoji": "❤️",
     "tiers": [
-      { "v": 50, "cost": 0 },
       {
-        "v": 70, "cost": 200,
-        "mats": [["toad_oil", 1]]
+        "v": 50,
+        "cost": 0
       },
       {
-        "v": 95, "cost": 550,
-        "mats": [["toad_oil", 2], ["lunchbox", 1]]
+        "v": 70,
+        "cost": 200,
+        "mats": [
+          [
+            "toad_oil",
+            1
+          ]
+        ]
       },
       {
-        "v": 125, "cost": 1100,
-        "mats": [["toad_oil", 3], ["duck_ring", 1]]
+        "v": 95,
+        "cost": 550,
+        "mats": [
+          [
+            "toad_oil",
+            2
+          ],
+          [
+            "lunchbox",
+            1
+          ]
+        ]
       },
       {
-        "v": 160, "cost": 2000,
-        "mats": [["grease_can", 2], ["canned_stew", 2], ["fuse_box_core", 1]],
+        "v": 125,
+        "cost": 1100,
+        "mats": [
+          [
+            "toad_oil",
+            3
+          ],
+          [
+            "duck_ring",
+            1
+          ]
+        ]
+      },
+      {
+        "v": 160,
+        "cost": 2000,
+        "mats": [
+          [
+            "grease_can",
+            2
+          ],
+          [
+            "canned_stew",
+            2
+          ],
+          [
+            "fuse_box_core",
+            1
+          ]
+        ],
         "note": "폐공장"
       },
       {
-        "v": 200, "cost": 3600,
-        "mats": [["bog_amber", 1], ["mud_honey", 2], ["gold_berry", 1]],
+        "v": 200,
+        "cost": 3600,
+        "mats": [
+          [
+            "bog_amber",
+            1
+          ],
+          [
+            "mud_honey",
+            2
+          ],
+          [
+            "gold_berry",
+            1
+          ]
+        ],
         "note": "황금 습지"
       }
     ]
@@ -61,28 +181,85 @@
     "name": "물갈퀴 신발",
     "emoji": "🩰",
     "tiers": [
-      { "v": 1, "cost": 0 },
       {
-        "v": 1.12, "cost": 200,
-        "mats": [["slipper_stock", 1]]
+        "v": 1,
+        "cost": 0
       },
       {
-        "v": 1.25, "cost": 600,
-        "mats": [["horseshoe_magnet", 1]]
+        "v": 1.12,
+        "cost": 200,
+        "mats": [
+          [
+            "slipper_stock",
+            1
+          ]
+        ]
       },
       {
-        "v": 1.38, "cost": 1200,
-        "mats": [["safety_sign", 1], ["workglove_grip", 1], ["energy_bar", 2]],
+        "v": 1.25,
+        "cost": 600,
+        "mats": [
+          [
+            "horseshoe_magnet",
+            1
+          ]
+        ]
+      },
+      {
+        "v": 1.38,
+        "cost": 1200,
+        "mats": [
+          [
+            "safety_sign",
+            1
+          ],
+          [
+            "workglove_grip",
+            1
+          ],
+          [
+            "energy_bar",
+            2
+          ]
+        ],
         "note": "폐공장"
       },
       {
-        "v": 1.52, "cost": 2200,
-        "mats": [["moss_compass", 1], ["reed_whistle", 1], ["lily_coin", 1]],
+        "v": 1.52,
+        "cost": 2200,
+        "mats": [
+          [
+            "moss_compass",
+            1
+          ],
+          [
+            "reed_whistle",
+            1
+          ],
+          [
+            "lily_coin",
+            1
+          ]
+        ],
         "note": "황금 습지"
       },
       {
-        "v": 1.65, "cost": 3400,
-        "mats": [["gold_flake_vial", 1], ["swamp_pearl", 2], ["dried_fish", 2]],
+        "v": 1.65,
+        "cost": 3400,
+        "mats": [
+          [
+            "gold_flake_vial",
+            1
+          ],
+          [
+            "swamp_pearl",
+            2
+          ],
+          [
+            "dried_fish",
+            2
+          ]
+        ],
         "note": "황금 습지+"
       }
     ]
@@ -91,29 +268,148 @@
     "name": "창고 확장",
     "emoji": "🏦",
     "tiers": [
-      { "w": 10, "h": 6, "cost": 0 },
       {
-        "w": 12, "h": 8, "cost": 350,
-        "mats": [["bronze_kettle", 1]]
+        "w": 10,
+        "h": 6,
+        "cost": 0
       },
       {
-        "w": 14, "h": 10, "cost": 900,
-        "mats": [["key_bundle", 1], ["radio", 1]]
+        "w": 12,
+        "h": 8,
+        "cost": 350,
+        "mats": [
+          [
+            "bronze_kettle",
+            1
+          ]
+        ]
       },
       {
-        "w": 16, "h": 12, "cost": 1800,
-        "mats": [["factory_badge", 1], ["rust_bolt_jar", 2], ["punch_card", 1]],
+        "w": 14,
+        "h": 10,
+        "cost": 900,
+        "mats": [
+          [
+            "key_bundle",
+            1
+          ],
+          [
+            "radio",
+            1
+          ]
+        ]
+      },
+      {
+        "w": 16,
+        "h": 12,
+        "cost": 1800,
+        "mats": [
+          [
+            "factory_badge",
+            1
+          ],
+          [
+            "rust_bolt_jar",
+            2
+          ],
+          [
+            "punch_card",
+            1
+          ]
+        ],
         "note": "폐공장"
       },
       {
-        "w": 18, "h": 14, "cost": 3000,
-        "mats": [["fuse_box_core", 1], ["blueprint_scrap", 1], ["safety_sign", 1]],
+        "w": 18,
+        "h": 14,
+        "cost": 3000,
+        "mats": [
+          [
+            "fuse_box_core",
+            1
+          ],
+          [
+            "blueprint_scrap",
+            1
+          ],
+          [
+            "safety_sign",
+            1
+          ]
+        ],
         "note": "폐공장+"
       },
       {
-        "w": 20, "h": 16, "cost": 4800,
-        "mats": [["frog_idol", 1], ["bog_amber", 1], ["moss_compass", 1]],
+        "w": 20,
+        "h": 16,
+        "cost": 4800,
+        "mats": [
+          [
+            "frog_idol",
+            1
+          ],
+          [
+            "bog_amber",
+            1
+          ],
+          [
+            "moss_compass",
+            1
+          ]
+        ],
         "note": "황금 습지"
+      }
+    ]
+  },
+  "roll": {
+    "name": "긴급 회피",
+    "emoji": "🤸",
+    "tiers": [
+      {
+        "n": 1,
+        "cd": 10,
+        "cost": 0
+      },
+      {
+        "n": 1,
+        "cd": 6,
+        "cost": 300,
+        "mats": [
+          [
+            "toad_oil",
+            1
+          ]
+        ]
+      },
+      {
+        "n": 2,
+        "cd": 4.5,
+        "cost": 800,
+        "mats": [
+          [
+            "circuit",
+            2
+          ],
+          [
+            "bronze_kettle",
+            1
+          ]
+        ]
+      },
+      {
+        "n": 2,
+        "cd": 3,
+        "cost": 1600,
+        "mats": [
+          [
+            "radio",
+            1
+          ],
+          [
+            "gold_tooth",
+            1
+          ]
+        ]
       }
     ]
   }
