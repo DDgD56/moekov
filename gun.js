@@ -524,50 +524,52 @@ function drawGunWorld(ctx, gun, px, py, ang, flash, spin, kick){
   if(!gun.body) return;
   const bd = gun.body.def;
   const S = 7.5; // 월드 총 셀 픽셀
-  ctx.save();
-  ctx.translate(px, py);
-  ctx.rotate(ang);
-  if(spin){ // 재장전 트월링 (총 중심 기준 회전)
-    const scx = 10 + bd.bw*S/2;
-    ctx.translate(scx, 0); ctx.rotate(spin); ctx.translate(-scx, 0);
-  }
+  // ── 하드엣지 렌더: ctx.rotate 대신 회전 사각형을 1도트씩 직접 찍음 (AA 없음) ──
+  // 스핀(재장전 트월링)은 총 중심 피벗의 추가 회전 → 합성 회전 + 오프셋 보정으로 처리
+  const tot = ang + (spin||0);
+  const ct = Math.cos(tot), st = Math.sin(tot);
+  const scx = spin ? 10 + bd.bw*S/2 : 0;
+  const ox0 = px + (spin ? Math.cos(ang)*scx - ct*scx : 0);
+  const oy0 = py + (spin ? Math.sin(ang)*scx - st*scx : 0);
+  // 회전 사각형 도트 찍기 (0.6px 스텝 오버샘플 → 구멍 없음)
+  const rot = (u,v)=>[Math.round(ox0 + u*ct - v*st), Math.round(oy0 + u*st + v*ct)];
+  const pRot = (x0,y0,w,h,color)=>{
+    ctx.fillStyle = color;
+    for(let v=0; v<=h; v+=0.6) for(let u=0; u<=w; u+=0.6){
+      const [X,Y] = rot(x0+u, y0+v);
+      ctx.fillRect(X, Y, 1, 1);
+    }
+  };
   const gx = 10 - (kick||0)*5, gy = -bd.bh*S/2; // 반동 킥백
 
-  // 부착물 (몸통 뒤에 깔리는 것 먼저) — 장착 회전에 따른 footprint 반영
+  // 부착물 (몸통 뒤에 깔림) — 장착 회전에 따른 footprint 반영
   for(const m of gun.atts){
     const ad = m.inst.def;
     const cells = shapeOf(ad, m.rot||0);
     const aW = Math.max(...cells.map(c=>c[0]))+1;
     const dD = Math.max(...cells.map(c=>c[1]))+1;
     const d = dD*4;
-    ctx.fillStyle = SOCK_INFO[ad.sock].color;
-    if(m.side==='top')
-      rrect(ctx, gx+m.idx*S+1, gy-d, aW*S-2, d, 2);
-    else if(m.side==='bottom')
-      rrect(ctx, gx+m.idx*S+1, gy+bd.bh*S, aW*S-2, d, 2);
-    else if(m.side==='front')
-      rrect(ctx, gx+bd.bw*S, gy+m.idx*S+1, d, aW*S-2, 2);
-    else
-      rrect(ctx, gx-d, gy+m.idx*S+1, d, aW*S-2, 2);
+    const col = SOCK_INFO[ad.sock].color;
+    if(m.side==='top')         pRot(gx+m.idx*S+1, gy-d,        aW*S-2, d,      col);
+    else if(m.side==='bottom') pRot(gx+m.idx*S+1, gy+bd.bh*S,  aW*S-2, d,      col);
+    else if(m.side==='front')  pRot(gx+bd.bw*S,   gy+m.idx*S+1, d,     aW*S-2, col);
+    else                       pRot(gx-d,         gy+m.idx*S+1, d,     aW*S-2, col);
   }
 
-  // 몸통 (어두운 외곽선으로 배경과 분리 → 색 구분이 또렷)
-  ctx.fillStyle = 'rgba(0,0,0,.55)';
-  rrect(ctx, gx-1.5, gy-1.5, bd.bw*S+3, bd.bh*S+3, 4);
-  ctx.fillStyle = bd.color;
-  rrect(ctx, gx, gy, bd.bw*S, bd.bh*S, 3);
-  ctx.fillStyle = 'rgba(0,0,0,.25)';
-  rrect(ctx, gx, gy+bd.bh*S*0.55, bd.bw*S, bd.bh*S*0.45, 2);
+  // 몸통: 어두운 외곽선으로 배경·부착물과 분리 → 색 구분이 또렷
+  pRot(gx-1.5, gy-1.5, bd.bw*S+3, bd.bh*S+3, 'rgba(0,0,0,.55)');
+  pRot(gx, gy, bd.bw*S, bd.bh*S, bd.color);
+  pRot(gx, gy+bd.bh*S*0.55, bd.bw*S, bd.bh*S*0.45, 'rgba(0,0,0,.25)');
 
-  // 총구 화염 (도트 블롭)
+  // 총구 화염 (도트 블롭, 회전 좌표로 위치만 변환)
   if(flash>0){
     ctx.globalAlpha = Math.min(1, flash*8);
     const fr = Math.round(4 + flash*14);
-    pBlob(gx+bd.bw*S+5, gy+bd.bh*S/2, fr, '#ffd76a');
-    pBlob(gx+bd.bw*S+7, gy+bd.bh*S/2, Math.max(1, fr-2), '#fff2b0');
+    const [fx,fy] = rot(gx+bd.bw*S+5, gy+bd.bh*S/2);
+    pBlob(fx, fy, fr, '#ffd76a');
+    pBlob(fx+2, fy, Math.max(1, fr-2), '#fff2b0');
     ctx.globalAlpha = 1;
   }
-  ctx.restore();
 }
 
 // 픽셀 톤: 둥근 모서리 무시, 정수 격자 박스만 (도트 통일)
