@@ -347,6 +347,7 @@ function renderPanel(){
   }
   else if(t==='extract'){
     const newly = (panel.data && panel.data.newly) || [];
+    const sum = panel.data && panel.data.sum;
     const unlockHtml = newly.length ? newly.map(id=>
       `<p class="rg-unlocked">🎉 새 지역 해금: <b>${REGIONS[id].emoji} ${REGIONS[id].name}</b>!</p>`).join('') : '';
     const exoHint = newly.includes('factory') && !State.exoticIntroDone
@@ -356,18 +357,18 @@ function renderPanel(){
       <div class="deploy-body">
         ${unlockHtml}
         ${exoHint}
-        <p>🪙 주운 코인: <b>${player.coinsGained}</b></p>
-        <p>🎒 가져온 물건 가치: <b>${State.backpack.totalValue()}</b> (창고에서 판매 가능)</p>
-        <p>💀 처치: <b>${player.kills}</b></p>
+        ${sum ? runSummaryHTML(sum, true) : ''}
         <button class="btn big" id="home">케이브로 돌아가기 🏠</button>
       </div>`;
     p.querySelector('#home').addEventListener('click', returnToCave);
   }
   else if(t==='death'){
     const lost = panel.data.lost;
+    const dsum = panel.data && panel.data.sum;
     p.innerHTML = `
       <div class="panel-title dead">💀 사망...</div>
       <div class="deploy-body">
+        ${dsum ? runSummaryHTML(dsum, false) : ''}
         <p>총과 가방을 모두 그 자리에 떨어뜨렸다:</p>
         <p class="lost-list">${lost.length? lost.join(', ') : '(없음)'}</p>
         <p>💀 <b>같은 지역</b> 다음 출격에서 쓰러진 자리를 찾아가면 회수할 수 있다.<br>
@@ -422,6 +423,25 @@ function renderPanel(){
 }
 
 // 업그레이드 티어 표시 (JSON 테이블 — desc 함수 없음)
+// 이번 판 요약 HTML (탈출/사망 공용)
+function runSummaryHTML(sum, extracted){
+  const mm = Math.floor(sum.time/60), ss = String(sum.time%60).padStart(2,'0');
+  const rec = t=>` <span class="run-new">★신기록</span>`;
+  const R = State.records||{};
+  return `
+    <div class="run-stats">
+      <div>💀 처치 <b>${sum.kills}</b>${sum.newKills?rec():''}</div>
+      <div>⚔️ 입힌 피해 <b>${sum.dmg}</b></div>
+      <div>🔫 발사 <b>${sum.shots}</b></div>
+      <div>⏱ 생존 <b>${mm}:${ss}</b></div>
+      <div>🪙 ${extracted?'주운 코인':'놓친 코인'} <b>${sum.coins}</b>${sum.newCoins?rec():''}</div>
+      ${extracted
+        ? `<div>🎒 루팅 이득 <b>+${sum.lootGain}</b>${sum.newLoot?rec():''}</div>`
+        : `<div>🎒 가방 <b>전부 상실</b></div>`}
+    </div>
+    <div class="run-records">누적 — 출격 ${R.totalRaids||0} · 탈출 ${R.totalExtracts||0} · 사망 ${R.totalDeaths||0} · 총 처치 ${R.totalKills||0}</div>`;
+}
+
 // 착용 장비 줄 (가방 패널): 슬롯 클릭 → 가방으로 해제
 function renderGearRow(rootEl){
   if(!rootEl) return;

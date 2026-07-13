@@ -774,6 +774,8 @@ function buildRaid(){
     coinMul: RG.coinMul * ((MOD&&MOD.coinMul)||1),
     rareBonus: RG.rareBonus + ((MOD&&MOD.rareBonus)||0),
     mod: MOD, supplyDrop,
+    stats: { dmg:0, shots:0 },
+    lootVal0: State.backpack.totalValue(), // 레이드 시작 시 가방 가치 (루팅 이득 계산용)
   };
   // 📦 보급 경비: 상자 주변에 정예 경비대
   if(supplyDrop){

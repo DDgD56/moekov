@@ -609,6 +609,7 @@ function updateShooting(dt){
   g.ammo -= cost;
   player.flash = 0.06;
   if(inCave) caveMap.range.shots += st.pellets; // 사격장 통계
+  else if(raid.stats) raid.stats.shots++;
   const rec = st.recoil||5;
   shake = Math.min(12, shake + 1 + rec*0.12);
 
@@ -707,6 +708,7 @@ function applyBulletHit(e, b){
   if(b.hitSet && b.hitSet.has(e)) return false;
   if(b.hitSet) b.hitSet.add(e);
   e.hp -= b.dmg; e.hitT = 0.1; e.state='chase';
+  if(raid && raid.stats) raid.stats.dmg += b.dmg;
   // 화염: burn 초·DPS 적용 (모드만 있어도 최소 화상)
   let burnT = b.burn||0;
   if(b.mode==='flame' && burnT<=0) burnT = 1.5;
@@ -769,6 +771,7 @@ function applyBulletHit(e, b){
       if(o===e || o.hp<=0) continue;
       if(dist(e.x,e.y,o.x,o.y) > 90) continue;
       o.hp -= b.dmg * 0.45;
+      if(raid.stats) raid.stats.dmg += b.dmg * 0.45;
       o.hitT = 0.12; o.state='chase';
       if(b.stun) o.stun = Math.max(o.stun||0, b.stun*0.6);
       raid.dnums.push({x:o.x,y:o.y-o.r,txt:Math.round(b.dmg*0.45),t:0.55,c:'#a8d0ff'});
@@ -785,6 +788,7 @@ function applyBulletHit(e, b){
       const d2 = dist(b.x,b.y,o.x,o.y);
       if(d2 > b.boom) continue;
       o.hp -= bd2; o.hitT = 0.12; o.state='chase';
+      if(raid.stats) raid.stats.dmg += bd2;
       raid.dnums.push({x:o.x,y:o.y-o.r,txt:bd2,t:0.55,c:'#ffb84a'});
       if(o.hp<=0) killEnemy(o);
     }

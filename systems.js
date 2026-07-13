@@ -145,6 +145,28 @@ function setupQslots(){
 }
 
 // ---------------- 탈출 / 사망 ----------------
+// 이번 판 요약 + 누적 기록 갱신 (extract: 탈출 여부)
+function buildRunSummary(extracted){
+  const R = State.records || (State.records = {});
+  const lootGain = extracted ? Math.max(0, State.backpack.totalValue() - (raid.lootVal0||0)) : 0;
+  const sum = {
+    kills: player.kills,
+    dmg: Math.round((raid.stats&&raid.stats.dmg)||0),
+    shots: (raid.stats&&raid.stats.shots)||0,
+    coins: player.coinsGained,
+    lootGain,
+    time: Math.floor(raid.time),
+    newKills: false, newCoins: false, newLoot: false,
+  };
+  R.totalRaids = (R.totalRaids||0)+1;
+  R.totalKills = (R.totalKills||0)+sum.kills;
+  if(extracted) R.totalExtracts = (R.totalExtracts||0)+1;
+  else R.totalDeaths = (R.totalDeaths||0)+1;
+  if(sum.kills > (R.bestKills||0)){ R.bestKills = sum.kills; sum.newKills = sum.kills>0; }
+  if(extracted && sum.coins > (R.bestCoins||0)){ R.bestCoins = sum.coins; sum.newCoins = sum.coins>0; }
+  if(extracted && sum.lootGain > (R.bestLoot||0)){ R.bestLoot = sum.lootGain; sum.newLoot = sum.lootGain>0; }
+  return sum;
+}
 function onExtract(){
   raid.over = true;
   State.coins += player.coinsGained;
@@ -170,7 +192,7 @@ function onExtract(){
   }
   sfx('extract');
   mouse.down = false;
-  openPanel('extract', {newly});
+  openPanel('extract', {newly, sum: buildRunSummary(true)});
   saveGame();
 }
 // 지역이 열렸는지 (조건 실시간 판정)
@@ -224,7 +246,7 @@ function onDeath(){
   renderQslots();
   // 몸통이 하나도 없으면 창구에서 무료 지급받도록 안내 (자동 지급 X)
   const needBody = !hasAnyBody();
-  openPanel('death', {lost, needBody});
+  openPanel('death', {lost, needBody, sum: buildRunSummary(false)});
   saveGame();
 }
 // 창고/가방/장착 총 어디든 총기 몸통이 하나라도 있는지

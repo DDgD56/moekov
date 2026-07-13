@@ -395,3 +395,12 @@ canvas#cv { image-rendering:pixelated; image-rendering:crisp-edges; }
 .shop-date { font-size:11px; color:#98866a; }
 .npc-line + .shop-grid { margin-top:10px; }
 #modline { margin-top:4px; font-size:12px; font-weight:bold; color:#e8b878; text-shadow:1px 1px 0 #000; }
+
+/* 런 결과 요약 */
+.run-stats { display:grid; grid-template-columns:1fr 1fr; gap:6px 20px;
+  margin:10px 0 12px; padding:12px 16px; background:rgba(0,0,0,.3);
+  border:2px solid #4a3f30; border-radius:2px; font-size:13px; }
+.run-stats b { color:#f0d9a8; }
+.run-new { color:#ffd24a; font-size:11px; font-weight:bold;
+  text-shadow:0 0 6px rgba(255,210,74,.6); }
+.run-records { font-size:11px; color:#98866a; margin-bottom:12px; }
