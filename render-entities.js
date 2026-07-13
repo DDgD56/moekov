@@ -238,12 +238,28 @@ function drawPlayer(){
   if(player.iframe>0 && Math.floor(performance.now()/80)%2===0) ctx.globalAlpha = 0.45;
   const face = Math.cos(player.ang) >= 0 ? 1 : -1;
   const moving = (keys.w||keys.a||keys.s||keys.d);
+  // 🤸 구르기: 진행도에 맞춰 몸 전체가 이동 방향으로 한 바퀴 뒹굴기
+  const rolling = player.rollT > 0;
+  if(rolling){
+    const dur = player.rollDur || 0.26;
+    const prog = 1 - Math.max(0, player.rollT)/dur;   // 0→1
+    // 회전 방향: 좌우 구르기는 그쪽으로, 수직 구르기는 아래=시계/위=반시계
+    const sign = Math.abs(player.rollDir.x) >= 0.3
+      ? (player.rollDir.x>=0 ? 1 : -1)
+      : (player.rollDir.y>=0 ? 1 : -1);
+    const cx = sx, cy = sy - player.r*0.6; // 몸통 중심 축
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(prog * Math.PI*2 * sign);
+    ctx.translate(-cx, -cy);
+  }
   drawGirl(sx, sy, player.r, PLAYER_PAL, face, false, false,
     { walk: moving ? performance.now()/80 : 0,
-      bob: moving ? Math.abs(Math.sin(performance.now()/160))*1.3 : 0 });
+      bob: (moving && !rolling) ? Math.abs(Math.sin(performance.now()/160))*1.3 : 0 });
   // 총은 조준각 그대로 회전 — 캐릭터 손(몸통 중간) 높이에 맞춤
   const spin = player.reloading>0 && player.reloadTotal>0
     ? (1 - player.reloading/player.reloadTotal)*Math.PI*2 : 0;
   drawGunWorld(ctx, curGun(), sx, sy-player.r*0.7, player.ang, player.flash, spin, player.kick);
+  if(rolling) ctx.restore();
   ctx.globalAlpha = 1;
 }

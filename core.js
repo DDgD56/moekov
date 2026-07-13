@@ -325,6 +325,7 @@ function tryRoll(){
   const l = Math.hypot(dx,dy);
   player.rollDir = { x:dx/l, y:dy/l };
   player.rollT = 0.26;              // 560px/s × 0.26s ≈ 146px
+  player.rollDur = 0.26;            // 렌더 회전(한 바퀴) 진행도 기준
   player.rollCharges--;
   player.iframe = Math.max(player.iframe||0, 0.3); // 구르는 동안 짧은 무적
   if(typeof tone==='function') tone(260, .16, 'sine', .1, 140);
