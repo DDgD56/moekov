@@ -617,6 +617,8 @@ function updateShooting(dt){
       burn:burnDur, burnDps, poison:st.poison||0, slow:st.slow||0, stun:st.stun||0,
       chain:st.chain|0, knock:st.knock||1, c:col, r:rad,
       ricochet:st.ricochet|0, lifesteal:st.lifesteal||0, boom:st.boom||0, // ★★★ 유물 기믹
+      // 유물탄 전용 비주얼 태그 (도탄 카운트가 닳아도 모양 유지)
+      fx: st.boom>0 ? 'boom' : (st.ricochet>0 ? 'ric' : (st.lifesteal>0 ? 'vamp' : null)),
       hitSet: new Set(), // 관통 시 같은 적 중복 히트 방지
     });
   }

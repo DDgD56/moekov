@@ -74,11 +74,10 @@ function renderCaveWorld(){
     pRect(lx0+8*TILE+2, ly+5, 4*TILE-4, 4, '#5a4a30');
 
     for(const tg of R.targets) drawTarget(tg);
+    // 사격장에서도 특수탄 비주얼 그대로 (총 시험할 때 눈으로 확인)
     for(const b of caveMap.bullets){
       const [bx,by] = worldToScreen(b.x,b.y);
-      const rr = Math.max(1, Math.round(b.r || 2));
-      pBlob(bx, by, rr, b.c || '#ffe08a');
-      for(let i=1;i<=3;i++) pRect(bx-b.vx*0.004*i-1, by-b.vy*0.004*i-1, 2, 2, b.c||'#ffe08a');
+      drawBullet(b, bx, by);
     }
     for(const p of caveMap.parts){
       const [px,py] = worldToScreen(p.x,p.y);
@@ -674,30 +673,10 @@ function renderRaidWorld(){
     }
   }
 
-  // 총알 (모드별 도트)
+  // 총알 (모드·유물별 도트)
   for(const b of raid.bullets){
     const [sx,sy] = worldToScreen(b.x,b.y);
-    const rr = Math.max(1, Math.round(b.r || 3));
-    const col = b.c || '#ffe9a0';
-    pBlob(sx, sy, rr, col);
-    if(b.mode==='laser'){
-      for(let i=1;i<=4;i++) pRect(sx-b.vx*0.003*i-1, sy-b.vy*0.003*i-1, 2, 2, 'rgba(120,240,255,.55)');
-    } else if(b.mode==='flame'){
-      const ff = 0.6 + 0.4*Math.sin(performance.now()/50 + b.x);
-      pBlob(sx, sy, rr+2, `rgba(255,140,60,${0.35*ff})`);
-      pBlob(sx - b.vx*0.004, sy - b.vy*0.004, Math.max(1,rr), 'rgba(255,210,80,.45)');
-      pRect(sx-1, sy-rr-2, 2, rr, 'rgba(255,180,60,.5)');
-    } else if(b.mode==='ice'){
-      pBlob(sx, sy, rr+1, 'rgba(140,220,255,.4)');
-      pRect(sx-2, sy-1, 4, 2, '#e8f8ff');
-      pRect(sx-1, sy-3, 2, 2, '#a0e0ff');
-    } else if(b.mode==='glue'){
-      pOval(sx, sy, rr+1, Math.max(1, rr-1), 'rgba(230,160,200,.4)');
-    } else if(b.mode==='shock'){
-      pRect(sx-1, sy-4, 2, 3, '#a8d0ff');
-      pRect(sx, sy-1, 3, 2, '#a8d0ff');
-      pRect(sx+1, sy+2, 2, 2, '#d0e8ff');
-    }
+    drawBullet(b, sx, sy);
   }
   for(const b of raid.ebullets){
     const [sx,sy] = worldToScreen(b.x,b.y);
@@ -1199,4 +1178,93 @@ function drawContainer(c, x, y){
       pBox(-14, -12, 28, 24, '#3a2c1c');
   }
   ctx.restore();
+}
+
+// ============================================================
+// 총알 도트 아트 — 모드(레이저·화염·다트·끈끈이·냉기·감전)와
+// ★★★ 유물탄(작렬·도탄·흡혈)이 한눈에 구분되는 모양/이펙트
+// (레이드·케이브 사격장 공용)
+// ============================================================
+function drawBullet(b, sx, sy){
+  const rr = Math.max(1, Math.round(b.r || 3));
+  const col = b.c || '#ffe9a0';
+  const now = performance.now();
+  if(b.mode==='laser'){
+    // 광선: 진행 방향으로 길게 뻗은 빔 + 흰 코어
+    const nx = b.vx*0.0055, ny = b.vy*0.0055;
+    for(let i=4;i>=1;i--)
+      pRect(sx-nx*i-1, sy-ny*i-1, 3, 3, `rgba(120,240,255,${0.55-i*0.11})`);
+    pRect(sx-2, sy-2, 5, 5, 'rgba(120,240,255,.5)');
+    pRect(sx-1, sy-1, 3, 3, '#eafcff');
+  } else if(b.mode==='flame'){
+    // 화염: 일렁이는 불꽃 덩어리 + 심지
+    const ff = 0.6 + 0.4*Math.sin(now/50 + b.x);
+    pBlob(sx, sy, rr+2, `rgba(255,140,60,${0.35*ff})`);
+    pBlob(sx, sy, rr, col);
+    pBlob(sx - b.vx*0.004, sy - b.vy*0.004, Math.max(1,rr), 'rgba(255,210,80,.45)');
+    pRect(sx-1, sy-rr-2, 2, rr, 'rgba(255,180,60,.5)');
+  } else if(b.mode==='ice'){
+    // 냉기: 다이아 결정 + 반짝 꼬리
+    pBlob(sx, sy, rr+1, 'rgba(140,220,255,.35)');
+    pRect(sx-1, sy-3, 2, 2, '#a0e0ff'); pRect(sx-1, sy+2, 2, 2, '#a0e0ff');
+    pRect(sx-3, sy-1, 2, 2, '#a0e0ff'); pRect(sx+2, sy-1, 2, 2, '#a0e0ff');
+    pRect(sx-1, sy-1, 2, 2, '#eafaff');
+    if(Math.floor(now/120)%2) pRect(sx-b.vx*0.006-1, sy-b.vy*0.006-1, 2, 2, 'rgba(220,245,255,.7)');
+  } else if(b.mode==='glue'){
+    // 끈끈이: 출렁이는 방울 + 곁방울
+    const wob = Math.sin(now/70 + b.y);
+    pOval(sx, sy, rr+1+(wob>0?1:0), Math.max(1, rr-(wob>0?1:0)), 'rgba(230,160,200,.5)');
+    pRect(sx-1, sy-1, 2, 2, '#f8dcE8');
+    pRect(sx - b.vx*0.005, sy - b.vy*0.005, 2, 2, 'rgba(230,160,200,.45)');
+  } else if(b.mode==='shock'){
+    // 감전: 지그재그 번개 (깜빡임)
+    const on = Math.floor(now/60)%2;
+    ctx.globalAlpha = on ? 1 : 0.55;
+    pRect(sx-1, sy-4, 2, 3, '#a8d0ff');
+    pRect(sx, sy-1, 3, 2, '#d0e8ff');
+    pRect(sx+1, sy+2, 2, 2, '#a8d0ff');
+    ctx.globalAlpha = 1;
+  } else if(b.mode==='dart'){
+    // 독다트: 진행 방향 바늘 + 초록 촉
+    const horiz = Math.abs(b.vx) >= Math.abs(b.vy);
+    if(horiz){
+      pRect(sx-4, sy-1, 8, 2, '#cfe8a8');
+      pRect(sx + (b.vx>0? 3 : -5), sy-1, 2, 2, '#4a9a2a');
+      pRect(sx + (b.vx>0? -5 : 4), sy-2, 1, 4, '#8a6a4a'); // 깃
+    } else {
+      pRect(sx-1, sy-4, 2, 8, '#cfe8a8');
+      pRect(sx-1, sy + (b.vy>0? 3 : -5), 2, 2, '#4a9a2a');
+      pRect(sx-2, sy + (b.vy>0? -5 : 4), 4, 1, '#8a6a4a');
+    }
+  } else if(b.fx==='boom'){
+    // ★작렬탄: 통통한 포탄 + 깜빡이는 심지 + 연기 꼬리
+    pBlob(sx, sy, rr+1, '#c86a3a');
+    pBlob(sx, sy, Math.max(1, rr-1), '#ffd24a');
+    if(Math.floor(now/90)%2) pRect(sx-1, sy-rr-3, 2, 2, '#ff5030');
+    const nx = b.vx*0.005, ny = b.vy*0.005;
+    for(let i=1;i<=3;i++)
+      pRect(sx-nx*i-1, sy-ny*i-1, 2, 2, `rgba(160,150,140,${0.45-i*0.12})`);
+  } else if(b.fx==='ric'){
+    // ★도탄: 회전하는 네 갈래 별 (＋/× 프레임 교차)
+    if(Math.floor(now/70)%2){
+      pRect(sx-3, sy-1, 7, 2, '#ffe08a');
+      pRect(sx-1, sy-3, 2, 7, '#ffe08a');
+    } else {
+      for(let i=-2;i<=2;i++){
+        pRect(sx+i, sy+i, 2, 1, '#ffe08a');
+        pRect(sx+i, sy-i, 2, 1, '#ffd24a');
+      }
+    }
+    pRect(sx-1, sy-1, 2, 2, '#fff4c0');
+  } else if(b.fx==='vamp'){
+    // ★흡혈탄: 진홍 핵 + 핏방울 꼬리
+    pBlob(sx, sy, rr, '#c02040');
+    pRect(sx-1, sy-1, 2, 2, '#ff6a7a');
+    const nx = b.vx*0.006, ny = b.vy*0.006;
+    for(let i=1;i<=2;i++)
+      pRect(sx-nx*i-1, sy-ny*i-1, 2, 2, `rgba(200,40,60,${0.55-i*0.18})`);
+  } else {
+    // 일반탄
+    pBlob(sx, sy, rr, col);
+  }
 }
