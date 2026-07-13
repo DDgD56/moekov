@@ -744,6 +744,8 @@ function renderDarkness(){
   if(ph==='dusk') dark = lerp(0.12, 0.9, (raid.time-dayLen())/DUSK_LEN);
   if(ph==='night') dark = 0.9;
   if(raid.inside) dark = Math.max(dark, 0.86); // 실내에선 바깥이 안 보임
+  const fogMul = (raid.mod && raid.mod.fog) ? 0.68 : 1; // 🌫️ 안개: 시야 콘 축소
+  if(raid.mod && raid.mod.fog) dark = Math.max(dark, 0.55); // 낮에도 뿌옇게
 
   vctx.clearRect(0,0,W,H);
   vctx.fillStyle = `rgba(8,8,18,${dark})`;
@@ -766,14 +768,14 @@ function renderDarkness(){
     vctx.beginPath(); vctx.arc(psx,psy,rr,0,Math.PI*2); vctx.fill();
   } else {
     // 주변(뒤쪽) 시야 — 약함
-    const br = (110+st.light*60)*ZOOM;
+    const br = (110+st.light*60)*ZOOM*fogMul;
     g = vctx.createRadialGradient(psx,psy,10, psx,psy,br);
     g.addColorStop(0,'rgba(0,0,0,0.95)');
     g.addColorStop(1,'rgba(0,0,0,0)');
     vctx.fillStyle = g;
     vctx.beginPath(); vctx.arc(psx,psy,br,0,Math.PI*2); vctx.fill();
     // 조준 시야 콘
-    const coneLen = (330 + st.light*140) * (1 + (st.zoom-1)*player.aimT) * ZOOM;
+    const coneLen = (330 + st.light*140) * (1 + (st.zoom-1)*player.aimT) * ZOOM * fogMul;
     const half = (0.55 + st.light*0.18) * (1 - 0.25*player.aimT);
     g = vctx.createRadialGradient(psx,psy,20, psx,psy,coneLen);
     g.addColorStop(0,'rgba(0,0,0,1)');
@@ -855,6 +857,7 @@ function renderRaidUI(){
   }
   drawExtractCompass(psx, psy);
   drawCorpseCompass(psx, psy);
+  drawSupplyCompass(psx, psy);
 }
 
 // 탈출구 방향 표시 — 휴대용 탐지기(일시) 또는 탐지모듈 장착 총
@@ -1295,4 +1298,23 @@ function drawBullet(b, sx, sy){
     // 일반탄
     pBlob(sx, sy, rr, col);
   }
+}
+
+
+// 📦 보급 방향 표시 — 출격 직후 30초 (주황 화살표)
+function drawSupplyCompass(psx, psy){
+  if(!player.supplyDetectT || player.supplyDetectT<=0 || !raid || raid.over || !raid.supplyDrop) return;
+  const ang = Math.atan2(raid.supplyDrop.y - player.y, raid.supplyDrop.x - player.x);
+  const pulse = 0.65 + 0.35*Math.sin(performance.now()/150);
+  const r = 62;
+  const ax = psx + Math.cos(ang)*r, ay = psy + Math.sin(ang)*r;
+  const ca = Math.cos(ang), sa = Math.sin(ang);
+  const tipX = ax + ca*8, tipY = ay + sa*8;
+  const bx2 = ax - ca*6, by2 = ay - sa*6;
+  ctx.fillStyle = `rgba(255,170,90,${0.92*pulse})`;
+  ctx.beginPath();
+  ctx.moveTo(tipX, tipY);
+  ctx.lineTo(bx2 - sa*7, by2 + ca*7);
+  ctx.lineTo(bx2 + sa*7, by2 - ca*7);
+  ctx.closePath(); ctx.fill();
 }

@@ -394,3 +394,4 @@ canvas#cv { image-rendering:pixelated; image-rendering:crisp-edges; }
 .shop-foot { display:flex; align-items:center; gap:12px; margin-top:14px; }
 .shop-date { font-size:11px; color:#98866a; }
 .npc-line + .shop-grid { margin-top:10px; }
+#modline { margin-top:4px; font-size:12px; font-weight:bold; color:#e8b878; text-shadow:1px 1px 0 #000; }

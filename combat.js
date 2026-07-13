@@ -182,7 +182,7 @@ function spawnEnemy(typeId, x, y){
   const rg = curRegion;
   const bossType = !!T.boss;
   // 보스는 지역 배율 미적용(자체 밸런스), 일반 적만 지역 배율
-  const hpMul = bossType ? 1 : rg.hpMul;
+  const hpMul = (bossType ? 1 : rg.hpMul) * ((raid&&raid.mod&&raid.mod.hpMul)||1);
   const hp = Math.round(T.hp * hpMul * (phase()==='night' ? 1.6 : 1)); // 밤 스폰은 강화
   raid.enemies.push({
     id:typeId, t:T, x, y, hp, hpMax:hp, r:T.r,
@@ -210,6 +210,7 @@ function updateEnemies(dt){
   const dusk = phase()==='dusk';
   // 밤엔 미니의 감지 시야가 크게 넓어진다 (해질녘도 약간). 낮 165 → 밤 460
   let aggroR = night ? 460 : (dusk ? 240 : 165);
+  if(raid.mod && raid.mod.aggroMul) aggroR *= raid.mod.aggroMul; // 🌫️ 안개
   if(raid.underTree) aggroR *= 0.45; // 수풀 은신
 
   const dotDead = [];
@@ -276,7 +277,7 @@ function updateEnemies(dt){
     const dp = Math.max(0.001, dist(e.x,e.y,player.x,player.y)); // 0나눗셈(NaN) 방지
     // 끈끈이 둔화: 이속 ~38%
     const spd = e.t.spd * (e.spdMul||1) * (night ? 1.10 : 1) * (e.slow>0 ? 0.38 : 1);
-    const dmgN = (e.dmgMul||1) * (night ? 1.3 : 1);             // 지역·밤 배율
+    const dmgN = (e.dmgMul||1) * (night ? 1.3 : 1) * ((night&&raid.mod&&raid.mod.nightDmgMul)||1); // 지역·밤·이변 배율
     // 원거리 발사 배율 (지역별): 총알 속도·발사 빈도·점사 수
     const RGF = curRegion.fire || {};
     const bSpdMul = (RGF.bulletSpd || 1) * (night ? 1.08 : 1);  // 총알 속도 배수
@@ -469,7 +470,7 @@ function updateEnemies(dt){
     }
   }
   const SPW = curRegion.spawn || {};
-  if(ph==='night' && raid.enemies.length < (SPW.nightCap??140)){
+  if(ph==='night' && raid.enemies.length < (SPW.nightCap??140) * ((raid.mod&&raid.mod.nightCapMul)||1)){
     raid.waveT -= dt;
     if(raid.waveT<=0){
       const ns = nightSec();
@@ -508,7 +509,7 @@ function updateEnemies(dt){
         spawnEnemy(pickWeighted(curRegion.pool), x, y);
       }
     }
-  } else if(ph==='day' && raid.enemies.length < (SPW.dayCap??20)){
+  } else if(ph==='day' && raid.enemies.length < (SPW.dayCap??20) * ((raid.mod&&raid.mod.dayCapMul)||1)){
     raid.trickleT -= dt;
     if(raid.trickleT<=0){
       raid.trickleT = SPW.dayEvery??13;

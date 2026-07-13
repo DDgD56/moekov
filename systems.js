@@ -250,6 +250,12 @@ function startRaid(){
   buildRaid();
   scene = 'raid';
   playMusic('dayRaid');
+  // 이변 안내 (시체 토스트와 겹치지 않게 지연)
+  if(raid && raid.mod){
+    const md = raid.mod;
+    setTimeout(()=>{ if(raid && raid.mod===md) toast(md.emoji+' 이변: '+md.name+' — '+md.desc, 4000); },
+      (player.corpseDetectT>0 || player.extractHintIntro) ? 2800 : 500);
+  }
   if(raid && raid._corpseLostOtherRegion){
     toast('💀 다른 지역 출격으로 시체가 사라졌다...');
   } else if(player.corpseDetectT > 0){

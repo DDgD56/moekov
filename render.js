@@ -94,6 +94,12 @@ function update(dt){
       toast('💀 시체 방향 표시 종료 — 위치를 기억해 두세요');
     }
   }
+  // 📦 보급 방향 표시 타이머
+  if(player.supplyDetectT > 0){
+    const prevS = player.supplyDetectT;
+    player.supplyDetectT = Math.max(0, player.supplyDetectT - dt);
+    if(prevS>0 && player.supplyDetectT<=0) toast('📦 보급 방향 표시 종료');
+  }
   // 보스 디버프
   if(player.slowT > 0) player.slowT = Math.max(0, player.slowT - dt);
   if(player.poisonT > 0 && scene==='raid' && raid && !raid.over){
@@ -259,6 +265,8 @@ function updateHud(){
     clock.textContent = icon+' '+String(Math.floor(t/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0');
     clock.className = ph;
     kills.textContent = '💀 '+player.kills;
+    const ml = document.getElementById('modline');
+    if(ml) ml.textContent = raid.mod ? raid.mod.emoji+' '+raid.mod.name : '';
     gname.textContent = slotTag + (g.body ? g.body.def.emoji+' '+st.name : '맨손');
     ammo.textContent = player.reloading>0
       ? (player.shellLoading ? '장전중 '+g.ammo+' / '+st.ammo : '재장전... '+player.reloading.toFixed(1))
@@ -268,6 +276,7 @@ function updateHud(){
     hint.textContent = near ? '[E] '+near.ct.name+' 열기' : '';
   } else {
     clock.textContent = '🏠 케이브';
+    { const ml = document.getElementById('modline'); if(ml) ml.textContent = ''; }
     clock.className = '';
     kills.textContent = '';
     gname.textContent = slotTag + (g.body ? g.body.def.emoji+' '+st.name : '맨손');

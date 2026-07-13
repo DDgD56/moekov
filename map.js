@@ -43,11 +43,28 @@ function mkTarget(x, y, kind){
   return { x, y, kind, r:26, hp:1, hitT:0, popT:0, lastDmg:0, wob:0 };
 }
 
+// ---------------- 레이드 이변 (모디파이어) ----------------
+// 출격마다 낮은 확률로 하나 — 지역 프로필 위에 곱해지는 특수 규칙
+const RAID_MODS = [
+  { id:'fog',   w:1.2, name:'짙은 안개',   emoji:'🌫️', desc:'시야가 짧다. 대신 희귀품이 잘 나온다.',
+    rareBonus:0.04, aggroMul:0.75, fog:true },
+  { id:'moon',  w:1.0, name:'핏빛 보름달', emoji:'🌕', desc:'밤이 더 사납고, 보상이 두둑하다.',
+    coinMul:1.5, nightCapMul:1.35, nightDmgMul:1.15 },
+  { id:'rich',  w:1.0, name:'풍년',        emoji:'🌾', desc:'상자가 넉넉하다. 미니도 통통하게 여물었다.',
+    coinMul:1.2, hpMul:1.15, extraCrates:14 },
+  { id:'swarm', w:1.0, name:'미니 대발생', emoji:'🐣', desc:'미니가 바글바글. 코인도 바글바글.',
+    roamMul:1.5, dayCapMul:1.6, coinMul:1.35 },
+  { id:'supply',w:0.9, name:'보급 낙하',   emoji:'📦', desc:'고급 보급 상자가 떨어졌다. 경비가 지키고 있다.',
+    supply:true },
+];
+
 // ---------------- 레이드 맵 생성 ----------------
 let curRegion = REGIONS.hill; // 현재 레이드의 지역 (배율·풀 참조용)
 function buildRaid(){
   curRegion = REGIONS[State.region] || REGIONS.hill;
   const RG = curRegion;
+  // 이변 롤: 45% 평범한 날, 55% 가중 랜덤
+  const MOD = Math.random() < 0.45 ? null : pickWeighted(RAID_MODS.map(md=>[md, md.w]));
   const w=200, h=200;
   const t = new Uint8Array(w*h).fill(8); // 8=맵 밖 숲 · 0풀 1벽 2바닥 4바위 5물 6차량 7다리
   // 유기적 지형: 중앙 + 사방으로 길게 뻗어나가는 블롭들 (비정형 대형 맵)
@@ -490,6 +507,17 @@ function buildRaid(){
     }
   }
 
+  // 🌾 풍년: 야외 상자 대량 추가
+  if(MOD && MOD.extraCrates){
+    let added=0;
+    for(let tries=0; tries<600 && added<MOD.extraCrates; tries++){
+      const x=rndi(3,w-4), y=rndi(3,h-4);
+      if(t[y*w+x]===0 && !containers.some(k=>Math.abs(k.tx-x)<2&&Math.abs(k.ty-y)<2)){
+        containers.push(mkContainer(Math.random()<0.3?'toolbox':'crate', x, y)); added++;
+      }
+    }
+  }
+
   // 스폰/탈출: 탈출 1 = 호수 섬(다리 2개 요충지), 탈출 2 = 지형 팔 끝(지름길 종점)
   const grassSpots = [];
   for(let i=0;i<1500 && grassSpots.length<160;i++){
@@ -620,6 +648,7 @@ function buildRaid(){
     State.deathCache = null; // 이번 판에 안 찾으면 소멸 (다른 지역도 동일)
   }
 
+  let supplyDrop = null; // 📦 보급 낙하 지점 (이변)
   // ── 연결성 검사: 스폰에서 도달 못 하는 격리 공간 제거 ──
   // 걸을 수 있는 타일: 풀0·바닥2·다리7 (벽1·바위4·물5·차량6·맵밖8 은 못 지나감)
   {
@@ -710,6 +739,24 @@ function buildRaid(){
       }
       if(!ok) containers.splice(ci,1);
     }
+
+    // 📦 보급 낙하: 스폰에서 적당히 먼 개활지에 고급 상자 2개 (경비는 raid 조립 후 스폰)
+    if(MOD && MOD.supply){
+      let best=null, bd=-1;
+      for(const s of reachSpots){
+        if(s.d < maxReach*0.35) continue;
+        if(openness(s.x,s.y) < 0.55) continue;
+        // 스폰에서 중간~먼 거리 중 랜덤성: 점수 = 거리 + 노이즈
+        const score = s.d + Math.random()*800;
+        if(score>bd){ bd=score; best=s; }
+      }
+      if(best){
+        supplyDrop = {x:best.x, y:best.y};
+        const tx=Math.floor(best.x/TILE), ty=Math.floor(best.y/TILE);
+        const c1 = mkContainer('safe', tx, ty); c1.supply = true; containers.push(c1);
+        const c2 = mkContainer('crate', tx+1, ty+1); c2.supply = true; containers.push(c2);
+      }
+    }
   }
 
   // 스폰/탈출 지점 주변 나무 제거
@@ -723,13 +770,27 @@ function buildRaid(){
     inside:null, underTree:false, treeToastDone:false,
     bossSpawned:false, boss:null,
     region: RG.id, biome: RG.biome, ground: RG.ground,
-    dayLen: RG.dayLen, coinMul: RG.coinMul, rareBonus: RG.rareBonus,
+    dayLen: RG.dayLen,
+    coinMul: RG.coinMul * ((MOD&&MOD.coinMul)||1),
+    rareBonus: RG.rareBonus + ((MOD&&MOD.rareBonus)||0),
+    mod: MOD, supplyDrop,
   };
+  // 📦 보급 경비: 상자 주변에 정예 경비대
+  if(supplyDrop){
+    const guards = ['gunner','zduck','zduck','fastduck','sniper','spitter'];
+    for(let gi=0; gi<guards.length; gi++){
+      const ga = gi/guards.length*Math.PI*2;
+      const gx2 = supplyDrop.x + Math.cos(ga)*rnd(50,110);
+      const gy2 = supplyDrop.y + Math.sin(ga)*rnd(50,110);
+      if(!solidPx(gx2,gy2) && !houseAtPx(gx2,gy2)) spawnEnemy(guards[gi], gx2, gy2);
+    }
+    player.supplyDetectT = 30; // 30초간 방향 표시
+  }
 
   // 낮 배회 미니들 (지역 풀) — 목표 수를 채울 때까지 재시도 (좁은 산업맵도 밀도 확보)
   const SP = RG.spawn || {};
   {
-    const target = SP.roam??40;
+    const target = Math.round((SP.roam??40) * ((MOD&&MOD.roamMul)||1));
     let placed=0;
     for(let tries=0; tries<target*8 && placed<target; tries++){
       const x=rnd(3,w-3)*TILE, y=rnd(3,h-3)*TILE;
@@ -763,6 +824,7 @@ function buildRaid(){
   player.extractDetectT = 0;
   player.extractHintIntro = false;
   player.corpseDetectT = 0;
+  player.supplyDetectT = (raid && raid.supplyDrop) ? 30 : 0;
   player.slowT = 0;
   player.poisonT = 0;
   // 시체가 배치됐으면 30초간 방향 표시
@@ -816,13 +878,21 @@ function pickFiltered(list, stripExotic){
 }
 function fillContainer(c){
   c.inv = new Inv(c.ct.w, c.ct.h);
-  const n = rndi(c.ct.count[0], c.ct.count[1]);
+  const n = rndi(c.ct.count[0], c.ct.count[1]) + (c.supply ? 4 : 0); // 보급 상자는 두둑하게
   const stars = (raid && REGIONS[raid.region] && REGIONS[raid.region].stars) || 1;
   for(let i=0;i<n;i++){
     const pool = pickWeighted(c.ct.roll);
     // 부착물: 3%+지역보너스로 ★희귀 / ★2+ 지역에선 일부 ★★엑조틱
-    const rareCh = 0.03 + ((raid && raid.rareBonus)||0);
+    const rareCh = 0.03 + ((raid && raid.rareBonus)||0) + (c.supply ? 0.5 : 0);
     let id;
+    // 📦 보급 상자: 첫 슬롯은 엑조틱 확정
+    if(c.supply && i===0 && LOOT_POOLS.exoticAtt){
+      id = pick(LOOT_POOLS.exoticAtt);
+      const inst0 = mkInst(id);
+      inst0.hidden = true;
+      c.inv.autoPlace(inst0);
+      continue;
+    }
     if(pool==='att' && Math.random()<rareCh){
       // 엑조틱: 폐공장(★2) 약 28%, 습지(★3) 약 55% 로 희귀 대신 등장
       // 유물(★★★): 엑조틱 자리를 습지 30%·폐공장 6% 로 대체 — 뒤로 갈수록 기괴하고 강한 파츠
