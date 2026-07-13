@@ -20,6 +20,7 @@ function buildCave(){
       { x:18.5*TILE, y:11.5*TILE, emoji:'🛠️', name:'작업대', panel:'bench' },
       // 엑조틱 의뢰 전용 NPC (작업대 옆)
       { x:18.5*TILE, y:14.8*TILE, emoji:'🔧', name:'부품 수집가', panel:'exotic' },
+      { x:3.5*TILE,  y:15.2*TILE, emoji:'🛒', name:'떠돌이 상인', panel:'shop' },
       { x:7.5*TILE,  y:17*TILE,   emoji:'📌', name:'업그레이드', panel:'board' },
       { x:14.5*TILE, y:17*TILE,   emoji:'📜', name:'퀘스트 창구', panel:'quest' },
       { x:11*TILE,   y:18*TILE,   emoji:'🚪', name:'출격', panel:'deploy' },

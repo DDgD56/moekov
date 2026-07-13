@@ -286,6 +286,9 @@ function renderPanel(){
       refreshPanel();
     });
   }
+  else if(t==='shop'){
+    renderShopPanel(p);
+  }
   else if(t==='exotic'){
     // 🔧 부품 수집가 — 엑조틱 입문 의뢰 전용
     renderExoticPanel(p);
@@ -681,4 +684,109 @@ function completeQuest(slot){
     toast('"'+pick(NPC_LINES.exoDone)+'"', 4500);
   }
   saveGame(); refreshPanel();
+}
+
+
+// ---------------- 🛒 떠돌이 상인 ----------------
+// 재고는 실제 날짜 기준으로 하루 한 번 로테이션. 리롤은 유료(코인 싱크).
+function shopTodayStr(){ const d=new Date(); return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(); }
+function shopPrice(def, mul){ return Math.max(10, Math.round(def.value*mul/10)*10); }
+function rollShopStock(){
+  const stock = [];
+  const used = new Set();
+  const add = (id, mul)=>{
+    const def = ITEMS[id];
+    if(!def || used.has(id)) return false;
+    used.add(id);
+    stock.push({ id, price: shopPrice(def, mul), sold: false });
+    return true;
+  };
+  // 부착물 3칸: 70% 일반 / 22% 희귀 / 8% 엑조틱 (유물은 필드 전용 — 상점 미취급)
+  for(let i=0;i<3;i++){
+    for(let tr=0;tr<8;tr++){
+      const r = Math.random();
+      const pool = r<0.08 ? LOOT_POOLS.exoticAtt : (r<0.30 ? LOOT_POOLS.rareAtt : LOOT_POOLS.att);
+      const mul = pool===LOOT_POOLS.att ? 1.6 : 1.9;
+      const id = pick(pool);
+      if(ITEMS[id] && ITEMS[id].relic) continue; // 혹시 풀에 섞여 있어도 제외
+      if(add(id, mul)) break;
+    }
+  }
+  // 총 몸통 1 · 장비 1 · 음식 1
+  for(let tr=0;tr<6;tr++) if(add(pick(LOOT_POOLS.body), 1.7)) break;
+  for(let tr=0;tr<6;tr++) if(add(pick(['pot_helmet','hard_hat','board_vest','tire_vest']), 1.6)) break;
+  for(let tr=0;tr<6;tr++) if(add(pick(LOOT_POOLS.food), 1.5)) break;
+  return stock;
+}
+function ensureShop(){
+  const t = shopTodayStr();
+  if(!State.shop || State.shop.date !== t){
+    State.shop = { date: t, stock: rollShopStock(), rerolls: 0 };
+    saveGame();
+  }
+}
+function shopRerollCost(){ return 80 * ((State.shop && State.shop.rerolls|0) + 1); }
+function buyShopItem(i){
+  const s = State.shop && State.shop.stock[i];
+  if(!s || s.sold) return;
+  const def = ITEMS[s.id];
+  if(State.coins < s.price){ toast('코인이 부족합니다!'); sfx('click'); return; }
+  const inst = mkInst(s.id);
+  if(!State.storage.autoPlace(inst) && !State.backpack.autoPlace(inst)){
+    toast('창고·가방에 공간이 없습니다!'); return;
+  }
+  State.coins -= s.price;
+  s.sold = true;
+  toast('구매: '+def.emoji+' '+def.name+' (-'+s.price+'🪙)');
+  sfx('coin');
+  saveGame();
+  refreshPanel();
+}
+function renderShopPanel(p){
+  ensureShop();
+  const shop = State.shop;
+  p.classList.add('wide');
+  const cards = shop.stock.map((s,i)=>{
+    const def = ITEMS[s.id];
+    const rare = def.relic?'★★★':(def.exotic?'★★':(def.rare?'★':''));
+    return `<div class="shop-card ${s.sold?'sold':''}" data-i="${i}">
+      <div class="shop-icon" data-icon="${i}"></div>
+      <div class="shop-name">${def.name}${rare?` <span class="shop-rare">${rare}</span>`:''}</div>
+      <div class="shop-kind">${def.kind==='att'?SOCK_INFO[def.sock].name:def.kind==='body'?'총 몸통':def.kind==='gear'?'장비':def.kind==='food'?'음식':'귀중품'}</div>
+      ${s.sold ? '<div class="shop-soldout">품절</div>'
+               : `<button class="btn mini shop-buy" data-buy="${i}">${s.price}🪙</button>`}
+    </div>`;
+  }).join('');
+  p.innerHTML = `
+    <div class="panel-title">🛒 떠돌이 상인 <span class="sub">🪙 ${State.coins}</span></div>
+    <div class="npc-line">"오늘 물건은 이게 다야. 내일 또 와 보든가."</div>
+    <div class="shop-grid">${cards}</div>
+    <div class="shop-foot">
+      <button class="btn" id="reroll">🎲 재고 리롤 (${shopRerollCost()}🪙)</button>
+      <span class="shop-date">재고 갱신: 매일 자정</span>
+    </div>
+    <div class="panel-hint">구매하면 창고로 들어감 · 아이콘에 마우스를 올리면 상세 · <b>ESC</b> 닫기</div>`;
+  // 아이콘 + 툴팁
+  p.querySelectorAll('[data-icon]').forEach(el=>{
+    const def = ITEMS[shop.stock[+el.dataset.icon].id];
+    if(typeof itemIconEl==='function'){
+      const ic = itemIconEl(def, 34, false);
+      ic.style.imageRendering = 'pixelated';
+      el.appendChild(ic);
+    } else el.textContent = def.emoji;
+    attachTip(el.parentElement, def);
+  });
+  p.querySelectorAll('[data-buy]').forEach(b=>b.addEventListener('click', e=>{
+    e.stopPropagation(); buyShopItem(+b.dataset.buy);
+  }));
+  p.querySelector('#reroll').addEventListener('click', ()=>{
+    const cost = shopRerollCost();
+    if(State.coins < cost){ toast('코인이 부족합니다!'); return; }
+    State.coins -= cost;
+    State.shop.stock = rollShopStock();
+    State.shop.rerolls = (State.shop.rerolls|0)+1;
+    sfx('coin');
+    saveGame();
+    refreshPanel();
+  });
 }

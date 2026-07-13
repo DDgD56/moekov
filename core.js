@@ -158,6 +158,7 @@ const State = {
   regionBoss: {},            // 지역별 보스 처치 여부 {factory:true}
   stash: [null,null,null,null,null,null], // 총 보관대 (칸 수는 stashSlots)
   exoticIntroDone: false,    // 엑조틱 입문 퀘스트 「수상한 총구 주문서」 완료
+  shop: null,                // 떠돌이 상인 재고 {date, stock:[{id,price,sold}], rerolls}
 };
 
 function curGun(){ return State.guns[State.activeGun]; }
@@ -206,6 +207,7 @@ function saveGame(){
       region: State.region, regionExtracts: State.regionExtracts, regionBoss: State.regionBoss,
       stash: State.stash.map(serializeStash),
       exoticIntroDone: !!State.exoticIntroDone,
+      shop: State.shop,
     }));
   }catch(e){}
 }
@@ -258,6 +260,7 @@ function loadGame(){
     State.regionExtracts = d.regionExtracts || {};
     State.regionBoss = d.regionBoss || {};
     State.deathCache = d.deathCache||null;
+    State.shop = d.shop||null;
     // 구세이브: deathCache에 region 없으면 마지막 선택 지역으로 추정
     if(State.deathCache && State.deathCache.items && State.deathCache.items.length && !State.deathCache.region){
       State.deathCache.region = State.region;
@@ -277,6 +280,7 @@ function newGame(){
   State.guns = [ {body: mkInst('potato_pistol'), atts:[], ammo:0}, {body:null, atts:[], ammo:0} ];
   State.activeGun = 0; State.gun2 = false;
   State.exoticIntroDone = false;
+  State.shop = null;
   State.gear = { head:null, body:null };
   player.rollCharges = 1; player.rollTimer = 0; player.rollT = 0;
   State.backpack.autoPlace(mkInst('bandage'));
