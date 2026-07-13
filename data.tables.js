@@ -3190,8 +3190,8 @@ const ITEMS = {
     "value": 90,
     "heal": 0,
     "effect": "extractDetect",
-    "effectDur": 10,
-    "desc": "1회용. 레이드 중 사용 시 10초간 가장 가까운 탈출구 방향을 표시한다. 퀵슬롯(3·4·5) 가능."
+    "effectDur": 15,
+    "desc": "1회용. 레이드 중 사용 시 15초간 가장 가까운 탈출구 방향을 표시한다. 퀵슬롯(3·4·5) 가능."
   },
   "pipe_wrench_muzzle": {
     "id": "pipe_wrench_muzzle",
