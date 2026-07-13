@@ -103,7 +103,7 @@ function itemMatchesBenchFilter(def, filter){
 }
 
 // ---- 그리드 DOM 렌더 ----
-const CS = 46; // 인벤토리 셀 픽셀
+const CS = 40; // 인벤토리 셀 픽셀 (모든 패널 공통 — 그리드 통일)
 
 // 폴리오미노 외곽선 추적 → SVG 패스 (도넛 구멍은 evenodd로 처리)
 function outlinePathD(cells, cs){

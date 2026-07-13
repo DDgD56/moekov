@@ -357,3 +357,23 @@ canvas#cv { image-rendering:pixelated; image-rendering:crisp-edges; }
   text-shadow:1px 1px 0 #000; }
 #gearline { margin-top:2px; font-size:12px; font-weight:bold; color:#a8c8e0;
   text-shadow:1px 1px 0 #000; }
+
+/* ═════════ UI 그리드 정렬 (8px 리듬·고정폭 패널) ═════════ */
+.panel.wide  { width:min(920px, 94vw); }
+.panel.xwide { width:min(1400px, 96vw); }
+.panel-cols { gap:24px; }
+.panel-title { margin-bottom:16px; }
+/* 컬럼 라벨: 버튼 유무와 무관하게 같은 높이로 정렬 */
+.col-label { display:flex; align-items:center; gap:8px; height:24px; margin-bottom:8px; }
+.col-label .btn.mini { height:22px; display:inline-flex; align-items:center; }
+/* 스탯 컬럼 고정폭 (내용 따라 출렁이지 않게) */
+.stats-col { flex:none; width:232px; border-radius:2px; }
+/* 툴바 줄 통일 리듬 */
+.sock-filter { margin:0 0 8px 0; min-height:24px; }
+.gear-row { margin:0 0 8px 0; min-height:34px; }
+.stash-row { margin-bottom:16px; }
+/* 드랍 존 공통 언어 (버리기/판매함) */
+.discard-zone { margin-top:16px; border-radius:2px; }
+.sell-bin { margin-top:16px; border-radius:2px; }
+/* 푸터 힌트: 상단 구분선으로 본문과 분리 */
+.panel-hint { margin-top:16px; padding-top:10px; border-top:2px solid rgba(255,255,255,.07); }
