@@ -792,6 +792,10 @@ function renderShopPanel(p){
     if(typeof itemIconEl==='function'){
       const ic = itemIconEl(def, 34, false);
       ic.style.imageRendering = 'pixelated';
+      // .item-icon 클래스의 absolute+translate(-50%,-50%)를 무효화 (카드 중앙 정렬)
+      ic.style.position = 'static';
+      ic.style.transform = 'none';
+      ic.style.margin = '0 auto';
       el.appendChild(ic);
     } else el.textContent = def.emoji;
     attachTip(el.parentElement, def);
