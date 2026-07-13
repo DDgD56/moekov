@@ -106,35 +106,56 @@ function itemMatchesBenchFilter(def, filter){
 const CS = 40; // 인벤토리 셀 픽셀 (모든 패널 공통 — 그리드 통일)
 
 // 폴리오미노 외곽선 추적 → SVG 패스 (도넛 구멍은 evenodd로 처리)
+// 한 꼭짓점에서 두 에지가 시작될 수 있음(모서리로만 맞닿는 모양, 예: arch·xdiag)
+// → 시작점당 에지 목록을 두고, 진행 방향 기준 최우선 우회전을 골라 루프를 분리한다.
 function outlinePathD(cells, cs){
   const set = new Set(cells.map(c=>c[0]+','+c[1]));
   const has = (x,y)=>set.has(x+','+y);
-  const startMap = new Map(); // 경계 에지: 시작점 → 끝점 (일관된 방향)
+  const startMap = new Map(); // 시작점 → [끝점,...] (채운 칸이 진행방향 오른쪽에 오는 시계방향)
+  const addEdge = (sx,sy,ex,ey)=>{
+    const k = sx+','+sy;
+    if(!startMap.has(k)) startMap.set(k, []);
+    startMap.get(k).push([ex,ey]);
+  };
   for(const [x,y] of cells){
-    if(!has(x,y-1)) startMap.set(x+','+y, [x+1,y]);
-    if(!has(x+1,y)) startMap.set((x+1)+','+y, [x+1,y+1]);
-    if(!has(x,y+1)) startMap.set((x+1)+','+(y+1), [x,y+1]);
-    if(!has(x-1,y)) startMap.set(x+','+(y+1), [x,y]);
+    if(!has(x,y-1)) addEdge(x,y, x+1,y);
+    if(!has(x+1,y)) addEdge(x+1,y, x+1,y+1);
+    if(!has(x,y+1)) addEdge(x+1,y+1, x,y+1);
+    if(!has(x-1,y)) addEdge(x,y+1, x,y);
   }
-  const done = new Set();
+  const used = new Set(); // 에지 단위 소비: "sx,sy>ex,ey"
   let d = '';
-  for(const sk of startMap.keys()){
-    if(done.has(sk)) continue;
-    const pts = [];
-    let cur = sk;
-    while(!done.has(cur)){
-      done.add(cur);
-      const [cx,cy] = cur.split(',').map(Number);
+  for(const [sk, ends] of startMap){
+    for(const first of ends){
+      const firstId = sk+'>'+first[0]+','+first[1];
+      if(used.has(firstId)) continue;
+      const pts = [];
+      let [cx,cy] = sk.split(',').map(Number);
+      let [nx,ny] = first;
+      used.add(firstId);
       pts.push([cx,cy]);
-      const n = startMap.get(cur);
-      cur = n[0]+','+n[1];
+      while(!(nx+','+ny === sk)){
+        pts.push([nx,ny]);
+        const cands = (startMap.get(nx+','+ny)||[]).filter(e=>!used.has(nx+','+ny+'>'+e[0]+','+e[1]));
+        if(!cands.length) break;
+        // 우회전 우선: cross(진행, 후보) 최대 선택 (화면 y-down 기준)
+        const dx = nx-cx, dy = ny-cy;
+        let best = cands[0], bs = -Infinity;
+        for(const e of cands){
+          const cross = dx*(e[1]-ny) - dy*(e[0]-nx);
+          if(cross > bs){ bs = cross; best = e; }
+        }
+        used.add(nx+','+ny+'>'+best[0]+','+best[1]);
+        cx = nx; cy = ny; nx = best[0]; ny = best[1];
+      }
+      // 일직선 위 중간점 제거
+      const simp = pts.filter((p,i)=>{
+        const a = pts[(i-1+pts.length)%pts.length], b = pts[(i+1)%pts.length];
+        return !((a[0]===p[0]&&p[0]===b[0])||(a[1]===p[1]&&p[1]===b[1]));
+      });
+      if(simp.length >= 3)
+        d += 'M'+simp.map(p=>(p[0]*cs)+' '+(p[1]*cs)).join(' L ')+' Z ';
     }
-    // 일직선 위 중간점 제거
-    const simp = pts.filter((p,i)=>{
-      const a = pts[(i-1+pts.length)%pts.length], b = pts[(i+1)%pts.length];
-      return !((a[0]===p[0]&&p[0]===b[0])||(a[1]===p[1]&&p[1]===b[1]));
-    });
-    d += 'M'+simp.map(p=>(p[0]*cs)+' '+(p[1]*cs)).join(' L ')+' Z ';
   }
   return d.trim();
 }
@@ -163,36 +184,13 @@ function emojiAnchor(cells){
   return [best[0]+0.5, best[1]+0.5];
 }
 
-// ── 모양 채움 아트: 아이콘을 폴리오미노 전체에 커버 스케일로 깔고 셀 경계로 클리핑 ──
-// 번개(bolt) 아이템이면 번개 그림이 지그재그 칸들을 따라 채워지는 식.
-const _shapeArtCache = new Map();
-function shapeArtURL(def, cells, cs){
-  const key = def.id + ':' + cs + ':' + cells.map(c=>c[0]+'.'+c[1]).join(',');
-  if(_shapeArtCache.has(key)) return _shapeArtCache.get(key);
-  const [sw,sh] = shapeSize(cells);
-  const cn = document.createElement('canvas');
-  cn.width = sw*cs; cn.height = sh*cs;
-  const g = cn.getContext('2d');
-  g.imageSmoothingEnabled = false;
-  const path = new Path2D(outlinePathD(cells, cs));
-  g.save();
-  g.clip(path, 'evenodd');
-  const srcIcon = itemIconCanvas(def, false); // 16×16 도트 아이콘
-  // 절충 스케일: 완전 커버(max)는 큰 모양에서 과확대로 뭉개져서, min·max 평균으로
-  // 모양 대부분을 채우되 아이콘 형태가 알아볼 수 있게 유지
-  const scale = ((Math.max(sw,sh)+Math.min(sw,sh))/2) * cs / 16 * 1.15;
-  const dw = 16*scale;
-  g.drawImage(srcIcon, Math.round((sw*cs-dw)/2), Math.round((sh*cs-dw)/2), dw, dw);
-  g.restore();
-  const url = cn.toDataURL();
-  if(_shapeArtCache.size > 400) _shapeArtCache.clear();
-  _shapeArtCache.set(key, url);
-  return url;
-}
+// ── 모양 채움 아트는 item-art.js의 shapeArtURL(def, cells, cs, rot, side)로 이동 ──
+// 수제 SHAPE_ART가 있으면 칸 모양대로 그린 도트, 없으면 크롭한 아이콘을 방향 맞춰 배치.
 
 // 임의 셀 배열로 아이템 요소 생성 (인벤토리·작업대 공용)
 // hidden: 미식별 실루엣 (모양만 보이고 정체 불명)
-function buildShapeEl(cells, def, cs, hidden){
+// xf: {rot, side} — 배치 회전·작업대 장착면. 아트가 칸과 같이 돌아가게 한다.
+function buildShapeEl(cells, def, cs, hidden, xf){
   const [sw,sh] = shapeSize(cells);
   const el = document.createElement('div');
   el.className = 'item';
@@ -222,20 +220,21 @@ function buildShapeEl(cells, def, cs, hidden){
     svg.appendChild(g);
   }
   // 아이콘: 2칸 이상이면 모양 전체에 아트를 채움 (셀 경계 클리핑), 1칸·미식별은 중앙 아이콘
-  const shapeFill = !hidden && cells.length >= 2 && typeof itemIconCanvas==='function';
+  const shapeFill = !hidden && cells.length >= 2 && typeof shapeArtURL==='function';
   if(shapeFill){
     const art = document.createElement('div');
     art.className = 'item-shape-art';
     art.style.cssText = 'position:absolute;inset:0;pointer-events:none;image-rendering:pixelated;'
-      + 'background-image:url('+shapeArtURL(def, cells, cs)+');background-size:100% 100%;';
+      + 'background-image:url('+shapeArtURL(def, cells, cs, xf&&xf.rot||0, xf&&xf.side)+');background-size:100% 100%;';
     el.appendChild(art); // svg(틴트+외곽선) 위, 하지만 svg 스트로크가 아트 경계를 감싸줌
   }
   el.appendChild(svg);
   if(!shapeFill){
     const [ax,ay] = emojiAnchor(cells);
-    const iconSz = Math.max(16, Math.floor(cs*0.58));
+    // 한칸 아이템은 칸에 꽉 차게 (아트 영역 크롭 + 비율 유지), 미식별은 물음표 아이콘
+    const iconSz = hidden ? Math.max(16, Math.floor(cs*0.62)) : Math.max(16, Math.floor(cs*0.88));
     const ic = (typeof itemIconEl==='function')
-      ? itemIconEl(def, iconSz, !!hidden)
+      ? itemIconEl(def, iconSz, !!hidden, !hidden)
       : (()=>{ const d=document.createElement('div'); d.className='item-emoji'; d.textContent=hidden?'❓':def.emoji; return d; })();
     ic.classList.add('item-emoji');
     ic.style.left = ax*cs+'px'; ic.style.top = ay*cs+'px';
@@ -260,7 +259,7 @@ function buildShapeEl(cells, def, cs, hidden){
   return el;
 }
 function buildItemEl(inst, cs){
-  return buildShapeEl(shapeOf(inst.def, inst.rot), inst.def, cs, inst.hidden);
+  return buildShapeEl(shapeOf(inst.def, inst.rot), inst.def, cs, inst.hidden, {rot: inst.rot||0});
 }
 
 // 활성 드롭존 목록 (패널 렌더 시 재구성)
@@ -436,7 +435,7 @@ function moveDragGhost(mx, my){
           if(d.ghostKey!==key){
             const nx = d.ghost._x, ny = d.ghost._y;
             d.ghost.remove();
-            d.ghost = buildShapeEl(cells, d.inst.def, GS);
+            d.ghost = buildShapeEl(cells, d.inst.def, GS, false, {rot:d.rot, side:cand.side});
             d.ghost.classList.add('drag-ghost');
             document.getElementById('drag-layer').appendChild(d.ghost);
             d.ghost._x = nx; d.ghost._y = ny;

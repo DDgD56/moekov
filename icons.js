@@ -11,9 +11,10 @@ function iconHash(s){
   return h>>>0;
 }
 
-function itemIconCanvas(def, hidden){
+// bare=true: 바닥 그림자·희귀 코너 점 없이 순수 아트만 (크롭/모양채움용)
+function itemIconCanvas(def, hidden, bare){
   const id = hidden ? '???' : (def && def.id) || 'unknown';
-  const key = id + (hidden?':h':'') + (def&&def.exotic?':x':'') + (def&&def.rare?':r':'');
+  const key = id + (hidden?':h':'') + (bare?':b':'') + (def&&def.exotic?':x':'') + (def&&def.rare?':r':'');
   if(_iconCache.has(key)) return _iconCache.get(key);
 
   const S = 16;
@@ -49,7 +50,7 @@ function itemIconCanvas(def, hidden){
   };
 
   // 공통 그림자
-  rect(2,14,12,1,'rgba(0,0,0,.3)');
+  if(!bare) rect(2,14,12,1,'rgba(0,0,0,.3)');
 
   // ========== 총 몸통 ==========
   if(def.kind==='body'){
@@ -581,10 +582,12 @@ function itemIconCanvas(def, hidden){
   }
 
   // 희귀/엑조틱 코너 점
-  if(def.exotic){
-    px(0,0,C.cyan); px(15,0,C.cyan); px(0,15,C.gold); px(15,15,C.gold);
-  } else if(def.rare){
-    px(0,0,C.gold); px(15,1,C.gold); px(1,15,C.gold);
+  if(!bare){
+    if(def.exotic){
+      px(0,0,C.cyan); px(15,0,C.cyan); px(0,15,C.gold); px(15,15,C.gold);
+    } else if(def.rare){
+      px(0,0,C.gold); px(15,1,C.gold); px(1,15,C.gold);
+    }
   }
 
   _iconCache.set(key, cn);
@@ -598,25 +601,57 @@ function pBlobDot(px, cx, cy, r, c){
     if(dx*dx+dy*dy<=r*r) px(cx+dx, cy+dy, c);
 }
 
-function itemIconEl(def, displayPx, hidden){
-  const src = itemIconCanvas(def, hidden);
-  const c = document.createElement('canvas');
+// 아이콘의 불투명 픽셀 바운딩박스 (그림자·희귀점 제외한 bare 캔버스에 쓸 것)
+function iconArtRect(cn){
+  if(cn._artRect) return cn._artRect;
+  const g = cn.getContext('2d');
+  const d = g.getImageData(0,0,cn.width,cn.height).data;
+  let x0=cn.width, y0=cn.height, x1=-1, y1=-1;
+  for(let y=0;y<cn.height;y++) for(let x=0;x<cn.width;x++){
+    if(d[(y*cn.width+x)*4+3] >= 100){
+      if(x<x0)x0=x; if(x>x1)x1=x; if(y<y0)y0=y; if(y>y1)y1=y;
+    }
+  }
+  const r = (x1<0) ? {x:0,y:0,w:cn.width,h:cn.height} : {x:x0,y:y0,w:x1-x0+1,h:y1-y0+1};
+  cn._artRect = r;
+  return r;
+}
+
+// fit=true: 아트 영역만 크롭해 비율 유지한 채 displayPx 박스에 꽉 차게 (한칸 아이템 확대용)
+function itemIconEl(def, displayPx, hidden, fit){
   const d = displayPx || 28;
-  c.width = 16; c.height = 16;
+  const c = document.createElement('canvas');
   const g = c.getContext('2d');
-  g.imageSmoothingEnabled = false;
-  g.drawImage(src, 0, 0);
+  if(fit){
+    const src = itemIconCanvas(def, hidden, true);
+    const r = iconArtRect(src);
+    c.width = r.w; c.height = r.h;
+    g.imageSmoothingEnabled = false;
+    g.drawImage(src, r.x, r.y, r.w, r.h, 0, 0, r.w, r.h);
+    const s = d / Math.max(r.w, r.h);
+    c.style.width = Math.max(2, Math.round(r.w*s))+'px';
+    c.style.height = Math.max(2, Math.round(r.h*s))+'px';
+  } else {
+    const src = itemIconCanvas(def, hidden);
+    c.width = 16; c.height = 16;
+    g.imageSmoothingEnabled = false;
+    g.drawImage(src, 0, 0);
+    c.style.width = d+'px';
+    c.style.height = d+'px';
+  }
   c.className = 'item-icon';
-  c.style.width = d+'px';
-  c.style.height = d+'px';
   c.style.imageRendering = 'pixelated';
   c.style.display = 'block';
   return c;
 }
 
 function drawItemIconWorld(def, cx, cy, size, hidden){
-  const src = itemIconCanvas(def, hidden);
+  // 크롭한 아트를 비율 유지로 확대 — 작은 아이템도 바닥에서 잘 보이게
+  const src = itemIconCanvas(def, hidden, true);
+  const r = iconArtRect(src);
   const s = size || 18;
+  const k = s / Math.max(r.w, r.h);
+  const dw = Math.max(2, Math.round(r.w*k)), dh = Math.max(2, Math.round(r.h*k));
   ctx.imageSmoothingEnabled = false;
-  ctx.drawImage(src, Math.round(cx-s/2), Math.round(cy-s/2), s, s);
+  ctx.drawImage(src, r.x, r.y, r.w, r.h, Math.round(cx-dw/2), Math.round(cy-dh/2), dw, dh);
 }

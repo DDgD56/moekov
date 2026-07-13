@@ -393,7 +393,7 @@ function renderBench(rootEl){
     const cells = shapeOf(ad, m.rot||0);
     const local = mountLocalCells(cells, m.side);
     const [lw,lh] = shapeSize(local);
-    const el = buildShapeEl(local, ad, GS);
+    const el = buildShapeEl(local, ad, GS, false, {rot:m.rot||0, side:m.side});
     let lx, ly;
     if(m.side==='top'){ lx = PADX + m.idx*GS; ly = PADY - lh*GS; }
     else if(m.side==='bottom'){ lx = PADX + m.idx*GS; ly = PADY + bd.bh*GS; }
@@ -524,48 +524,30 @@ function drawGunWorld(ctx, gun, px, py, ang, flash, spin, kick){
   if(!gun.body) return;
   const bd = gun.body.def;
   const S = 7.5; // 월드 총 셀 픽셀
-  // ── 하드엣지 렌더: ctx.rotate 대신 회전 사각형을 1도트씩 직접 찍음 (AA 없음) ──
   // 스핀(재장전 트월링)은 총 중심 피벗의 추가 회전 → 합성 회전 + 오프셋 보정으로 처리
   const tot = ang + (spin||0);
   const ct = Math.cos(tot), st = Math.sin(tot);
   const scx = spin ? 10 + bd.bw*S/2 : 0;
   const ox0 = px + (spin ? Math.cos(ang)*scx - ct*scx : 0);
   const oy0 = py + (spin ? Math.sin(ang)*scx - st*scx : 0);
-  // 회전 사각형 도트 찍기 (0.6px 스텝 오버샘플 → 구멍 없음)
   const rot = (u,v)=>[Math.round(ox0 + u*ct - v*st), Math.round(oy0 + u*st + v*ct)];
-  const pRot = (x0,y0,w,h,color)=>{
-    ctx.fillStyle = color;
-    for(let v=0; v<=h; v+=0.6) for(let u=0; u<=w; u+=0.6){
-      const [X,Y] = rot(x0+u, y0+v);
-      ctx.fillRect(X, Y, 1, 1);
-    }
-  };
-  const gx = 10 - (kick||0)*5, gy = -bd.bh*S/2; // 반동 킥백
+  const gx = 10 - (kick||0)*5; // 반동 킥백
 
-  // 부착물 (몸통 뒤에 깔림) — 장착 회전에 따른 footprint 반영
-  for(const m of gun.atts){
-    const ad = m.inst.def;
-    const cells = shapeOf(ad, m.rot||0);
-    const aW = Math.max(...cells.map(c=>c[0]))+1;
-    const dD = Math.max(...cells.map(c=>c[1]))+1;
-    const d = dD*4;
-    const col = SOCK_INFO[ad.sock].color;
-    if(m.side==='top')         pRot(gx+m.idx*S+1, gy-d,        aW*S-2, d,      col);
-    else if(m.side==='bottom') pRot(gx+m.idx*S+1, gy+bd.bh*S,  aW*S-2, d,      col);
-    else if(m.side==='front')  pRot(gx+bd.bw*S,   gy+m.idx*S+1, d,     aW*S-2, col);
-    else                       pRot(gx-d,         gy+m.idx*S+1, d,     aW*S-2, col);
-  }
+  // 좌향이면 상하 반전(스코프가 항상 위) — 수직 조준 시 깜빡임 방지 데드존
+  const cAim = Math.cos(ang);
+  if(cAim < -0.03) drawGunWorld._flip = true;
+  else if(cAim > 0.03) drawGunWorld._flip = false;
+  const flip = !!drawGunWorld._flip;
 
-  // 몸통: 어두운 외곽선으로 배경·부착물과 분리 → 색 구분이 또렷
-  pRot(gx-1.5, gy-1.5, bd.bw*S+3, bd.bh*S+3, 'rgba(0,0,0,.55)');
-  pRot(gx, gy, bd.bw*S, bd.bh*S, bd.color);
-  pRot(gx, gy+bd.bh*S*0.55, bd.bw*S, bd.bh*S*0.45, 'rgba(0,0,0,.25)');
+  // 실제 조립 아트(몸통+부착물)를 합성한 미니 스프라이트 (회전 5° 단위 캐시)
+  const spr = gunWorldSprite(gun, tot, flip, S/GUN_COMP_CELL);
+  ctx.drawImage(spr.cn, Math.round(ox0 + gx*ct - spr.ax), Math.round(oy0 + gx*st - spr.ay));
 
   // 총구 화염 (도트 블롭, 회전 좌표로 위치만 변환)
   if(flash>0){
     ctx.globalAlpha = Math.min(1, flash*8);
     const fr = Math.round(4 + flash*14);
-    const [fx,fy] = rot(gx+bd.bw*S+5, gy+bd.bh*S/2);
+    const [fx,fy] = rot(gx+bd.bw*S+5, 0);
     pBlob(fx, fy, fr, '#ffd76a');
     pBlob(fx+2, fy, Math.max(1, fr-2), '#fff2b0');
     ctx.globalAlpha = 1;

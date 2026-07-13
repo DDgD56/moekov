@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>아이템 아트 디버그 시트</title>
+<script>document.write('<link rel="stylesheet" href="style.css?t='+Date.now()+'">');</script>
+<style>
+  body { background:#22261f; overflow:auto !important; padding:16px; font-family:monospace; }
+  h2 { color:#e8e4d8; font-size:14px; margin:18px 0 8px; }
+  .sheet { display:flex; flex-wrap:wrap; gap:10px; align-items:flex-start; }
+  .slot { background:rgba(0,0,0,.35); border:1px solid #444; border-radius:4px; padding:6px; }
+  .slot .lbl { color:#c9c9b0; font-size:10px; margin-bottom:4px; max-width:180px; }
+  .slot .rots { display:flex; gap:8px; align-items:flex-start; }
+  .cellbg { position:relative;
+    background-image:linear-gradient(rgba(255,255,255,.07) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.07) 1px, transparent 1px);
+  }
+  .cellbg .item { position:relative !important; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<div id="drag-layer"></div>
+<script>
+  var _t = Date.now();
+  ['sprite.js','data.tables.js','data.js','icons.js','item-art.js','inventory.js'].forEach(function(f){
+    document.write('<scr'+'ipt src="'+f+'?t='+_t+'"></scr'+'ipt>');
+  });
+</script>
+<script>
+// ?filter=nonrect(기본)|rect|one|all  &cs=40
+const q = new URLSearchParams(location.search);
+const FILTER = q.get('filter') || 'nonrect';
+const CS_DBG = +(q.get('cs')||40);
+const only = q.get('id'); // 특정 아이템만
+
+const isRect = cells=>{
+  const [w,h] = shapeSize(cells);
+  return cells.length === w*h;
+};
+
+const root = document.getElementById('root');
+function section(title){
+  const h = document.createElement('h2'); h.textContent = title; root.appendChild(h);
+  const d = document.createElement('div'); d.className = 'sheet'; root.appendChild(d);
+  return d;
+}
+
+function slotFor(def, rots){
+  const slot = document.createElement('div'); slot.className = 'slot';
+  const lbl = document.createElement('div'); lbl.className = 'lbl';
+  lbl.textContent = (SHAPE_ART[def.id]?'★':'·') + ' ' + def.id + ' ' + def.name + ' [' + def.shape + ']';
+  slot.appendChild(lbl);
+  const row = document.createElement('div'); row.className = 'rots';
+  for(const rot of rots){
+    const cells = shapeOf(def, rot);
+    const [sw,sh] = shapeSize(cells);
+    const wrap = document.createElement('div');
+    wrap.className = 'cellbg';
+    wrap.style.width = sw*CS_DBG+'px'; wrap.style.height = sh*CS_DBG+'px';
+    wrap.style.backgroundSize = CS_DBG+'px '+CS_DBG+'px';
+    const el = buildShapeEl(cells, def, CS_DBG, false, {rot});
+    wrap.appendChild(el);
+    row.appendChild(wrap);
+  }
+  slot.appendChild(row);
+  return slot;
+}
+
+const groups = { nonrect:[], rect:[], one:[] };
+for(const id in ITEMS){
+  const def = ITEMS[id];
+  const cells = baseShape(def);
+  if(!cells) continue;
+  if(cells.length===1) groups.one.push(def);
+  else if(isRect(cells)) groups.rect.push(def);
+  else groups.nonrect.push(def);
+}
+groups.nonrect.sort((a,b)=> (a.shape+'').localeCompare(b.shape+'') || a.id.localeCompare(b.id));
+
+if(only){
+  const def = ITEMS[only];
+  if(def) section('단일: '+only).appendChild(slotFor(def, [0,1,2,3]));
+} else {
+  if(FILTER==='nonrect' || FILTER==='all'){
+    const sh = section('비직사각 (수제 아트) — rot 0·1·2·3');
+    for(const def of groups.nonrect) sh.appendChild(slotFor(def, [0,1,2,3]));
+  }
+  if(FILTER==='rect' || FILTER==='all'){
+    const sh = section('직사각 다중칸 (generic 크롭·회전) — rot 0·1');
+    for(const def of groups.rect) sh.appendChild(slotFor(def, [0,1]));
+  }
+  if(FILTER==='one' || FILTER==='all'){
+    const sh = section('한칸 아이템 (크롭 확대)');
+    for(const def of groups.one) sh.appendChild(slotFor(def, [0]));
+  }
+}
+</script>
+</body>
+</html>
