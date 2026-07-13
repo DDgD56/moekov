@@ -168,7 +168,7 @@ function switchGun(i){
   if(State.activeGun===i) return;
   if(!State.guns[i].body){ toast((i+1)+'번 슬롯에 총이 없습니다 (작업대에서 조립)'); return; }
   State.activeGun = i;
-  player.reloading = 0;
+  player.reloading = 0; player.shellLoading = false;
   player.swapT = 0.35;
   sfx('mount');
   toast('🔫 '+(i+1)+'번: '+State.guns[i].body.def.name);
@@ -277,7 +277,7 @@ function newGame(){
 // ---------------- 플레이어 ----------------
 const player = {
   x:0, y:0, r:13, hp:50, ang:0,
-  ammo:0, reloading:0, reloadTotal:0, fireCd:0, flash:0, aimT:0,
+  ammo:0, reloading:0, reloadTotal:0, shellLoading:false, shellT:0, fireCd:0, flash:0, aimT:0,
   iframe:0, kills:0, coinsGained:0, lootMsgCd:0,
   stam:100, exhausted:false,
   bloom:0, kick:0, swapT:0, // 반동 블룸 / 킥백 / 무기 교체 딜레이

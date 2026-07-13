@@ -227,7 +227,7 @@ function updateHud(){
     kills.textContent = '💀 '+player.kills;
     gname.textContent = slotTag + (g.body ? g.body.def.emoji+' '+st.name : '맨손');
     ammo.textContent = player.reloading>0
-      ? '재장전... '+player.reloading.toFixed(1)
+      ? (player.shellLoading ? '장전중 '+g.ammo+' / '+st.ammo : '재장전... '+player.reloading.toFixed(1))
       : g.ammo+' / '+st.ammo;
     ammo.classList.toggle('low', g.ammo<=Math.max(1,st.ammo*0.2) && player.reloading<=0);
     const near = nearestInteractable();
@@ -239,7 +239,9 @@ function updateHud(){
     gname.textContent = slotTag + (g.body ? g.body.def.emoji+' '+st.name : '맨손');
     // 케이브에서도 탄약 표시 (사격장에서 총 시험 사격 중)
     ammo.textContent = g.body
-      ? (player.reloading>0 ? '재장전... '+player.reloading.toFixed(1) : g.ammo+' / '+st.ammo)
+      ? (player.reloading>0
+          ? (player.shellLoading ? '장전중 '+g.ammo+' / '+st.ammo : '재장전... '+player.reloading.toFixed(1))
+          : g.ammo+' / '+st.ammo)
       : '';
     ammo.classList.toggle('low', !!g.body && g.ammo<=Math.max(1,st.ammo*0.2) && player.reloading<=0);
     const near = nearestInteractable();

@@ -550,8 +550,17 @@ function startReload(){
   const g = curGun();
   const st = gunStats(g);
   if(!g.body || player.reloading>0 || g.ammo>=st.ammo) return;
-  player.reloading = st.reload;
-  player.reloadTotal = st.reload;
+  if(st.cls==='산탄총'){
+    // 산탄총: 한 발씩 장전 — 총 시간은 같지만 쏘고 싶으면 중간에 끊고 발사 가능
+    player.shellT = Math.max(0.15, st.reload / Math.max(1, st.ammo));
+    player.reloading = player.shellT;
+    player.reloadTotal = player.shellT;
+    player.shellLoading = true;
+  } else {
+    player.shellLoading = false;
+    player.reloading = st.reload;
+    player.reloadTotal = st.reload;
+  }
   sfx('reload');
 }
 function updateShooting(dt){
@@ -563,13 +572,32 @@ function updateShooting(dt){
   player.swapT = Math.max(0, (player.swapT||0) - dt);
   if(player.reloading>0){
     player.reloading -= dt;
-    if(player.reloading<=0){ g.ammo = st.ammo; player.reloading=0; }
+    if(player.reloading<=0){
+      if(player.shellLoading){
+        // 산탄총: 한 발 채우고, 아직 모자라면 다음 발 장전 이어감
+        g.ammo = Math.min(st.ammo, g.ammo+1);
+        if(g.ammo < st.ammo){
+          player.reloading = player.shellT;
+          player.reloadTotal = player.shellT;
+          sfx('reload');
+        } else {
+          player.reloading = 0; player.shellLoading = false;
+        }
+      } else {
+        g.ammo = st.ammo; player.reloading = 0;
+      }
+    }
   }
   g.ammo = Math.min(g.ammo, st.ammo);
 
   if(!mouse.down || panel || (!inCave && raid.over) || !g.body || player.swapT>0) return;
-  if(player.fireCd>0 || player.reloading>0) return;
+  if(player.fireCd>0) return;
   const cost = st.ammoCost||1;
+  if(player.reloading>0){
+    // 산탄총은 이미 들어간 탄으로 장전을 끊고 즉시 발사 가능
+    if(player.shellLoading && g.ammo>=cost){ player.reloading = 0; player.shellLoading = false; }
+    else return;
+  }
   if(g.ammo<cost){ sfx('click'); startReload(); mouse.down=false; return; }
 
   player.fireCd = 60/st.rpm;
@@ -991,7 +1019,8 @@ function updateDrops(dt){
       if(dp<magR){ d.x = lerp(d.x,player.x,dt*8); d.y = lerp(d.y,player.y,dt*8); }
       if(dp<18){ player.coinsGained += Math.round(d.v * (raid.coinMul||1)); sfx('coin'); raid.drops.splice(i,1); }
     } else {
-      if(dp<24){
+      if(d.pickCd>0){ d.pickCd -= dt; } // 방금 버린 아이템은 잠깐 뒤부터 다시 주울 수 있음
+      else if(dp<24){
         if(State.backpack.autoPlace(d.inst)){
           toast('획득: '+d.inst.def.emoji+' '+d.inst.def.name);
           sfx('pick');
