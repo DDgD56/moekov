@@ -617,8 +617,9 @@ function updateShooting(dt){
   // 조준 시 탄퍼짐은 조금만 감소(최대 20%) — 대신 이동속도로 큰 대가를 치른다
   const spreadDeg = Math.max(0.5, (st.spread + player.bloom)*(moving?1.5:1)*(1-0.2*player.aimT));
   const bd = g.body.def;
+  // 총알 발사점: 총 렌더 피벗(손 높이 y - r*0.4)과 동일선상 — 좌우 조준 시 총구와 정렬
   const mx0 = player.x + Math.cos(player.ang)*(12+bd.bw*7.5);
-  const my0 = player.y + Math.sin(player.ang)*(12+bd.bw*7.5);
+  const my0 = (player.y - player.r*0.4) + Math.sin(player.ang)*(12+bd.bw*7.5);
   const mode = st.fire||null;
   const spd = 760 * (st.bulletSpd||1);
   const life = 0.95 * (st.rangeMul||1);

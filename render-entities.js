@@ -259,7 +259,7 @@ function drawPlayer(){
   // 총은 조준각 그대로 회전 — 캐릭터 손(몸통 중간) 높이에 맞춤
   const spin = player.reloading>0 && player.reloadTotal>0
     ? (1 - player.reloading/player.reloadTotal)*Math.PI*2 : 0;
-  drawGunWorld(ctx, curGun(), sx, sy-player.r*0.7, player.ang, player.flash, spin, player.kick);
+  drawGunWorld(ctx, curGun(), sx, sy-player.r*0.4, player.ang, player.flash, spin, player.kick); // 손 높이 (총알 발사점과 일치)
   if(rolling) ctx.restore();
   ctx.globalAlpha = 1;
 }
