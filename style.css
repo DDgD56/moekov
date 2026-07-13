@@ -146,11 +146,11 @@ canvas#cv { display:block; position:fixed; inset:0; cursor:crosshair;
   animation:relicPulse 1.4s ease-in-out infinite; }
 .item.relic .item-emoji { text-shadow:0 0 10px rgba(210,140,255,.95), 0 2px 3px rgba(0,0,0,.5); }
 @keyframes relicPulse { 50% { filter:drop-shadow(0 0 4px rgba(200,120,255,.5)); } }
-.tip-rare { color:#ffcf4a; font-size:11px; background:rgba(120,90,20,.4);
-  border:1px solid #a8842a; border-radius:8px; padding:1px 7px; margin-left:4px;
+.tip-rare { color:#ffcf4a; font-size:10px; background:rgba(120,90,20,.4);
+  border:1px solid #a8842a; padding:1px 6px; margin-left:4px;
   vertical-align:2px; }
-.tip-relic { color:#e0b0ff; font-size:11px; background:rgba(90,40,130,.45);
-  border:1px solid #9a5ad0; border-radius:8px; padding:1px 7px; margin-left:4px;
+.tip-relic { color:#e0b0ff; font-size:10px; background:rgba(90,40,130,.45);
+  border:1px solid #9a5ad0; padding:1px 6px; margin-left:4px;
   vertical-align:2px; }
 .item:hover svg { filter:brightness(1.35); }
 .item.rare:hover svg { filter:brightness(1.35) drop-shadow(0 0 5px rgba(230,190,80,.55)); }
@@ -161,16 +161,33 @@ canvas#cv { display:block; position:fixed; inset:0; cursor:crosshair;
 .drag-ghost.bad .shape-path { fill:rgba(220,80,80,.4); stroke:#dc5a5a; }
 #drag-layer { position:fixed; inset:0; pointer-events:none; z-index:99; }
 
-/* ---------- 아이템 툴팁 ---------- */
-#tooltip { position:fixed; z-index:120; background:rgba(18,14,9,.97); border:2px solid #6a5a42;
-  border-radius:0; padding:10px 14px; max-width:280px; font-size:12px; line-height:1.55;
+/* ---------- 아이템 툴팁 (섹션형 카드) ---------- */
+#tooltip { position:fixed; z-index:120; background:rgba(20,15,10,.97); border:2px solid #6a5a42;
+  border-radius:0; padding:0; max-width:272px; min-width:188px; font-size:12px; line-height:1.5;
   pointer-events:none; opacity:0; transition:opacity .08s; box-shadow:3px 3px 0 #000; }
 #tooltip.show { opacity:1; }
-.tip-name { font-size:14px; font-weight:bold; color:#f0d9a8; margin-bottom:2px; }
-.tip-kind { color:#b8a888; margin-bottom:4px; }
-.tip-mods { color:#8ad0a0; margin-bottom:2px; }
-.tip-desc { color:#c9b8a0; font-style:italic; margin:4px 0; }
-.tip-val { color:#e8c84a; font-weight:bold; }
+.tip-head { display:flex; gap:9px; align-items:center; padding:9px 12px 8px;
+  background:linear-gradient(rgba(255,235,190,.08), rgba(255,235,190,0)); }
+.tip-ico { flex:0 0 auto; width:34px; height:34px; display:flex; align-items:center; justify-content:center;
+  background:rgba(0,0,0,.5); border:1px solid #4a3f30;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.05); font-size:18px; }
+.tip-head-tx { min-width:0; }
+.tip-name { font-size:14px; font-weight:bold; color:#f0d9a8; }
+.tip-cat { display:flex; flex-wrap:wrap; gap:4px; align-items:center; margin-top:3px; }
+.tip-badge { --bc:#b8a888; font-size:10px; padding:1px 6px; color:#f0e6d0; line-height:1.5;
+  background:color-mix(in srgb, var(--bc) 24%, transparent);
+  border:1px solid color-mix(in srgb, var(--bc) 55%, transparent); }
+.tip-use { color:#8a7a62; font-size:10px; }
+.tip-stats { display:flex; flex-wrap:wrap; gap:4px; padding:8px 12px; border-top:1px solid #3a3226; }
+.tip-chip { font-size:11px; color:#8ad0a0; padding:1px 6px; line-height:1.6;
+  background:rgba(90,160,110,.12); border:1px solid rgba(120,200,140,.28); }
+.tip-rails { display:flex; flex-wrap:wrap; gap:4px; padding:0 12px 8px; }
+.tip-note { padding:0 12px 8px; color:#8a7a62; font-size:10.5px; }
+.tip-desc { color:#c9b8a0; font-style:italic; padding:7px 12px; border-top:1px solid #3a3226; }
+.tip-foot { display:flex; justify-content:space-between; align-items:center; gap:16px;
+  padding:6px 12px; border-top:1px solid #3a3226; background:rgba(0,0,0,.32);
+  color:#8a7a62; font-size:11px; }
+.tip-foot b { color:#e8c84a; font-size:12.5px; }
 
 /* ---------- 판매함 ---------- */
 .sell-bin { margin-top:14px; border:2px dashed #8a7a52; border-radius:10px; padding:14px;

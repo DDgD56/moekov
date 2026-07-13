@@ -639,42 +639,67 @@ const TIP_MODS = {
   boom: v=>`💥 작렬 (명중 시 반경 ${v} 폭발)`,
   magnet: v=>`🧲 코인 자석 ×${v}`,
 };
+// 섹션형 카드 툴팁: 헤더(도트 아이콘+이름+등급/종류) / 스탯 칩 / 설명 / 가치
 function tipHTML(def){
-  let kind = '', extra = '';
+  const KIND_COLOR = { body:'#c96a5a', gear:'#7a9ab0', food:'#d488a8', loot:'#d4a832' };
+  const badges = [];      // [라벨, 색]
+  let use = '', chips = [], railHTML = '', note = '';
   if(def.kind==='att'){
-    const bs = baseShape(def), [bw2,bh2] = shapeSize(bs);
-    kind = `부착물 · <b style="color:${SOCK_INFO[def.sock].color}">${SOCK_INFO[def.sock].name} 소켓</b> · ${bw2}×${bh2} · R로 회전 장착`;
-    const mods = Object.entries(def.mods||{})
-      .map(([k,v])=>TIP_MODS[k]?TIP_MODS[k](v):'').filter(Boolean).join(' · ');
-    if(mods) extra = `<div class="tip-mods">${mods}</div>`;
+    const si = SOCK_INFO[def.sock];
+    badges.push([si.name+' 소켓', si.color]);
+    use = '작업대에서 장착';
+    chips = Object.entries(def.mods||{})
+      .map(([k,v])=>TIP_MODS[k]?TIP_MODS[k](v):'').filter(Boolean);
   } else if(def.kind==='body'){
-    kind = `총 몸통 · <b>${def.cls||'?'}</b> · ${def.bw}×${def.bh}`;
+    badges.push(['총 몸통', KIND_COLOR.body]);
+    if(def.cls) badges.push([def.cls, '#8a7a62']);
     const b = def.base;
-    const rails = def.rails.map(r=>`${SOCK_INFO[r.type].name}${r.len}`).join(' · ');
-    extra = `<div class="tip-mods">공격력 ${b.dmg}${(b.pellets||1)>1?'×'+b.pellets:''} · ${b.rpm}rpm · 장탄 ${b.ammo} · 탄퍼짐 ${b.spread}° · 반동 ${b.recoil!=null?b.recoil:6} · 소음 ${b.noise}</div>
-      <div class="tip-mods">소켓: ${rails}</div>`;
+    chips = [`공격력 ${b.dmg}${(b.pellets||1)>1?'×'+b.pellets:''}`, `연사 ${b.rpm}rpm`,
+             `장탄 ${b.ammo}`, `탄퍼짐 ${b.spread}°`,
+             `반동 ${b.recoil!=null?b.recoil:6}`, `소음 ${b.noise}`];
+    railHTML = `<div class="tip-rails">${def.rails.map(r=>{
+      const s = SOCK_INFO[r.type];
+      return `<span class="tip-badge" style="--bc:${s.color}">${s.name} ${r.len}</span>`;
+    }).join('')}</div>`;
   } else if(def.kind==='gear'){
-    kind = `장비 · <b>${def.slot==='head'?'🪖 머리':'🦺 몸통'}</b> · 더블클릭 착용`;
-    extra = `<div class="tip-mods">🛡 방어 ${def.armor||0} (받는 피해 -${def.armor||0}, 최소 25%는 관통)</div>`;
+    badges.push(['장비 · '+(def.slot==='head'?'🪖 머리':'🦺 몸통'), KIND_COLOR.gear]);
+    use = '더블클릭 착용';
+    chips = [`🛡 방어 ${def.armor||0}`];
+    note = `받는 피해 -${def.armor||0} · 최소 25%는 관통`;
   } else if(def.kind==='food'){
     if(def.effect==='extractDetect'){
-      kind = '소모품 · 더블클릭/퀵슬롯 사용';
-      extra = `<div class="tip-mods">📡 탈출구 방향 ${def.effectDur||10}초</div>`;
+      badges.push(['소모품', KIND_COLOR.food]);
+      use = '더블클릭·퀵슬롯 사용';
+      chips = [`📡 탈출구 방향 ${def.effectDur||10}초`];
     } else {
-      kind = '음식 · 더블클릭 사용';
-      extra = `<div class="tip-mods">체력 +${def.heal}</div>`;
+      badges.push(['음식', KIND_COLOR.food]);
+      use = '더블클릭 사용';
+      chips = [`체력 +${def.heal}`];
     }
   } else {
-    kind = '귀중품 · 케이브 판매함에서 판매';
+    badges.push(['귀중품', KIND_COLOR.loot]);
+    use = '케이브 판매함에서 판매';
   }
-  const rareTag = def.relic ? ' <span class="tip-relic">★★★ 유물</span>'
-    : (def.exotic ? ' <span class="tip-rare">★★ 엑조틱</span>'
-    : (def.bossBody ? ' <span class="tip-rare">👑 보스 전용</span>'
-    : (def.rare ? ' <span class="tip-rare">★ 희귀</span>' : '')));
-  return `<div class="tip-name">${def.emoji} ${def.name}${rareTag}</div>
-    <div class="tip-kind">${kind}</div>${extra}
-    ${def.desc?`<div class="tip-desc">${def.desc}</div>`:''}
-    <div class="tip-val">가치 ${def.value}🪙</div>`;
+  const rareTag = def.relic ? '<span class="tip-relic">★★★ 유물</span>'
+    : (def.exotic ? '<span class="tip-rare">★★ 엑조틱</span>'
+    : (def.bossBody ? '<span class="tip-rare">👑 보스 전용</span>'
+    : (def.rare ? '<span class="tip-rare">★ 희귀</span>' : '')));
+  // 배지·칩과 겹치는 음식 설명 문구는 표시에서 제거 (데이터는 그대로)
+  let desc = def.desc || '';
+  if(def.kind==='food')
+    desc = desc.replace(/^더블클릭으로 사용\.?\s*/,'').replace(/\s*체력 \+\d+\.?\s*$/,'').trim();
+  return `<div class="tip-head">
+      <span class="tip-ico"></span>
+      <div class="tip-head-tx">
+        <div class="tip-name">${def.name}${rareTag?' '+rareTag:''}</div>
+        <div class="tip-cat">${badges.map(b=>`<span class="tip-badge" style="--bc:${b[1]}">${b[0]}</span>`).join('')}${use?`<span class="tip-use">${use}</span>`:''}</div>
+      </div>
+    </div>
+    ${chips.length?`<div class="tip-stats">${chips.map(c=>`<span class="tip-chip">${c}</span>`).join('')}</div>`:''}
+    ${railHTML}
+    ${note?`<div class="tip-note">${note}</div>`:''}
+    ${desc?`<div class="tip-desc">${desc}</div>`:''}
+    <div class="tip-foot"><span>가치</span><b>${def.value} 🪙</b></div>`;
 }
 function positionTip(x,y){
   const r = tipEl.getBoundingClientRect();
@@ -687,6 +712,16 @@ function positionTip(x,y){
 function showTip(def, x, y){
   ensureTip();
   tipEl.innerHTML = tipHTML(def);
+  // 헤더에 도트 아이콘 (이모지 대신)
+  const ico = tipEl.querySelector('.tip-ico');
+  if(ico && typeof itemIconEl==='function'){
+    const c = itemIconEl(def, 24, false, true);
+    c.style.position = 'static';
+    c.style.transform = 'none';
+    ico.appendChild(c);
+  } else if(ico){
+    ico.textContent = def.emoji || '';
+  }
   tipEl.classList.add('show');
   positionTip(x,y);
 }
