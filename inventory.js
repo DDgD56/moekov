@@ -163,6 +163,33 @@ function emojiAnchor(cells){
   return [best[0]+0.5, best[1]+0.5];
 }
 
+// ── 모양 채움 아트: 아이콘을 폴리오미노 전체에 커버 스케일로 깔고 셀 경계로 클리핑 ──
+// 번개(bolt) 아이템이면 번개 그림이 지그재그 칸들을 따라 채워지는 식.
+const _shapeArtCache = new Map();
+function shapeArtURL(def, cells, cs){
+  const key = def.id + ':' + cs + ':' + cells.map(c=>c[0]+'.'+c[1]).join(',');
+  if(_shapeArtCache.has(key)) return _shapeArtCache.get(key);
+  const [sw,sh] = shapeSize(cells);
+  const cn = document.createElement('canvas');
+  cn.width = sw*cs; cn.height = sh*cs;
+  const g = cn.getContext('2d');
+  g.imageSmoothingEnabled = false;
+  const path = new Path2D(outlinePathD(cells, cs));
+  g.save();
+  g.clip(path, 'evenodd');
+  const srcIcon = itemIconCanvas(def, false); // 16×16 도트 아이콘
+  // 절충 스케일: 완전 커버(max)는 큰 모양에서 과확대로 뭉개져서, min·max 평균으로
+  // 모양 대부분을 채우되 아이콘 형태가 알아볼 수 있게 유지
+  const scale = ((Math.max(sw,sh)+Math.min(sw,sh))/2) * cs / 16 * 1.15;
+  const dw = 16*scale;
+  g.drawImage(srcIcon, Math.round((sw*cs-dw)/2), Math.round((sh*cs-dw)/2), dw, dw);
+  g.restore();
+  const url = cn.toDataURL();
+  if(_shapeArtCache.size > 400) _shapeArtCache.clear();
+  _shapeArtCache.set(key, url);
+  return url;
+}
+
 // 임의 셀 배열로 아이템 요소 생성 (인벤토리·작업대 공용)
 // hidden: 미식별 실루엣 (모양만 보이고 정체 불명)
 function buildShapeEl(cells, def, cs, hidden){
@@ -194,23 +221,33 @@ function buildShapeEl(cells, def, cs, hidden){
     g.setAttribute('fill', 'none');
     svg.appendChild(g);
   }
-  el.appendChild(svg);
-  const [ax,ay] = emojiAnchor(cells);
-  // 도트 아이콘 (emoji 대체)
-  const iconSz = Math.max(16, Math.floor(cs*0.58));
-  const ic = (typeof itemIconEl==='function')
-    ? itemIconEl(def, iconSz, !!hidden)
-    : (()=>{ const d=document.createElement('div'); d.className='item-emoji'; d.textContent=hidden?'❓':def.emoji; return d; })();
-  ic.classList.add('item-emoji'); // 위치 스타일 재사용
-  ic.style.left = ax*cs+'px'; ic.style.top = ay*cs+'px';
-  ic.style.position = 'absolute';
-  ic.style.transform = 'translate(-50%,-50%)';
-  ic.style.pointerEvents = 'none';
-  if(ic.tagName==='CANVAS'){
-    ic.style.imageRendering = 'pixelated';
-    ic.style.filter = 'drop-shadow(0 1px 0 #000)';
+  // 아이콘: 2칸 이상이면 모양 전체에 아트를 채움 (셀 경계 클리핑), 1칸·미식별은 중앙 아이콘
+  const shapeFill = !hidden && cells.length >= 2 && typeof itemIconCanvas==='function';
+  if(shapeFill){
+    const art = document.createElement('div');
+    art.className = 'item-shape-art';
+    art.style.cssText = 'position:absolute;inset:0;pointer-events:none;image-rendering:pixelated;'
+      + 'background-image:url('+shapeArtURL(def, cells, cs)+');background-size:100% 100%;';
+    el.appendChild(art); // svg(틴트+외곽선) 위, 하지만 svg 스트로크가 아트 경계를 감싸줌
   }
-  el.appendChild(ic);
+  el.appendChild(svg);
+  if(!shapeFill){
+    const [ax,ay] = emojiAnchor(cells);
+    const iconSz = Math.max(16, Math.floor(cs*0.58));
+    const ic = (typeof itemIconEl==='function')
+      ? itemIconEl(def, iconSz, !!hidden)
+      : (()=>{ const d=document.createElement('div'); d.className='item-emoji'; d.textContent=hidden?'❓':def.emoji; return d; })();
+    ic.classList.add('item-emoji');
+    ic.style.left = ax*cs+'px'; ic.style.top = ay*cs+'px';
+    ic.style.position = 'absolute';
+    ic.style.transform = 'translate(-50%,-50%)';
+    ic.style.pointerEvents = 'none';
+    if(ic.tagName==='CANVAS'){
+      ic.style.imageRendering = 'pixelated';
+      ic.style.filter = 'drop-shadow(0 1px 0 #000)';
+    }
+    el.appendChild(ic);
+  }
   if(hidden){
     el.classList.add('unknown');
   } else {
