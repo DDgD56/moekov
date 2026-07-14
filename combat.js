@@ -537,9 +537,19 @@ function noiseEvent(x,y,r){
 
 function hurtPlayer(dmg){
   if(player.iframe>0 || raid.over) return;
-  // 착용 장비 방어력: 고정 감산, 단 최소 25%는 뚫고 들어옴
+  // 착용 장비 방어력: 고정 감산, 단 최소 25%는 뚫고 들어옴 (내구도 비례 효율)
   const ar = (typeof gearArmor==='function') ? gearArmor() : 0;
-  if(ar>0) dmg = Math.max(Math.round(dmg*0.25), dmg-ar);
+  if(ar>0){
+    dmg = Math.max(Math.round(dmg*0.25), dmg-ar);
+    // 방어가 실제로 작동한 피격마다 착용 장비 내구도 -1
+    for(const slot of ['head','body']){
+      const g = State.gear[slot];
+      if(g && g.dur!=null && g.dur>0){
+        g.dur--;
+        if(g.dur<=0) toast('💔 '+g.def.emoji+' '+g.def.name+' 내구도 소진 — 방어 효과가 사라졌다!');
+      }
+    }
+  }
   dmg = Math.max(1, Math.round(dmg));
   player.hp -= dmg;
   player.iframe = 0.6;

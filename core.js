@@ -180,12 +180,28 @@ function switchGun(i){
 }
 
 function upTier(key){ return UPGRADES[key].tiers[State.up[key]]; }
-// 착용 장비 총 방어력
+// 장비 한 점의 유효 방어력 — 내구도에 비례해 효율이 떨어진다 (0이면 방어 없음)
+function gearPieceArmor(g){
+  if(!g) return 0;
+  const base = g.def.armor||0;
+  if(g.dur==null || !g.def.dur) return base;
+  return Math.round(base * Math.max(0, g.dur) / g.def.dur);
+}
+// 착용 장비 총 방어력 (내구도 반영)
 function gearArmor(){
-  let a = 0;
-  if(State.gear.head) a += State.gear.head.def.armor||0;
-  if(State.gear.body) a += State.gear.body.def.armor||0;
-  return a;
+  return gearPieceArmor(State.gear.head) + gearPieceArmor(State.gear.body);
+}
+// 착용 장비 저장/로드 — {d, du}. 구세이브(문자열 id)는 내구도 만땅으로 마이그레이션
+function serializeGear(g){
+  return g ? { d: g.def.id, du: g.dur!=null ? g.dur : undefined } : null;
+}
+function loadGear(v){
+  if(!v) return null;
+  const id = typeof v==='string' ? v : v.d;
+  if(!id || !ITEMS[id]) return null;
+  const inst = mkInst(id);
+  if(typeof v==='object' && v.du!=null) inst.dur = v.du;
+  return inst;
 }
 function rollMax(){ return upTier('roll').n; }
 function rollCd(){ return upTier('roll').cd; }
@@ -203,7 +219,7 @@ function saveGame(){
       quest: State.quest, exoQuest: State.exoQuest,
       questOffers: State.questOffers, questsDone: State.questsDone||0,
       qslots: State.qslots.map(i=>i?{d:i.def.id}:null),
-      gear: { head: State.gear.head?State.gear.head.def.id:null, body: State.gear.body?State.gear.body.def.id:null },
+      gear: { head: serializeGear(State.gear.head), body: serializeGear(State.gear.body) },
       deathCache: State.deathCache,
       region: State.region, regionExtracts: State.regionExtracts, regionBoss: State.regionBoss,
       stash: State.stash.map(serializeStash),
@@ -255,7 +271,7 @@ function loadGame(){
     State.stashUnlocked = State.stashSlots > 0;
     State.qslots = (d.qslots||[null,null,null]).map(s=> s && ITEMS[s.d] ? mkInst(s.d) : null);
     const gd = d.gear||{};
-    State.gear = { head: gd.head&&ITEMS[gd.head]?mkInst(gd.head):null, body: gd.body&&ITEMS[gd.body]?mkInst(gd.body):null };
+    State.gear = { head: loadGear(gd.head), body: loadGear(gd.body) };
     for(const k in UPGRADES) if(State.up[k]==null) State.up[k]=0; // 구세이브에 없는 업그레이드 키 채움
     while(State.qslots.length<3) State.qslots.push(null);
     State.region = d.region || 'hill';

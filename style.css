@@ -367,6 +367,9 @@ canvas#cv { image-rendering:pixelated; image-rendering:crisp-edges; }
 .gear-slot.filled:hover { background:rgba(50,70,90,.55); border-color:#a8c8e0; }
 .gear-slot .gs-label { font-weight:bold; font-size:11px; opacity:.8; }
 .gear-slot .gs-none { opacity:.5; }
+.gear-slot .gs-dur { font-size:10px; color:#9ab8a0; }
+.gear-slot .gs-dur.low { color:#e0a050; }
+.gear-slot .gs-dur.broken { color:#e06050; font-weight:bold; }
 .gear-total { font-size:12px; font-weight:bold; color:#a8c8e0; margin-left:2px; }
 
 /* HUD: 구르기 픽 + 장비 */

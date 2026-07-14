@@ -635,6 +635,7 @@ function buildRaid(){
           if(!ITEMS[it.d]) continue;
           const inst = mkInst(it.d);
           inst.rot = it.r||0;
+          if(it.du!=null) inst.dur = it.du; // 장비 내구도 유지
           c.inv.autoPlace(inst); // 내 물건이라 조사(hidden) 없음
         }
         c.opened = true;

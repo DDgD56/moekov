@@ -448,9 +448,17 @@ function renderGearRow(rootEl){
   const slots = [['head','🪖 머리'],['body','🦺 몸통']];
   rootEl.innerHTML = slots.map(([s,label])=>{
     const g = State.gear[s];
+    let itemHTML = '<span class="gs-none">없음</span>';
+    if(g){
+      const eff = gearPieceArmor(g);
+      const durHTML = (g.dur!=null && g.def.dur)
+        ? ` <span class="gs-dur${g.dur<=0?' broken':(g.dur/g.def.dur<=0.3?' low':'')}">${g.dur<=0?'💔':'⚙'}${g.dur}/${g.def.dur}</span>`
+        : '';
+      itemHTML = g.def.emoji+' '+g.def.name+' <b>🛡'+eff+'</b>'+durHTML;
+    }
     return `<div class="gear-slot ${g?'filled':''}" data-slot="${s}" title="${g?'클릭하면 벗어서 가방으로':'비어있음 — 장비를 더블클릭해 착용'}">
       <span class="gs-label">${label}</span>
-      <span class="gs-item">${g ? g.def.emoji+' '+g.def.name+' <b>🛡'+(g.def.armor||0)+'</b>' : '<span class="gs-none">없음</span>'}</span>
+      <span class="gs-item">${itemHTML}</span>
     </div>`;
   }).join('') + `<div class="gear-total">🛡 총 방어 ${gearArmor()}</div>`;
   rootEl.querySelectorAll('.gear-slot.filled').forEach(el=>{

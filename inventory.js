@@ -6,7 +6,10 @@ let UID = 1;
 function mkInst(defId){
   const def = ITEMS[defId];
   if(!def) throw new Error('unknown item: '+defId);
-  return { uid: UID++, def, rot: 0 };
+  const inst = { uid: UID++, def, rot: 0 };
+  // 장비(헬멧/방탄복)는 개체별 내구도 — 피격마다 닳고 방어 효율이 떨어진다
+  if(def.kind==='gear' && def.dur) inst.dur = def.dur;
+  return inst;
 }
 
 function baseShape(def){
@@ -70,13 +73,18 @@ class Inv {
   count(){ return this.items.length; }
   serialize(){
     return { w:this.w, h:this.h,
-      items: this.items.map(it=>({d:it.inst.def.id, x:it.x, y:it.y, r:it.inst.rot})) };
+      items: this.items.map(it=>{
+        const e = {d:it.inst.def.id, x:it.x, y:it.y, r:it.inst.rot};
+        if(it.inst.dur!=null) e.du = it.inst.dur; // 장비 내구도
+        return e;
+      }) };
   }
   static load(data){
     const inv = new Inv(data.w, data.h);
     for(const it of (data.items||[])){
       if(!ITEMS[it.d]) continue;
       const inst = mkInst(it.d); inst.rot = it.r||0;
+      if(it.du!=null) inst.dur = it.du;
       inv.items.push({inst, x:it.x, y:it.y});
     }
     return inv;
@@ -190,7 +198,8 @@ function emojiAnchor(cells){
 // 임의 셀 배열로 아이템 요소 생성 (인벤토리·작업대 공용)
 // hidden: 미식별 실루엣 (모양만 보이고 정체 불명)
 // xf: {rot, side} — 배치 회전·작업대 장착면. 아트가 칸과 같이 돌아가게 한다.
-function buildShapeEl(cells, def, cs, hidden, xf){
+// inst: 개체 정보(내구도 등)를 툴팁에 표시할 때 전달 (선택)
+function buildShapeEl(cells, def, cs, hidden, xf, inst){
   const [sw,sh] = shapeSize(cells);
   const el = document.createElement('div');
   el.className = 'item';
@@ -254,12 +263,12 @@ function buildShapeEl(cells, def, cs, hidden, xf){
     if(def.relic){ el.classList.add('relic'); } // ★★★ 유물: 보라 글로우
     else if(def.rare){ el.classList.add('epic'); }
     else if(def.value>=150){ el.classList.add('rare'); }
-    attachTip(el, def);
+    attachTip(el, def, inst);
   }
   return el;
 }
 function buildItemEl(inst, cs){
-  return buildShapeEl(shapeOf(inst.def, inst.rot), inst.def, cs, inst.hidden, {rot: inst.rot||0});
+  return buildShapeEl(shapeOf(inst.def, inst.rot), inst.def, cs, inst.hidden, {rot: inst.rot||0}, inst);
 }
 
 // 활성 드롭존 목록 (패널 렌더 시 재구성)
@@ -640,7 +649,8 @@ const TIP_MODS = {
   magnet: v=>`🧲 코인 자석 ×${v}`,
 };
 // 섹션형 카드 툴팁: 헤더(도트 아이콘+이름+등급/종류) / 스탯 칩 / 설명 / 가치
-function tipHTML(def){
+// inst가 있으면 개체 정보(장비 내구도 등)도 표시
+function tipHTML(def, inst){
   const KIND_COLOR = { body:'#c96a5a', gear:'#7a9ab0', food:'#d488a8', loot:'#d4a832' };
   const badges = [];      // [라벨, 색]
   let use = '', chips = [], railHTML = '', note = '';
@@ -664,8 +674,14 @@ function tipHTML(def){
   } else if(def.kind==='gear'){
     badges.push(['장비 · '+(def.slot==='head'?'🪖 머리':'🦺 몸통'), KIND_COLOR.gear]);
     use = '더블클릭 착용';
-    chips = [`🛡 방어 ${def.armor||0}`];
-    note = `받는 피해 -${def.armor||0} · 최소 25%는 관통`;
+    const base = def.armor||0;
+    const eff = (inst && typeof gearPieceArmor==='function') ? gearPieceArmor(inst) : base;
+    chips = [eff < base ? `🛡 방어 ${eff} (원래 ${base})` : `🛡 방어 ${base}`];
+    if(def.dur){
+      const cur = inst && inst.dur!=null ? inst.dur : def.dur;
+      chips.push(`내구 ${cur}/${def.dur}${cur<=0?' 💔':''}`);
+    }
+    note = `받는 피해 -${eff} · 최소 25%는 관통 · 피격마다 내구 -1`;
   } else if(def.kind==='food'){
     if(def.effect==='extractDetect'){
       badges.push(['소모품', KIND_COLOR.food]);
@@ -709,9 +725,9 @@ function positionTip(x,y){
   tipEl.style.left = Math.max(4,tx)+'px';
   tipEl.style.top = Math.max(4,ty)+'px';
 }
-function showTip(def, x, y){
+function showTip(def, x, y, inst){
   ensureTip();
-  tipEl.innerHTML = tipHTML(def);
+  tipEl.innerHTML = tipHTML(def, inst);
   // 헤더에 도트 아이콘 (이모지 대신)
   const ico = tipEl.querySelector('.tip-ico');
   if(ico && typeof itemIconEl==='function'){
@@ -726,8 +742,8 @@ function showTip(def, x, y){
   positionTip(x,y);
 }
 function hideTip(){ if(tipEl) tipEl.classList.remove('show'); }
-function attachTip(el, def){
-  el.addEventListener('mouseenter', e=>{ if(!Drag.active) showTip(def, e.clientX, e.clientY); });
+function attachTip(el, def, inst){
+  el.addEventListener('mouseenter', e=>{ if(!Drag.active) showTip(def, e.clientX, e.clientY, inst); });
   el.addEventListener('mousemove', e=>{
     if(!Drag.active && tipEl && tipEl.classList.contains('show')) positionTip(e.clientX, e.clientY);
   });
@@ -748,7 +764,8 @@ function equipGear(inst, fromInv){
     return;
   }
   State.gear[slot] = inst;
-  toast('착용: '+inst.def.emoji+' '+inst.def.name+' (방어 +'+(inst.def.armor||0)+')');
+  const durTxt = (inst.dur!=null && inst.def.dur) ? ' · 내구 '+inst.dur+'/'+inst.def.dur : '';
+  toast('착용: '+inst.def.emoji+' '+inst.def.name+' (방어 +'+gearPieceArmor(inst)+durTxt+')');
   if(typeof sfx==='function') sfx('mount');
   if(typeof scene==='undefined' || scene!=='raid') saveGame();
   refreshPanel();

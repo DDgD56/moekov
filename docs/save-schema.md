@@ -29,7 +29,8 @@ Godot 이식 시 권장 경로: `user://moekov_save.json` (동일 JSON 스키마
 | `questOffers` | array\|null | 창구에 제안 중인 일반 의뢰 목록 |
 | `questsDone` | number | 완료한 퀘스트 수 (보상 스케일·오퍼 조건) |
 | `qslots` | array | 퀵슬롯 3칸 `[{d:itemId}\|null, …]` |
-| `deathCache` | object\|null | 사망 시체 회수 `{ items:[{d,r}], x, y, region }` — 같은 지역 다음 출격 1회만 배치. 다른 지역 출격 시 소멸 |
+| `gear` | object | 착용 장비 `{ head: {d, du}\|null, body: {d, du}\|null }` — `du`=남은 내구도 |
+| `deathCache` | object\|null | 사망 시체 회수 `{ items:[{d,r,du?}], x, y, region }` — 같은 지역 다음 출격 1회만 배치. 다른 지역 출격 시 소멸 |
 | `region` | string | 마지막 선택 지역 id (`hill`/`factory`/`marsh`) |
 | `regionExtracts` | object | 지역별 탈출 횟수 `{ [regionId]: number }` |
 | `regionBoss` | object | 지역별 보스 처치 `{ [regionId]: true }` |
@@ -40,10 +41,11 @@ Godot 이식 시 권장 경로: `user://moekov_save.json` (동일 JSON 스키마
 
 **인벤 (`Inv.serialize`)**
 ```json
-{ "w": 10, "h": 6, "items": [ { "d": "bandage", "x": 0, "y": 0, "r": 0 } ] }
+{ "w": 10, "h": 6, "items": [ { "d": "bandage", "x": 0, "y": 0, "r": 0 }, { "d": "pot_helmet", "x": 1, "y": 0, "r": 0, "du": 7 } ] }
 ```
 - `d`: 아이템 def id (`ITEMS` 키)
 - `r`: 회전 0–3
+- `du`: (장비만, 선택) 남은 내구도 — 없으면 로드 시 만땅(`def.dur`)
 
 **총 (`serializeGun`)**
 ```json
@@ -117,6 +119,7 @@ HP·탄약은 출격 시 `maxHp()` / `gunStats().ammo`로 리셋.
 | `exoticIntroDone` 없음 | `regionExtracts.factory` 있으면 완료로 간주 |
 | `stashUnlocked` 없음 + stash에 총 | 해금으로 간주 (구세이브) |
 | `deathCache.region` 없음 | `State.region`(마지막 선택 지역)으로 추정 |
+| `gear.head`/`gear.body`가 문자열 id (내구도 도입 전) | `loadGear`가 id로 인식, 내구도 만땅으로 생성 |
 
 **더 이상 사용하지 않음:** `stashBaseDone` (저장 안 함). 로드 시에만 레거시 키로 참조.
 
