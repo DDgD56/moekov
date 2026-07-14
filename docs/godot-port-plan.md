@@ -131,17 +131,20 @@ godot/
 ### Phase 2 — 데이터 + 인벤토리 (핵심 #1)
 
 **작업**
-- [ ] JSON → `DataDB` 로드
-- [ ] 아이템 인스턴스 / 그리드 인벤 클래스 (웹 `Inv` 대응)
-- [ ] 폴리오미노 배치·회전·충돌 검사 포팅
-- [ ] 창고·가방 UI 드래그앤드롭
-- [ ] 툴팁 (스탯·소켓·설명)
+- [x] JSON → `DataDB` 로드 (Phase 1에서 완료)
+- [x] 아이템 인스턴스 / 그리드 인벤 클래스 (`scripts/domain/inv.gd`, `item_inst.gd` — 웹 `Inv` 1:1)
+- [x] 폴리오미노 배치·회전·충돌 검사 포팅 (직렬화 포맷 `{w,h,items:[{d,x,y,r}]}` 웹 호환)
+- [x] 창고·가방 UI 드래그앤드롭 (`scenes/ui/inv_test.tscn` — R 회전·스냅·유효성 표시)
+- [x] 툴팁 (축약판 — 이름·종류·mods·설명·가치)
+- [x] 아이콘 시트 bake: 웹 `itemIconCanvas` 188종 → `assets/sprites/items16.png` (§Phase 0 선택 항목 해소)
 
 **완료 조건**
-- 에디터/테스트 씬에서 아이템 생성·이동·회전·저장·로드
-- 웹과 동일 케이스로 패킹 스모크 통과
+- [x] 테스트 씬에서 아이템 생성·이동·회전·저장·로드 (2026-07-14 확인)
+- [x] 웹과 동일 케이스로 패킹 스모크 통과 — `tests/packing_smoke.tscn` headless, placed=3/ser=3 웹과 일치
 
-**예상 공수:** 1~2주
+**남은 폴리시 (Phase 4 UI 본편에서):** 모양 채움 아트(SHAPE_ART 대응), Ctrl클릭 빠른 이동, 더블클릭 사용, 미식별 실루엣
+
+**예상 공수:** 1~2주 → 실제 착수일 완료 (테스트 씬 기준)
 
 ---
 
@@ -289,9 +292,10 @@ godot/
 
 ## 10. 의사결정 로그 (확정 시 체크)
 
-- [x] Godot 버전: **4.x** (권장, Phase 1에서 프로젝트 생성)
+- [x] Godot 버전: **4.7 stable** — 프로젝트: `/Users/tamsoo/TamsooNAS/12_Work_Game/Game_DotKov` (2026-07-14 생성)
+- [x] 렌더러: **Compatibility (GL)** — 2D 도트에 충분, 저사양 커버, 웹 데모 가능
 - [x] 언어: **GDScript** (기본)
-- [ ] 내부 해상도: ________ (Phase 1에서 확정, 후보 480×270 / 640×360)
+- [x] 내부 해상도: **640×360** + 정수 배율 (viewport stretch, 웹 ZOOM=2 체감과 유사, 1080p=3배)
 - [x] 데이터 포맷: **`data/*.json` 공유** → 웹은 `scripts/build-data-tables.js`로 `data.tables.js` 생성
 - [x] 아이콘: **PNG bake 권장** (Phase 0 선택 항목, 미구현 유지) / 당분간 웹 절차 생성 유지
 - [x] 1차 지역 수: **3개 전부** (hill / factory / marsh) 유지
@@ -301,9 +305,10 @@ godot/
 ## 11. 다음 액션 (바로 할 일)
 
 1. ~~Phase 0 데이터 JSON·세이브 스키마·스모크~~ **완료**
-2. Godot 4.x 빈 프로젝트 생성 + Windows export 스모크 (Phase 1)
-3. (선택) 아이콘 PNG bake 경로
-4. Phase 2: JSON → DataDB + 인벤 폴리오미노 포팅 착수
+2. ~~Godot 4.x 프로젝트 생성 + 골격~~ **완료** (`Game_DotKov`: 설정·입력맵·오토로드 4종·data 동기화·부트 씬 — 남은 것: Windows export 템플릿 설치 후 export 스모크)
+3. ~~아이콘 PNG bake~~ **완료** (`assets/sprites/items16.png` + json 매핑, 브라우저에서 export)
+4. ~~Phase 2: 인벤 폴리오미노 포팅~~ **완료** (도메인 `Inv`/`ItemInst` + 테스트 씬 + 패킹 스모크)
+5. Phase 3: 총 조립 착수 — `canMount`/`gunStats` 포팅 + 작업대 UI
 
 ---
 
