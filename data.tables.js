@@ -5794,7 +5794,7 @@ const ENEMY_TYPES = {
     "name": "좀비 미니",
     "emoji": "🧟",
     "hp": 42,
-    "spd": 188,
+    "spd": 175,
     "dmg": 22,
     "r": 14,
     "color": "#6a8a5a",
