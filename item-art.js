@@ -580,7 +580,7 @@ const SHAPE_ART = {
   },
 
   // 모기장 스코프: 하얀 그물 돔 + 기둥
-  mosquito_net_scope(a){ const {C,px,rect}=a;
+  mosquito_net_scope(a){ const {C,px,rect,disc}=a;
     rect(16,1,16,3,C.white);
     rect(10,4,28,4,C.white);
     rect(6,8,36,6,C.white);
