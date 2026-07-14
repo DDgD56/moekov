@@ -22,6 +22,11 @@
 Windows 배포용 제품은 **Godot 프로젝트를 새로 쌓는 방향**을 기본으로 한다.  
 (웹 엔진을 네이티브 포장하는 방식은 후보에서 제외 — 픽셀 UI·인벤 드래그가 Godot UI와 더 잘 맞음.)
 
+> **방침 전환 (2026-07-15):** 이제 **Godot(`Game_DotKov`)이 메인 개발 버전.**
+> 신규 기능은 Godot에 먼저 넣는다 (예: 보험 NPC — 웹에 없음).
+> 웹 JS 버전은 유지 보수만, 데이터(`data/*.json`)는 계속 단일 소스로 공유.
+> Godot 웹 export가 `ddgd56.github.io/moekov/play/`에 배포됨 (`tools/deploy-web.sh --push`).
+
 ---
 
 ## 2. 목표 / 비목표
