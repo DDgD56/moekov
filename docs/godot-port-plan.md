@@ -151,32 +151,36 @@ godot/
 ### Phase 3 — 총 조립 + 보관대 (핵심 #2)
 
 **작업**
-- [ ] 몸통 레일 / 부착물 장착 규칙 (`canMount`, footprint)
-- [ ] `gunStats` 집계 (발사 모드·엑조틱 포함)
-- [ ] 작업대 UI (슬롯 1·2, 필터 태그: 총기·소켓·귀중품·음식)
-- [ ] 총 보관대 (`stashSlots` / `rewardStash` 규칙 유지)
+- [x] 몸통 레일 / 부착물 장착 규칙 (`scripts/domain/gun_build.gd` — canMount/attFootprint/mountLocalCells 1:1)
+- [x] `gunStats` 집계 (발사 모드 우선순위·엑조틱·유물 기믹 포함)
+- [x] 작업대 테스트 UI (`scenes/ui/bench_test.tscn` — 레일 스냅 장착·R 회전·클릭 해제·몸통 교체·스탯 실시간)
+- [~] 총 보관대 — GameState에 guns/stash/stashSlots + `grant_stash_slots`(rewardStash 전용 규칙) 포팅. 보관대 UI·퀘스트 연결은 Phase 4에서
+- [x] 스탯 일치 검증 파이프라인: `tools/gen-gun-fixtures.js`(웹 실엔진 실행) → `tests/gun_smoke.tscn`
 
 **완료 조건**
-- 조립한 총 스탯이 웹과 오차 허용 범위 내 일치
-- 보관대 해금·확장 규칙이 퀘스트 보상 전용으로 동작
+- [x] 조립한 총 스탯이 웹과 일치 — 픽스처 13케이스(몸통 6종 bare+만재, 부착물 3~8개) **377필드 전부 일치** (2026-07-14)
+- [ ] 보관대 해금·확장 규칙 동작 (규칙 함수는 포팅, 퀘스트 연동 검증은 Phase 4)
 
-**예상 공수:** 1~2주
+**남은 폴리시 (Phase 4 UI 본편):** 슬롯 1·2 전환, 필터 태그, 보관대 넣기/꺼내기 UI
+
+**예상 공수:** 1~2주 → 코어 완료 (테스트 씬 기준)
 
 ---
 
 ### Phase 4 — 케이브 허브 + 메타 진행
 
 **작업**
-- [ ] 케이브 씬 (작업대·창고·창구·부품 수집가·출격·업그레이드)
-- [ ] 퀘스트: 일반 슬롯 + 엑조틱 슬롯 동시 진행
-- [ ] 지역 해금 (`extracts` / `boss`)
-- [ ] 업그레이드·코인·세이브 연동
-- [ ] 사격장(선택, 웹 동등 기능)
+- [x] 케이브 허브 씬 (`scenes/cave/cave_hub.tscn` — 탭형: 창구/수집가/업그레이드/출격 + 창고·작업대 씬 이동. 걸어다니는 케이브 월드는 Phase 5 렌더와 함께)
+- [x] 퀘스트: 일반 + 엑조틱 슬롯 동시 진행 (`scripts/autoload/meta.gd` — ensureOffers/accept/complete/kill·extract 크레딧 포팅)
+- [x] 지역 해금 (`region_unlocked` — extracts/boss 게이트)
+- [x] 업그레이드 (구매·재료 소모·인벤 리사이즈 아이템 보존)·코인·세이브 연동 (메타 필드 웹 세이브 스키마 호환)
+- [ ] 사격장(선택) — Phase 5 이후
+- [x] 레이드 없는 동안 처치/탈출 시뮬 버튼으로 루프 검증 (Phase 5에서 실전 대체)
 
 **완료 조건**
-- 세이브 로드 후 케이브에서 퀘스트 수락·보고·출격 지역 선택까지 루프
+- [x] 세이브 로드 후 케이브에서 퀘스트 수락·보고·출격 지역 선택까지 루프 — `tests/meta_smoke.tscn` PASS (지역게이트·듀얼퀘·rewardStash·fetch·업그레이드·세이브 왕복)
 
-**예상 공수:** 1~2주
+**예상 공수:** 1~2주 → 코어 완료 (허브는 탭형 1차)
 
 ---
 
@@ -308,7 +312,9 @@ godot/
 2. ~~Godot 4.x 프로젝트 생성 + 골격~~ **완료** (`Game_DotKov`: 설정·입력맵·오토로드 4종·data 동기화·부트 씬 — 남은 것: Windows export 템플릿 설치 후 export 스모크)
 3. ~~아이콘 PNG bake~~ **완료** (`assets/sprites/items16.png` + json 매핑, 브라우저에서 export)
 4. ~~Phase 2: 인벤 폴리오미노 포팅~~ **완료** (도메인 `Inv`/`ItemInst` + 테스트 씬 + 패킹 스모크)
-5. Phase 3: 총 조립 착수 — `canMount`/`gunStats` 포팅 + 작업대 UI
+5. ~~Phase 3: 총 조립~~ **완료** (`gun_build.gd` + 작업대 테스트 씬 + 픽스처 377필드 일치)
+6. ~~Phase 4: 케이브 허브 + 메타~~ **완료** (`meta.gd` + `cave_hub.tscn` + 메타 스모크)
+7. Phase 5: 레이드 코어 착수 — 플레이어 이동·사격, 적 스폰·AI, 맵은 고정 테스트맵부터
 
 ---
 
