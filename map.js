@@ -861,9 +861,15 @@ function pickRegionalPool(pool){
   };
   const regKey = map[pool] && reg && map[pool][reg];
   const regPool = regKey && LOOT_POOLS[regKey];
-  // 지역 맵: 전용 풀 우선 (지역 엑조틱 총구 포함 허용)
-  if(regPool && regPool.length && Math.random()<0.55)
-    return pick(regPool);
+  // 지역 맵: 전용 풀 우선 — 엑조틱 입문 전엔 지역 엑조틱·유물 제외
+  if(regPool && regPool.length && Math.random()<0.55){
+    for(let tr=0; tr<6; tr++){
+      const rid = pick(regPool);
+      const rd = ITEMS[rid];
+      if(!State.exoticIntroDone && rd && (rd.exotic || rd.relic)) continue;
+      return rid;
+    }
+  }
   // 공용 폴백: 엑조틱·지역 전용은 풀 데이터에서 제외되어 있어야 함 + 안전망
   const base = LOOT_POOLS[pool];
   if(base && base.length) return pickFiltered(base, pool==='att');
@@ -889,7 +895,7 @@ function fillContainer(c){
     const rareCh = 0.03 + ((raid && raid.rareBonus)||0) + (c.supply ? 0.5 : 0);
     let id;
     // 📦 보급 상자: 첫 슬롯은 엑조틱 확정
-    if(c.supply && i===0 && LOOT_POOLS.exoticAtt){
+    if(c.supply && i===0 && State.exoticIntroDone && LOOT_POOLS.exoticAtt){
       id = pick(LOOT_POOLS.exoticAtt);
       const inst0 = mkInst(id);
       inst0.hidden = true;
@@ -902,7 +908,7 @@ function fillContainer(c){
       // 뒷동산(★1)은 엑조틱·유물 상자 드롭 없음
       const exoCh = stars>=3 ? 0.55 : (stars>=2 ? 0.28 : 0);
       const relCh = stars>=3 ? 0.30 : (stars>=2 ? 0.06 : 0);
-      if(exoCh>0 && LOOT_POOLS.exoticAtt && Math.random()<exoCh){
+      if(exoCh>0 && State.exoticIntroDone && LOOT_POOLS.exoticAtt && Math.random()<exoCh){
         id = (relCh>0 && LOOT_POOLS.relicAtt && Math.random()<relCh)
           ? pick(LOOT_POOLS.relicAtt)
           : pick(LOOT_POOLS.exoticAtt);

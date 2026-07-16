@@ -733,7 +733,7 @@ function rollShopStock(){
   for(let i=0;i<3;i++){
     for(let tr=0;tr<8;tr++){
       const r = Math.random();
-      const pool = r<0.08 ? LOOT_POOLS.exoticAtt : (r<0.30 ? LOOT_POOLS.rareAtt : LOOT_POOLS.att);
+      const pool = (r<0.08 && State.exoticIntroDone) ? LOOT_POOLS.exoticAtt : (r<0.30 ? LOOT_POOLS.rareAtt : LOOT_POOLS.att);
       const mul = pool===LOOT_POOLS.att ? 1.6 : 1.9;
       const id = pick(pool);
       if(ITEMS[id] && ITEMS[id].relic) continue; // 혹시 풀에 섞여 있어도 제외
